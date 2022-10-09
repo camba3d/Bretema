@@ -1,0 +1,40 @@
+
+# Remove all
+
+*
+
+
+# Only store files below (with ! before path/expression)
+
+!bretema/
+!bretema/**
+
+!assets/
+!assets/**
+
+!clients/
+!clients/**
+
+!doc/
+!doc/**
+
+!tests/
+!tests/**
+
+!modules/
+!modules/**
+
+!.clang-format
+!.gitignore
+!.gitmodules
+
+!cmakelists.txt
+!readme.md
+
+!imgui.ini
+!buildinfo.h.in
+
+
+# Extra rules over whitelist
+
+.DS_Store

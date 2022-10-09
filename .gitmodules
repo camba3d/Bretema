@@ -1,0 +1,12 @@
+[submodule "Modules/glm"]
+	path = Modules/glm
+	url = git@github.com:g-truc/glm.git
+[submodule "Modules/glfw"]
+	path = Modules/glfw
+	url = git@github.com:glfw/glfw.git
+[submodule "Modules/fmt"]
+	path = Modules/fmt
+	url = git@github.com:fmtlib/fmt.git
+[submodule "Modules/Catch2"]
+	path = Modules/Catch2
+	url = git@github.com:catchorg/Catch2.git
