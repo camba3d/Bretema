@@ -15,7 +15,7 @@ project(Bretema VERSION 1.0)
 # Show only warning messages
 #set(CMAKE_MESSAGE_LOG_LEVEL "WARNING")
 
-# Export compile commands
+# Export compile commands 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 
@@ -137,61 +137,17 @@ add_custom_target(shaders ALL DEPENDS ${EXTRA_SHADERS}) # Seems like unneeded
 # - PROJECT
 # ------------------------- #
 
-set(Src_Project_Dir "Source/Bretema")
-set(Src_Platform_Dir "Source/Platform")
+set(SRC "Bretema")
 
-# file(GLOB EXTRA_HEADERS Source/*.h)
+# file(GLOB EXTRA_HEADERS ${SRC}/*.h)
 list(APPEND EXTRA_HEADERS
-    # ## Project
-    #     Source/Bretema.hpp
-
-    #     ### Main
-    #     ${Src_Project_Dir}/Base.hpp
-    #     ${Src_Project_Dir}/Core.hpp
-
-    #     ### RenderAPI
-    #     ${Src_Project_Dir}/Render/Ra.hpp
-    #     ${Src_Project_Dir}/Render/RaVk.hpp
-
-    #     ### Utils
-    #     ${Src_Project_Dir}/Utils/Files.hpp
-
-    #     ### Window
-    #     ${Src_Project_Dir}/Window/Window.hpp
-    
-    # ## Platform
-
-    #     ### Vulkan
-    #     ${Src_Platform_Dir}/Vulkan/Base.hpp
-    #     ${Src_Platform_Dir}/Vulkan/Resources.hpp
-    #     ${Src_Platform_Dir}/Vulkan/Types.hpp
-    #     ${Src_Platform_Dir}/Vulkan/Utils.hpp
-    #     ${Src_Platform_Dir}/Vulkan/ToStr.hpp
+    ${SRC}/Base.hpp
+    ${SRC}/Window.hpp
 )
 
-# file(GLOB EXTRA_SOURCES Source/*.cpp)
+# file(GLOB EXTRA_SOURCES ${SRC}/*.cpp)
 list(APPEND EXTRA_SOURCES
-    # ## Project
-
-    #     ### Main
-    #     ${Src_Project_Dir}/Core.cpp
-
-    #     ### RenderAPI
-    #     ${Src_Project_Dir}/Render/Ra.cpp
-    #     ${Src_Project_Dir}/Render/RaVk.cpp
-    #     #${Src_Project_Dir}/Render/RA_ResourceManager.hpp
-
-    #     ### Utils
-    #     #${Src_Project_Dir}/Utils/Files.hpp
-
-    #     ### Window
-    #     ${Src_Project_Dir}/Window/Window.cpp
-    
-    # ## Platform
-
-    #     ### Vulkan
-    #     ${Src_Platform_Dir}/Vulkan/Resources.cpp
-    #     ${Src_Platform_Dir}/Vulkan/Utils.cpp
+    ${SRC}/Window.cpp
 )
 
 add_library(${PROJECT_NAME}
@@ -238,7 +194,7 @@ endif()
 
 target_include_directories(${PROJECT_NAME}
     PUBLIC
-        Source
+        ${CMAKE_CURRENT_SOURCE_DIR}
     PRIVATE
         Modules
         ${EXTRA_LIB_INCL}
@@ -277,4 +233,5 @@ endfunction()
 # endif()
 
 # NEW_EXE( VkDemo Tests/VkDemo.cpp )
+NEW_EXE( BasicDemo Tests/BasicDemo.cpp )
 NEW_EXE( ImGuiDemo Tests/ImGuiDemo.cpp )
