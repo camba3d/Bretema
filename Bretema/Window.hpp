@@ -29,25 +29,27 @@ public:
 
     std::vector<char const *> exts() const;
 
+    std::string title() const { return mTitle; }
+    void        title(std::string title) { mTitle = std::move(title); }
+    void        titleInfo(std::string const &info);
+
     glm::vec2 size() const;
     void      size(int32_t w, int32_t h);
 
-    bool        isMarkedToClose() const;
     static void pollEvents();
     static void waitEvents();
 
     void        destroy();
     static void terminate();
-
-    void titleInfo(std::string const &info);
+    bool        shouldClose() const;
 
 private:
+    bool mDelete = true;
+
     GLFWwindow *mHandle = nullptr;
     int32_t     mW      = 1280;
     int32_t     mH      = 720;
     std::string mTitle  = "";
-
-    bool mDelete = true;
 
     static inline std::vector<char const *> sExts  = {};
     static inline bool                      sReady = false;

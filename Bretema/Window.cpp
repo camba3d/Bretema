@@ -16,12 +16,12 @@ Window::Window(int32_t w, int32_t h, std::string const &title)
     , mH(h)
     , mTitle(title)
 {
-
     if (!sReady)
     {
         BTM_ABORT_IF(!glfwInit(), sDebugTag + "Initializing Window-Manager");
-        glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);    // Resize windows takes special care
-        glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API); // Avoid OpenGL context creation
+        glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);  // Avoid OpenGL context creation
+        glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);     // Resize windows takes special care
+        glfwWindowHint(GLFW_FOCUS_ON_SHOW, GLFW_TRUE); // Focus the window when its opened
 
         uint32_t     extsCount = 0;
         char const **exts      = glfwGetRequiredInstanceExtensions(&extsCount);
@@ -51,13 +51,17 @@ Window::Window(int32_t w, int32_t h, std::string const &title)
 
 // ===== ACTIONs =====
 
-bool Window::isMarkedToClose() const
+bool Window::shouldClose() const
 {
-    return glfwWindowShouldClose(mHandle);
+    return mHandle ? glfwWindowShouldClose(mHandle) : true;
 }
 void Window::destroy()
 {
-    glfwDestroyWindow(mHandle);
+    if (mHandle)
+    {
+        glfwDestroyWindow(mHandle);
+        mHandle = nullptr;
+    }
 }
 
 void Window::pollEvents()
@@ -100,8 +104,9 @@ void Window::size(int32_t w, int32_t h)
 
 void Window::titleInfo(std::string const &info)
 {
+    if (mHandle)
+        glfwSetWindowTitle(mHandle, ("Bretema :: " + mTitle + " ::" + info).c_str());
     // glfwSetWindowTitle(mHandle, (BTM_APP->mName + " :: " + mTitle + " ::" + info).c_str());
-    glfwSetWindowTitle(mHandle, ("Bretema :: " + mTitle + " ::" + info).c_str());
 }
 
 } // namespace btm
