@@ -11,17 +11,14 @@ using w_IM = Input::Mouse;
 
 // ===== CTOR =====
 
-Window::Window(int32_t w, int32_t h, std::string const &title)
-    : mW(w)
-    , mH(h)
-    , mTitle(title)
+Window::Window(int32_t w, int32_t h, std::string const &title) : mW(w), mH(h), mTitle(title)
 {
     if (!sReady)
     {
         BTM_ABORT_IF(!glfwInit(), sDebugTag + "Initializing Window-Manager");
-        glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);  // Avoid OpenGL context creation
-        glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);     // Resize windows takes special care
-        glfwWindowHint(GLFW_FOCUS_ON_SHOW, GLFW_TRUE); // Focus the window when its opened
+        glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);   // Avoid OpenGL context creation
+        glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);      // Resize windows takes special care
+        glfwWindowHint(GLFW_FOCUS_ON_SHOW, GLFW_TRUE);  // Focus the window when its opened
 
         uint32_t     extsCount = 0;
         char const **exts      = glfwGetRequiredInstanceExtensions(&extsCount);
@@ -84,9 +81,9 @@ glm::vec2 Window::size() const
 {
     return {mW, mH};
 }
-std::vector<char const *> Window::exts() const
+std::vector<char const *> Window::extensions() const
 {
-    return sExts;
+    return sExtensions;
 }
 void *Window::handle() const
 {
@@ -109,4 +106,4 @@ void Window::titleInfo(std::string const &info)
     // glfwSetWindowTitle(mHandle, (BTM_APP->mName + " :: " + mTitle + " ::" + info).c_str());
 }
 
-} // namespace btm
+}  // namespace btm

@@ -1,149 +1,161 @@
----
+# ========================================================
+
 Language: Cpp
+Standard: Latest
+
+DisableFormat: false
+BasedOnStyle: Mozilla
+BreakBeforeBraces: Allman 
 
 UseTab: Never
+TabWidth: 4
 IndentWidth: 4
 AccessModifierOffset: -4
-# ColumnLimit: 120
-ColumnLimit: 140
+ContinuationIndentWidth: 2
 
-BreakBeforeBraces: Allman
-BreakBeforeTernaryOperators: true
-BreakInheritanceList: BeforeComma
-BreakConstructorInitializers: BeforeComma
-AlwaysBreakTemplateDeclarations: true
+ColumnLimit: 120
 
+# ========================================================
+
+PointerAlignment: Right
+
+# ========================================================
+
+AllowShortLoopsOnASingleLine: true
+AllowShortEnumsOnASingleLine: true
+AllowShortLambdasOnASingleLine: All
+AllowShortBlocksOnASingleLine: Empty
 AllowShortFunctionsOnASingleLine: Inline
+AllowShortCaseLabelsOnASingleLine: true
+AllowShortIfStatementsOnASingleLine: Never
 
-SpaceAfterCStyleCast: false
+# ========================================================
 
-#SeparateDefinitionBlocks: Always
+ReflowComments: true
+IndentCaseLabels: true
+IndentPPDirectives: AfterHash
+IndentWrappedFunctionNames: true
+LambdaBodyIndentation: Signature
 
-CompactNamespaces: true
-FixNamespaceComments: true
-ShortNamespaceLines: 0
+# ========================================================
+
+AlignEscapedNewlines: Left
+AlignOperands: AlignAfterOperator
+# AlignArrayOfStructures: Left #Right
+
+AlignTrailingComments: true
+AlignAfterOpenBracket: AlwaysBreak
+AlignConsecutiveMacros: AcrossComments
+AlignConsecutiveBitFields: AcrossComments
+AlignConsecutiveAssignments: AcrossComments
+AlignConsecutiveDeclarations: AcrossComments
+
+# ========================================================
+
+AllowAllArgumentsOnNextLine: false
+PackConstructorInitializers: CurrentLine
+AllowAllParametersOfDeclarationOnNextLine: false
 
 BinPackArguments: false
 BinPackParameters: false
 
-AllowShortIfStatementsOnASingleLine: false
+ConstructorInitializerAllOnOneLineOrOnePerLine: true
 
-IndentCaseLabels: false
+# ========================================================
 
-AlignEscapedNewlines: Left
-AlignTrailingComments: true
-AlignArrayOfStructures: Left
-# AlignArrayOfStructures: Right
-AlignOperands: AlignAfterOperator
-AlignAfterOpenBracket: AlwaysBreak
-AlignConsecutiveBitFields: AcrossComments
-AlignConsecutiveMacros: AcrossComments
-AlignConsecutiveAssignments: AcrossComments
-AlignConsecutiveDeclarations: AcrossComments
+BreakAfterJavaFieldAnnotations: false
+BreakBeforeBinaryOperators: NonAssignment
 
-# LambdaBodyIndentation: LBI_Signature
+BreakInheritanceList: AfterColon
+BreakConstructorInitializers: AfterColon
+
+BreakStringLiterals: true
+BreakBeforeTernaryOperators: true
+
+AlwaysBreakAfterDefinitionReturnType: None
+AlwaysBreakAfterReturnType: None
+AlwaysBreakBeforeMultilineStrings: false
+AlwaysBreakTemplateDeclarations: true
+
+BreakBeforeBraces: Allman #Custom
+
+# BraceWrapping:
+#   AfterClass:      true
+#   AfterControlStatement: false
+#   AfterEnum:       true
+#   AfterFunction:   true
+#   AfterNamespace:  true
+#   AfterObjCDeclaration: true
+#   AfterStruct:     true
+#   AfterUnion:      true
+#   AfterExternBlock: true
+#   BeforeCatch:     false
+#   BeforeElse:      false
+#   BeforeLambdaBody: true
+#   IndentBraces:    false
+#   SplitEmptyFunction: false
+#   SplitEmptyRecord: false
+#   SplitEmptyNamespace: true
+
+# ========================================================
+
+ShortNamespaceLines: 0
+CompactNamespaces: true
+FixNamespaceComments: true
+NamespaceIndentation: None
+
+# ========================================================
+
+IncludeBlocks: Regroup
+SortIncludes: CaseInsensitive
+SortUsingDeclarations: true
+
+# ========================================================
+
+KeepEmptyLinesAtTheStartOfBlocks: false
+
+# ========================================================
+
+JavaScriptQuotes: Single
+JavaScriptWrapImports: true
+
+# ========================================================
+
+# ctor { a, b, c };
+#Cpp11BracedListStyle: false
+#SpaceBeforeCpp11BracedList: true
+
+# ctor{a, b, c};
+Cpp11BracedListStyle: true
+SpaceBeforeCpp11BracedList: false
+
+# ========================================================
+
+SpaceAfterCStyleCast: false
+SpacesInCStyleCastParentheses: false
+
+SpaceAfterLogicalNot: false
+SpaceBeforeAssignmentOperators: true
+
+SpaceAfterTemplateKeyword: false
+
+SpaceBeforeCtorInitializerColon: true
+SpaceBeforeInheritanceColon: true
+
+SpaceBeforeParens: ControlStatements
+SpaceBeforeRangeBasedForLoopColon: true
+
+SpaceInEmptyParentheses: false
+
+SpacesBeforeTrailingComments: 2
+
+SpacesInAngles: false
+SpacesInParentheses: false
+SpacesInSquareBrackets: false
+SpacesInContainerLiterals: false
+SpacesInConditionalStatement: false
+
+# ========================================================
+
 
 ...
-
-
-
-# AlignConsecutiveBitFields: AcrossEmptyLinesAndComments
-# AlignConsecutiveMacros: AcrossEmptyLinesAndComments
-# AlignConsecutiveAssignments: AcrossEmptyLinesAndComments
-# AlignConsecutiveDeclarations: AcrossEmptyLinesAndComments
-
-
-# ---
-# BasedOnStyle: Mozilla
-# AccessModifierOffset: '-2'
-# AlignAfterOpenBracket: AlwaysBreak
-# AlignConsecutiveMacros: 'true'
-# AlignConsecutiveAssignments: 'true'
-# AlignConsecutiveDeclarations: 'true'
-# AlignEscapedNewlines: Left
-# AlignOperands: 'true'
-# AlignTrailingComments: 'true'
-# AllowAllArgumentsOnNextLine: 'false'
-# AllowAllConstructorInitializersOnNextLine: 'false'
-# AllowAllParametersOfDeclarationOnNextLine: 'false'
-# AllowShortBlocksOnASingleLine: 'false'  # / 'true'
-# AllowShortCaseLabelsOnASingleLine: 'false'  # / 'true'
-# AllowShortFunctionsOnASingleLine: None  # / All
-# AllowShortIfStatementsOnASingleLine: Never  # / Always
-# AllowShortLambdasOnASingleLine: None  # / All
-# AllowShortLoopsOnASingleLine: 'false'  # / 'true'
-# AlwaysBreakAfterDefinitionReturnType: None
-# AlwaysBreakAfterReturnType: None
-# AlwaysBreakBeforeMultilineStrings: 'false'
-# AlwaysBreakTemplateDeclarations: 'Yes'
-# #BinPackArguments: 'true'
-# #BinPackParameters: 'true'
-# BinPackArguments: 'false'
-# BinPackParameters: 'false'
-# BreakAfterJavaFieldAnnotations: 'false'
-# BreakBeforeBinaryOperators: NonAssignment
-# BreakBeforeBraces: Allman  # / Custom / Linux
-# # BraceWrapping:
-# #   AfterClass:      true
-# #   AfterControlStatement: false
-# #   AfterEnum:       true
-# #   AfterFunction:   true
-# #   AfterNamespace:  true
-# #   AfterObjCDeclaration: true
-# #   AfterStruct:     true
-# #   AfterUnion:      true
-# #   AfterExternBlock: true
-# #   BeforeCatch:     false
-# #   BeforeElse:      false
-# #   IndentBraces:    false
-# #   SplitEmptyFunction: false
-# #   SplitEmptyRecord: false
-# #   SplitEmptyNamespace: true
-# BreakBeforeTernaryOperators: 'true'
-# BreakConstructorInitializers: AfterColon
-# BreakInheritanceList: AfterColon
-# BreakStringLiterals: 'true'
-# ColumnLimit: '120'
-# CompactNamespaces: 'true'
-# ConstructorInitializerAllOnOneLineOrOnePerLine: 'true'
-# ContinuationIndentWidth: '2'
-# Cpp11BracedListStyle: 'false'
-# DerivePointerAlignment: 'false'
-# DisableFormat: 'false'
-# ExperimentalAutoDetectBinPacking: 'false'
-# FixNamespaceComments: 'true'
-# IncludeBlocks: Regroup
-# IndentCaseLabels: 'true'
-# IndentPPDirectives: AfterHash
-# IndentWidth: '2'
-# IndentWrappedFunctionNames: 'true'
-# JavaScriptQuotes: Single
-# JavaScriptWrapImports: 'true'
-# KeepEmptyLinesAtTheStartOfBlocks: 'false'
-# Language: Cpp
-# NamespaceIndentation: Inner
-# PointerAlignment: Right
-# ReflowComments: 'true'
-# SortIncludes: 'false' #'true'
-# SortUsingDeclarations: 'true'
-# SpaceAfterCStyleCast: 'false'
-# SpaceAfterLogicalNot: 'false'
-# SpaceAfterTemplateKeyword: 'false'
-# SpaceBeforeAssignmentOperators: 'true'
-# SpaceBeforeCpp11BracedList: 'true'
-# SpaceBeforeCtorInitializerColon: 'true'
-# SpaceBeforeInheritanceColon: 'true'
-# SpaceBeforeParens: ControlStatements
-# SpaceBeforeRangeBasedForLoopColon: 'true'
-# SpaceInEmptyParentheses: 'false'
-# SpacesBeforeTrailingComments: '2'
-# SpacesInAngles: 'false'
-# SpacesInCStyleCastParentheses: 'false'
-# SpacesInContainerLiterals: 'true'
-# SpacesInParentheses: 'false'
-# SpacesInSquareBrackets: 'false'
-# Standard: Latest
-# TabWidth: '2'
-# UseTab: Never
-
-# ...

@@ -52,6 +52,8 @@ find_package(Vulkan REQUIRED COMPONENTS glslc)
 find_program(glslc_executable NAMES glslc HINTS Vulkan::glslc)
 #list(APPEND EXTRA_LIB_INCL ${GLFW_DIR}/deps)
 list(APPEND EXTRA_LIBS Vulkan::Vulkan)
+add_subdirectory(Modules/vk-bootstrap)
+list(APPEND EXTRA_LIBS vk-bootstrap)
 
 # ImGui: Platform agnostic GUI
 set(IMGUI_DIR Modules/ImGui)
@@ -143,11 +145,16 @@ set(SRC "Bretema")
 list(APPEND EXTRA_HEADERS
     ${SRC}/Base.hpp
     ${SRC}/Window.hpp
-)
 
-# file(GLOB EXTRA_SOURCES ${SRC}/*.cpp)
+    ${SRC}/Vulkan/Base.hpp
+    ${SRC}/Vulkan/Manager.hpp
+    )
+    
+    # file(GLOB EXTRA_SOURCES ${SRC}/*.cpp)
 list(APPEND EXTRA_SOURCES
     ${SRC}/Window.cpp
+
+    ${SRC}/Vulkan/Manager.cpp
 )
 
 add_library(${PROJECT_NAME}

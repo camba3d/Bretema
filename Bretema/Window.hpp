@@ -1,33 +1,42 @@
 #pragma once
 
 #if __APPLE__
-#define GLFW_EXPOSE_NATIVE_COCOA
+#    define GLFW_EXPOSE_NATIVE_COCOA
 #elif _WIN64 || _WIN32
-#define GLFW_EXPOSE_NATIVE_WIN32
+#    define GLFW_EXPOSE_NATIVE_WIN32
 #elif __linux || __unix || __posix
-#define GLFW_EXPOSE_NATIVE_X11
+#    define GLFW_EXPOSE_NATIVE_X11
 // #  define GLFW_EXPOSE_NATIVE_WAYLAND
 #endif
 
 #define GLFW_INCLUDE_NONE
+#include "Base.hpp"
+
 #include <GLFW/glfw3.h>
 #include <GLFW/glfw3native.h>
-
-#include "Base.hpp"
 
 namespace btm
 {
 
 class App;
 
+struct GenericWindow
+{
+    void       *handle = nullptr;
+    glm::ivec2  size   = {1280, 720};
+    std::string name   = "";
+};
+
 class Window
 {
 public:
     Window(int32_t w, int32_t h, std::string const &title);
 
-    void *handle() const; // @dani : should be private (check implications)
+    GenericWindow const asGenericWindow() { return GenericWindow{mHandle, {mW, mH}, mTitle}; };
 
-    std::vector<char const *> exts() const;
+    void *handle() const;  // @dani : should be private? (check implications)
+
+    std::vector<char const *> extensions() const;
 
     std::string title() const { return mTitle; }
     void        title(std::string title) { mTitle = std::move(title); }
@@ -36,12 +45,13 @@ public:
     glm::vec2 size() const;
     void      size(int32_t w, int32_t h);
 
+    void destroy();
+    bool shouldClose() const;
+
     static void pollEvents();
     static void waitEvents();
 
-    void        destroy();
     static void terminate();
-    bool        shouldClose() const;
 
 private:
     bool mDelete = true;
@@ -59,4 +69,4 @@ private:
     friend class btm::App;
 };
 
-} // namespace btm
+}  // namespace btm

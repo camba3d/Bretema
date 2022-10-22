@@ -10,3 +10,6 @@
 [submodule "Modules/Catch2"]
 	path = Modules/Catch2
 	url = git@github.com:catchorg/Catch2.git
+[submodule "Modules/vk-bootstrap"]
+	path = Modules/vk-bootstrap
+	url = git@github.com:charles-lunarg/vk-bootstrap.git
