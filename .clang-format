@@ -21,12 +21,15 @@ PointerAlignment: Right
 
 # ========================================================
 
-AllowShortLoopsOnASingleLine: true
-AllowShortEnumsOnASingleLine: true
-AllowShortLambdasOnASingleLine: All
 AllowShortBlocksOnASingleLine: Empty
-AllowShortFunctionsOnASingleLine: Inline
+
+AllowShortEnumsOnASingleLine: true
 AllowShortCaseLabelsOnASingleLine: true
+
+AllowShortLambdasOnASingleLine: All
+AllowShortFunctionsOnASingleLine: Inline
+
+AllowShortLoopsOnASingleLine: false
 AllowShortIfStatementsOnASingleLine: Never
 
 # ========================================================
@@ -41,7 +44,7 @@ LambdaBodyIndentation: Signature
 
 AlignEscapedNewlines: Left
 AlignOperands: AlignAfterOperator
-# AlignArrayOfStructures: Left #Right
+# AlignArrayOfStructures: Left #Right  ## Be careful, this also affects to initializer_list as ctro
 
 AlignTrailingComments: true
 AlignAfterOpenBracket: AlwaysBreak

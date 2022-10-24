@@ -13,23 +13,23 @@ using w_IM = Input::Mouse;
 
 Window::Window(int32_t w, int32_t h, std::string const &title) : mW(w), mH(h), mTitle(title)
 {
-    if (!sReady)
+    if (!sIsWindowContextInitialized)
     {
-        BTM_ABORT_IF(!glfwInit(), sDebugTag + "Initializing Window-Manager");
+        BTM_ABORT_IF(!glfwInit(), sLogTag + "Initializing Window-Manager");
         glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);   // Avoid OpenGL context creation
         glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);      // Resize windows takes special care
         glfwWindowHint(GLFW_FOCUS_ON_SHOW, GLFW_TRUE);  // Focus the window when its opened
 
         uint32_t     extsCount = 0;
         char const **exts      = glfwGetRequiredInstanceExtensions(&extsCount);
-        sExts                  = exts ? decltype(sExts){exts, exts + extsCount} : decltype(sExts){};
+        sExtensions            = exts ? decltype(sExtensions){exts, exts + extsCount} : decltype(sExtensions){};
 
-        sReady = true;
+        sIsWindowContextInitialized = true;
     }
 
     // mHandle = glfwCreateWindow(mW, mH, (BTM_APP->mName + " :: " + mTitle).c_str(), nullptr, nullptr);
     mHandle = glfwCreateWindow(mW, mH, ("Bretema :: " + mTitle).c_str(), nullptr, nullptr);
-    BTM_ABORT_IF(!mHandle, sDebugTag + "Creating a new Window");
+    BTM_ABORT_IF(!mHandle, sLogTag + "Creating a new Window");
 
     // // Window Dependent Events
     // // Resize

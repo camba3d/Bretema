@@ -3,23 +3,23 @@
 // https://www.khronos.org/registry/vulkan/specs/1.2-extensions/man/html/WSIheaders.html
 
 #if __APPLE__
-#include "TargetConditionals.h"
-#if TARGET_OS_OSX == 1
-#define VK_USE_PLATFORM_MACOS_MVK
-#elif TARGET_OS_IPHONE == 1 || TARGET_OS_SIMULATOR == 1
-#define VK_USE_PLATFORM_IOS_MVK
-#endif
+#    include "TargetConditionals.h"
+#    if TARGET_OS_OSX == 1
+#        define VK_USE_PLATFORM_MACOS_MVK
+#    elif TARGET_OS_IPHONE == 1 || TARGET_OS_SIMULATOR == 1
+#        define VK_USE_PLATFORM_IOS_MVK
+#    endif
 #elif _WIN64 || _WIN32
-#define VK_USE_PLATFORM_WIN32_KHR
+#    define VK_USE_PLATFORM_WIN32_KHR
 #elif __linux || __unix || __posix
 // TODO: Get specific platform based on server
-#define VK_USE_PLATFORM_XLIB_KHR
+#    define VK_USE_PLATFORM_XLIB_KHR
 // #define VK_USE_PLATFORM_XCB_KHR
 // #define VK_USE_PLATFORM_WAYLAND_KHR
 // #define VK_USE_PLATFORM_MIR_KHR
 // #define VK_USE_PLATFORM_XLIB_XRANDR_EXT
 #elif __ANDROID__
-#define VK_USE_PLATFORM_ANDROID_KHR
+#    define VK_USE_PLATFORM_ANDROID_KHR
 #endif
 
 #define VK_ENABLE_BETA_EXTENSIONS
@@ -38,10 +38,10 @@
 // #endif
 
 // . Validate api calls
-#define BTM_VK_CHECK(vulkanCode)                                           \
-    if (VkResult res = vulkanCode; res != VK_SUCCESS)                      \
-    {                                                                      \
-        BTM_ABORTF("{} : {}", fade::vk::str::Result.at(res), #vulkanCode); \
+#define BTM_VK_CHECK(vulkanCode)                                          \
+    if (VkResult res = vulkanCode; res != VK_SUCCESS)                     \
+    {                                                                     \
+        BTM_ABORTF("{} : {}", btm::vk::str::Result.at(res), #vulkanCode); \
     }
 
 // . Get instance functions

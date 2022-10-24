@@ -20,19 +20,10 @@ namespace btm
 
 class App;
 
-struct GenericWindow
-{
-    void       *handle = nullptr;
-    glm::ivec2  size   = {1280, 720};
-    std::string name   = "";
-};
-
 class Window
 {
 public:
     Window(int32_t w, int32_t h, std::string const &title);
-
-    GenericWindow const asGenericWindow() { return GenericWindow{mHandle, {mW, mH}, mTitle}; };
 
     void *handle() const;  // @dani : should be private? (check implications)
 
@@ -61,10 +52,11 @@ private:
     int32_t     mH      = 720;
     std::string mTitle  = "";
 
-    static inline std::vector<char const *> sExts  = {};
-    static inline bool                      sReady = false;
+    static inline std::vector<char const *> sExtensions = {};
 
-    static inline std::string const sDebugTag = "BTM_WINDOW => ";
+    static inline bool sIsWindowContextInitialized = false;
+
+    static inline std::string const sLogTag = "BTM_WINDOW => ";
 
     friend class btm::App;
 };

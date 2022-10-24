@@ -1,5 +1,3 @@
-#pragma once
-
 #include "Manager.hpp"
 
 #include "../Window.hpp"
@@ -10,20 +8,21 @@ namespace btm::vk
 constexpr int BTM_VK_MAJOR_VERSION = 1;
 constexpr int BTM_VK_MINOR_VERSION = 2;
 
-void Manager::initialize(std::vector<> windowHandles)
+void Manager::initialize(void *windowHandle, glm::vec2 const &viewportSize)
 {
     // * https://github.com/charles-lunarg/vk-bootstrap/blob/master/docs/getting_started.md
 
-    BTM_ASSERT_X(!windowHandles.empty(), "At least one window must be provided.");
+    BTM_ASSERT_X(windowHandle, "Invalid window handle");
+    BTM_ASSERT_X(viewportSize.x > 0 && viewportSize.y > 0, "Invalid viewport size");
 
     // vkbootstrap : Create a instance with some setup
     vkb::InstanceBuilder instanceBuilder;
-    auto                 instanceBuilderResult = instanceBuilder //
-                                     .set_app_name("Bretema Default Engine")
-                                     .request_validation_layers(true)
-                                     .require_api_version(BTM_VK_MAJOR_VERSION, BTM_VK_MINOR_VERSION, 0)
-                                     .use_default_debug_messenger()
-                                     .build();
+    auto                 instanceBuilderResult = instanceBuilder  //
+                                   .set_app_name("Bretema Default Engine")
+                                   .request_validation_layers(true)
+                                   .require_api_version(BTM_VK_MAJOR_VERSION, BTM_VK_MINOR_VERSION, 0)
+                                   .use_default_debug_messenger()
+                                   .build();
     vkb::Instance instanceVKB = instanceBuilderResult.value();
 
     // store : INSTACE
@@ -32,15 +31,15 @@ void Manager::initialize(std::vector<> windowHandles)
     mDebugMessenger = instanceVKB.debug_messenger;
 
     // store : SURFACE
-    glfwCreateWindowSurface(mInstance, (GLFWwindow *)windowHandles[0], nullptr, &mSurface);
+    glfwCreateWindowSurface(mInstance, (GLFWwindow *)windowHandle, nullptr, &mSurface);
 
     // vkbootstrap : Select a GPU based on some criteria
     vkb::PhysicalDeviceSelector physicalDeviceSelector{instanceVKB};
-    vkb::PhysicalDevice         physicalDeviceVKB = physicalDeviceSelector //
-                                                .set_minimum_version(BTM_VK_MAJOR_VERSION, BTM_VK_MINOR_VERSION)
-                                                .set_surface(mSurface)
-                                                .select()
-                                                .value();
+    vkb::PhysicalDevice         physicalDeviceVKB = physicalDeviceSelector  //
+                                              .set_minimum_version(BTM_VK_MAJOR_VERSION, BTM_VK_MINOR_VERSION)
+                                              .set_surface(mSurface)
+                                              .select()
+                                              .value();
 
     // vkbootstrap : Create the final Vulkan device
     vkb::DeviceBuilder deviceBuilder{physicalDeviceVKB};
@@ -51,27 +50,85 @@ void Manager::initialize(std::vector<> windowHandles)
     // store : GPU (PHYSICAL DEVICE)
     mChosenGPU = physicalDeviceVKB.physical_device;
 
+    // vkbootstrap : Get queues
+    mGraphicsQueue       = deviceVKB.get_queue(vkb::QueueType::graphics).value();
+    mGraphicsQueueFamily = deviceVKB.get_queue_index(vkb::QueueType::graphics).value();
+
+    // create : SWAPCHAIN
+    createSwapchain(viewportSize);
+
+    // create : COMMANDS
+    createCommands();
+
     mIsInitialized = true;
 }
 
-void Manager::createSwapchain()
+void Manager::createSwapchain(glm::vec2 const &viewportSize)
 {
+    BTM_ASSERT_X(viewportSize.x > 0 && viewportSize.y > 0, "Invalid viewport size");
+
+    // vkbootstrap : Create swapchain
     vkb::SwapchainBuilder swapchainBuilder{mChosenGPU, mDevice, mSurface};
+    vkb::Swapchain        swapchainVKB = swapchainBuilder.use_default_format_selection()
+                                    .set_desired_present_mode(VK_PRESENT_MODE_FIFO_KHR)  // fifo = vsync present mode
+                                    .set_desired_extent(viewportSize.x, viewportSize.y)
+                                    .set_desired_min_image_count(3)
+                                    .build()
+                                    .value();
 
-    vkb::Swapchain swapchainVKB = swapchainBuilder
-                                      .use_default_format_selection()
-                                      // use vsync present mode
-                                      .set_desired_present_mode(VK_PRESENT_MODE_FIFO_KHR)
-                                      .set_desired_extent(btm::Window::size())
-                                      .build()
-                                      .value();
-
-    // store swapchain and its related images
-    _swapchain           = vkbSwapchain.swapchain;
-    _swapchainImages     = vkbSwapchain.get_images().value();
-    _swapchainImageViews = vkbSwapchain.get_image_views().value();
-
-    _swapchainImageFormat = vkbSwapchain.image_format;
+    // store : swapchain and its related images
+    mSwapchain            = swapchainVKB.swapchain;
+    mSwapchainImages      = swapchainVKB.get_images().value();
+    mSwapchainImageViews  = swapchainVKB.get_image_views().value();
+    mSwapchainImageFormat = swapchainVKB.image_format;
 }
 
-} // namespace btm::vk
+void Manager::createCommands()
+{
+    // create a command pool for commands submitted to the graphics queue.
+    VkCommandPoolCreateInfo commandPoolInfo = {};
+    commandPoolInfo.sType                   = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+    commandPoolInfo.pNext                   = nullptr;
+
+    // the command pool will be one that can submit graphics commands
+    commandPoolInfo.queueFamilyIndex = mGraphicsQueueFamily;
+    // we also want the pool to allow for resetting of individual command buffers
+    commandPoolInfo.flags            = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+
+    BTM_VK_CHECK(vkCreateCommandPool(mDevice, &commandPoolInfo, nullptr, &mCommandPool));
+}
+
+void Manager::cleanup()
+{
+    if (!mIsInitialized)
+        return;
+
+    // Commands
+    vkDestroyCommandPool(mDevice, mCommandPool, nullptr);
+
+    // Swapchain resources
+
+    for (int i = mSwapchainImageViews.size() - 1; i >= 0; --i)
+        if (mSwapchainImageViews[i])
+            vkDestroyImageView(mDevice, mSwapchainImageViews[i], nullptr);
+
+    // WARNING : this is triggering validation layers
+    // for (int i = mSwapchainImages.size() - 1; i >= 0; --i)
+    //     if (mSwapchainImages[i])
+    //         vkDestroyImage(mDevice, mSwapchainImages[i], nullptr);
+
+    // Swapchain
+    vkDestroySwapchainKHR(mDevice, mSwapchain, nullptr);
+
+    // Device
+    vkDestroyDevice(mDevice, nullptr);
+
+    // Surface (in a future could be more than one surface)
+    vkDestroySurfaceKHR(mInstance, mSurface, nullptr);
+
+    // Instance
+    vkb::destroy_debug_utils_messenger(mInstance, mDebugMessenger);
+    vkDestroyInstance(mInstance, nullptr);
+}
+
+}  // namespace btm::vk
