@@ -125,12 +125,12 @@ JavaScriptWrapImports: true
 # ========================================================
 
 # ctor { a, b, c };
-#Cpp11BracedListStyle: false
-#SpaceBeforeCpp11BracedList: true
+Cpp11BracedListStyle: false
+SpaceBeforeCpp11BracedList: true
 
 # ctor{a, b, c};
-Cpp11BracedListStyle: true
-SpaceBeforeCpp11BracedList: false
+#Cpp11BracedListStyle: true
+#SpaceBeforeCpp11BracedList: false
 
 # ========================================================
 

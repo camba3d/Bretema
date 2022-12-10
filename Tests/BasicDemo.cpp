@@ -9,7 +9,8 @@ int main()
 {
     // Create windows
     std::vector<btm::Window> windows;
-    for (size_t i = 0; i < 1; ++i) windows.emplace_back(1920, 1080, fmt::format("Main Window {}", i));
+    for (size_t i = 0; i < 1; ++i)
+        windows.emplace_back(1920, 1080, fmt::format("Main Window {}", i));
 
     auto const &mainWindow = windows.at(0);
 
@@ -33,7 +34,7 @@ int main()
             isAnyWindowOpen |= !shouldClose;
         }
 
-        btm::Window::pollEvents();
+        btm::Window::waitEvents();
     }
 
     // Terminate render engine and windows

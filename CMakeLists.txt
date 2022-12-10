@@ -149,6 +149,7 @@ list(APPEND EXTRA_HEADERS
     ${SRC}/Vulkan/Base.hpp
     ${SRC}/Vulkan/Manager.hpp
     ${SRC}/Vulkan/ToStr.hpp
+    ${SRC}/Vulkan/Initializers.hpp
     )
     
     # file(GLOB EXTRA_SOURCES ${SRC}/*.cpp)
