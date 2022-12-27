@@ -143,20 +143,21 @@ set(SRC "Bretema")
 
 # file(GLOB EXTRA_HEADERS ${SRC}/*.h)
 list(APPEND EXTRA_HEADERS
-    ${SRC}/Base.hpp
-    ${SRC}/Window.hpp
+    ${SRC}/btm_base.hpp
+    ${SRC}/btm_window.hpp
 
-    ${SRC}/Vulkan/Base.hpp
-    ${SRC}/Vulkan/Manager.hpp
-    ${SRC}/Vulkan/ToStr.hpp
-    ${SRC}/Vulkan/Initializers.hpp
+    ${SRC}/Vk/vk_base.hpp
+    ${SRC}/Vk/vk_engine.hpp
+    ${SRC}/Vk/vk_str.hpp
+    ${SRC}/Vk/vk_init.hpp
+    ${SRC}/Vk/vk_types.hpp
     )
     
     # file(GLOB EXTRA_SOURCES ${SRC}/*.cpp)
 list(APPEND EXTRA_SOURCES
-    ${SRC}/Window.cpp
+    ${SRC}/btm_window.cpp
 
-    ${SRC}/Vulkan/Manager.cpp
+    ${SRC}/Vk/vk_engine.cpp
 )
 
 add_library(${PROJECT_NAME}

@@ -1,7 +1,7 @@
-#include "Bretema/Base.hpp"
-#include "Bretema/Vulkan/Base.hpp"
-#include "Bretema/Vulkan/Manager.hpp"
-#include "Bretema/Window.hpp"
+#include "Bretema/Vk/vk_base.hpp"
+#include "Bretema/Vk/vk_engine.hpp"
+#include "Bretema/btm_base.hpp"
+#include "Bretema/btm_window.hpp"
 
 #include <thread>
 
@@ -15,10 +15,10 @@ int main()
     auto const &mainWindow = windows.at(0);
 
     // Init render engine
-    btm::vk::Manager vkManager;
-    vkManager.initialize(mainWindow.handle(), mainWindow.size());
+    btm::vk::Engine vkEngine;
+    vkEngine.initialize(mainWindow.handle(), mainWindow.size());
 
-    // Run game loop
+    // Run "game-loop"
     bool isAnyWindowOpen = true;
 
     while (isAnyWindowOpen)
@@ -28,8 +28,11 @@ int main()
         {
             bool const shouldClose = window.shouldClose();
 
+            // render...
+            vkEngine.draw();
+
             if (shouldClose)
-                window.destroy();  // this may need to trigger a call on vkManager...
+                window.destroy();  // this may need to trigger a call on vkEngine...
 
             isAnyWindowOpen |= !shouldClose;
         }
@@ -38,7 +41,7 @@ int main()
     }
 
     // Terminate render engine and windows
-    vkManager.cleanup();
+    vkEngine.cleanup();
     btm::Window::terminate();
     return 0;
 }

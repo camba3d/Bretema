@@ -38,14 +38,29 @@
 // #endif
 
 // . Validate api calls
-#define BTM_VK_CHECK(vulkanCode)                                          \
-    if (VkResult res = vulkanCode; res != VK_SUCCESS)                     \
-    {                                                                     \
-        BTM_ABORTF("{} : {}", btm::vk::str::Result.at(res), #vulkanCode); \
-    }
+#define VK_CHECK(x)                                                  \
+    do                                                               \
+    {                                                                \
+        if (VkResult res = x; res != VK_SUCCESS)                     \
+        {                                                            \
+            BTM_ABORTF("{} : {}", btm::vk::str::Result.at(res), #x); \
+        }                                                            \
+    } while (0)
+
+#define VKB_CHECK(x)                                       \
+    do                                                     \
+    {                                                      \
+        if (!x.has_value())                                \
+        {                                                  \
+            if (auto err = x.error().message(); err != "") \
+            {                                              \
+                BTM_ABORTF("{} : {}", err, #x);            \
+            }                                              \
+        }                                                  \
+    } while (0)
 
 // . Get instance functions
-#define BTM_VK_INSTANCEFN(instance, extName, ...)                                     \
+#define VK_INSTANCE_FN(instance, extName, ...)                                        \
     do                                                                                \
     {                                                                                 \
         if (auto fn = ((PFN_##extName)vkGetInstanceProcAddr(instance, #extName)); fn) \
@@ -57,3 +72,8 @@
             BTM_ERRF("Function {} is not available", #extName);                       \
         }                                                                             \
     } while (0)
+
+namespace btm::vk
+{
+
+}  // namespace btm::vk

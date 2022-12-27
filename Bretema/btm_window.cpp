@@ -1,4 +1,4 @@
-#include "Window.hpp"
+#include "btm_window.hpp"
 
 #include <vector>
 
@@ -22,7 +22,7 @@ Window::Window(int32_t w, int32_t h, std::string const &title) : mW(w), mH(h), m
 
         uint32_t     extsCount = 0;
         char const **exts      = glfwGetRequiredInstanceExtensions(&extsCount);
-        sExtensions            = exts ? decltype(sExtensions){exts, exts + extsCount} : decltype(sExtensions){};
+        sExtensions            = exts ? decltype(sExtensions) { exts, exts + extsCount } : decltype(sExtensions) {};
 
         sIsWindowContextInitialized = true;
     }
@@ -79,7 +79,7 @@ void Window::terminate()
 
 glm::vec2 Window::size() const
 {
-    return {mW, mH};
+    return { mW, mH };
 }
 std::vector<char const *> Window::extensions() const
 {
@@ -96,7 +96,6 @@ void Window::size(int32_t w, int32_t h)
 {
     mW = w;
     mH = h;
-    // BTM_INFOF("Window '{}' SIZE => {}, {}", mTitle, mW, mH);
 }
 
 void Window::titleInfo(std::string const &info)
