@@ -3,47 +3,10 @@
 #include "../btm_base.hpp"
 #include "vk_base.hpp"
 #include "vk_str.hpp"
+#include "vk_types.hpp"
 
 namespace btm::vk
 {
-
-struct VulkanQueue
-{
-    VulkanQueue() = default;
-
-    VulkanQueue(vkb::Device vkbDevice, vkb::QueueType queueType)
-    {
-        auto q = vkbDevice.get_queue(queueType);
-        auto f = vkbDevice.get_queue_index(queueType);
-
-        if (valid = q.has_value() && f.has_value(); valid)
-        {
-            queue  = q.value();
-            family = f.value();
-        }
-
-        BTM_ASSERT(valid);
-    }
-
-    VkQueue  queue  = {};
-    uint32_t family = {};
-    bool     valid  = false;
-};
-
-struct VulkanPipelineBuilder
-{
-    std::vector<VkPipelineShaderStageCreateInfo> _shaderStages;
-    VkPipelineVertexInputStateCreateInfo         _vertexInputInfo;
-    VkPipelineInputAssemblyStateCreateInfo       _inputAssembly;
-    VkViewport                                   _viewport;
-    VkRect2D                                     _scissor;
-    VkPipelineRasterizationStateCreateInfo       _rasterizer;
-    VkPipelineColorBlendAttachmentState          _colorBlendAttachment;
-    VkPipelineMultisampleStateCreateInfo         _multisampling;
-    VkPipelineLayout                             _pipelineLayout;
-
-    VkPipeline build_pipeline(VkDevice device, VkRenderPass pass);
-};
 
 class Engine
 {
@@ -86,10 +49,10 @@ private:
     std::vector<VkImage>     mSwapchainImages      = {};                       // List of images from the swapchain
     std::vector<VkImageView> mSwapchainImageViews  = {};                       // List of image-views from the swapchain
 
-    VulkanQueue mGraphicsQ = {};  // Queue/Family for Graphics
-    VulkanQueue mComputeQ  = {};  // Queue/Family for Compute
-    VulkanQueue mPresentQ  = {};  // Queue/Family for Present
-    VulkanQueue mTransferQ = {};  // Queue/Family for Transfer
+    vk::types::Queue mGraphicsQ = {};  // Queue/Family for Graphics
+    vk::types::Queue mComputeQ  = {};  // Queue/Family for Compute
+    vk::types::Queue mPresentQ  = {};  // Queue/Family for Present
+    vk::types::Queue mTransferQ = {};  // Queue/Family for Transfer
 
     VkCommandPool   mCommandPool;        // Command pool for graphic-commands right now
     VkCommandBuffer mMainCommandBuffer;  // Main command buffer
@@ -100,6 +63,10 @@ private:
     VkSemaphore mPresentSemaphore = VK_NULL_HANDLE;
     VkSemaphore mRenderSemaphore  = VK_NULL_HANDLE;
     VkFence     mRenderFence      = VK_NULL_HANDLE;
+
+    // shaders
+
+    // pipelines
 
     bool mIsInitialized = false;
 };

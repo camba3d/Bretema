@@ -125,30 +125,31 @@ using uset = std::unordered_set<T>;
     } while (0)
 
 // C++ Contiguous container to C raw data
-#define BTM_SizeOf(v)       (v.size() < 1 ? v.size() : v.size() * sizeof(v.at(0)))
-#define BTM_SizeOfU32(v)    static_cast<uint32_t>(C_SizeOf(v))
-#define BTM_SizeOfAs(T2, v) static_cast<T2>(C_SizeOf(v))
-#define BTM_Count(v)        v.size()
-#define BTM_CountU32(v)     static_cast<uint32_t>(C_Count(v))
-#define BTM_CountAs(T2, v)  static_cast<T2>(C_Count(v))
-#define BTM_Data(v)         v.data()
-#define BTM_DataAs(T2, v)   reinterpret_cast<T2>(C_Data(v))
+// #define BTM_SizeOf(v)       (v.size() < 1 ? v.size() : v.size() * sizeof(v.at(0)))
+// #define BTM_SizeOfU32(v)    static_cast<uint32_t>(C_SizeOf(v))
+// #define BTM_SizeOfAs(T2, v) static_cast<T2>(C_SizeOf(v))
+// #define BTM_Count(v)        v.size()
+// #define BTM_CountU32(v)     static_cast<uint32_t>(C_Count(v))
+// #define BTM_CountAs(T2, v)  static_cast<T2>(C_Count(v))
+// #define BTM_Data(v)         v.data()
+// #define BTM_DataAs(T2, v)   reinterpret_cast<T2>(C_Data(v))
 
-// Defer
+#define BTM_SIZEOF(type, v)  (v.size() < 1 ? static_cast<type>(v.size()) : v.size() * sizeof(type))
+#define BTM_SIZEOFu32(v)     BTM_SIZEOF(uint32_t, v)
+#define BTM_SIZE(type, v)    static_cast<type>(v.size())
+#define BTM_SIZEu32(type, v) BTM_SIZE(uint32_t, v)
+#define BTM_DATA(type, v)    reinterpret_cast<type>(v.data())
+
+// clang-format off
+// . Defer
 // This allow you to call things like file.close(), right after file.open(),
-// to be sure that we don't forget to call it at the end of the function
-// and ensure that it's called even if an exception is thrown
-#define BTM_CONCAT2(a, b) a##b
-#define BTM_CONCAT(a, b)  BTM_CONCAT2(a, b)
-using BTM_DEFER_PTR = std::unique_ptr<void, std::function<void(void *)>>;
-#define BTM_DEFER(fn)                                              \
-    BTM_DEFER_PTR BTM_CONCAT(__defer__, __LINE__) = BTM_DEFER_PTR( \
-      []()                                                         \
-      {                                                            \
-          static int a = 0;                                        \
-          return &a;                                               \
-      }(),                                                         \
-      [&](void *) { fn; })
+//   to be sure that we don't forget to call it at the end of the function
+//   and ensure that it's called even if an exception is thrown
+#define BTM_CONCAT_(a, b) a##b
+#define BTM_CONCAT(a, b) BTM_CONCAT_(a,b)
+using   BTM_DEFER_PTR = std::unique_ptr<void,std::function<void(void*)>>;
+#define BTM_DEFER(fn) auto BTM_CONCAT(__defer__, __LINE__) = BTM_DEFER_PTR([](){static int a=0; return &a;}(), [&](void*){fn;})
+// clang-format on
 
 //===========================
 //= BRETEMA

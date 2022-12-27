@@ -1,7 +1,10 @@
 #pragma once
 
+#include "../btm_base.hpp"
+#include "../btm_tools.hpp"
 #include "vk_base.hpp"
 
+#include <optional>
 #include <vector>
 
 // From : https://github.com/SaschaWillems/Vulkan/blob/master/base/VulkanInitializers.hpp
@@ -54,6 +57,45 @@ inline auto semaphoreCreateInfo(void *pNext = nullptr)
     info.flags                 = 0;
 
     return info;
+}
+
+inline std::optional<VkShaderModule>
+  createShaderModule(VkDevice device, std::string const &name, VkShaderStageFlagBits stage)
+{
+    static umap<VkShaderStageFlagBits, std::string> sStageToExt {
+        { VK_SHADER_STAGE_VERTEX_BIT, "vert" },
+        { VK_SHADER_STAGE_FRAGMENT_BIT, "frag" },
+        { VK_SHADER_STAGE_COMPUTE_BIT, "comp" },
+    };
+    static auto const sShadersPath = std::string("./assets/shaders/");  // get this path from #define
+
+    if (!name.empty() and sStageToExt.count(stage) > 0)
+    {
+        BTM_ASSERT(0);
+        return {};
+    }
+
+    std::string const path = sShadersPath + name + "." + sStageToExt[stage] + ".spv";
+    std::string const code = btm::fs::read(path);
+
+    if (code.empty())
+    {
+        BTM_ASSERT(0);
+        BTM_ERRF("Failed to open shader '{}'!", path);
+        return {};
+    }
+
+    VkShaderModuleCreateInfo info = {};
+    info.sType                    = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+    info.pNext                    = nullptr;
+    info.codeSize                 = BTM_SIZEOFu32(code);
+    info.pCode                    = BTM_DATA(const uint32_t *, code);
+
+    VkShaderModule shaderModule;
+    if (vkCreateShaderModule(device, &info, nullptr, &shaderModule) != VK_SUCCESS)
+        return {};
+
+    return shaderModule;
 }
 
 }  // namespace btm::vk::init

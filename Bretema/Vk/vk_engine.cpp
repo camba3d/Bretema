@@ -196,7 +196,13 @@ void Engine::initSyncStructures()
     VK_CHECK(vkCreateSemaphore(mDevice, &semaphoreCI, nullptr, &mRenderSemaphore));
 }
 
-void Engine::initPipelines() {}
+void Engine::initPipelines()
+{
+    auto triVert = init::createShaderModule(mDevice, "tri", VK_SHADER_STAGE_VERTEX_BIT);
+    auto triFrag = init::createShaderModule(mDevice, "tri", VK_SHADER_STAGE_FRAGMENT_BIT);
+
+    BTM_ASSERT(triVert.has_value() && triFrag.has_value());
+}
 
 void Engine::draw()
 {
