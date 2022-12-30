@@ -10,7 +10,7 @@ project(Bretema VERSION 1.0)
 # set(CMAKE_CXX_STANDARD 20)
 
 # Configure file
-# configure_file(BuildInfo.in BuildInfo.hpp)
+configure_file(BuildInfo.in BuildInfo.hpp)
 
 # Show only warning messages
 #set(CMAKE_MESSAGE_LOG_LEVEL "WARNING")
@@ -50,7 +50,7 @@ list(APPEND EXTRA_LIBS glfw)
 # Vulkan
 find_package(Vulkan REQUIRED COMPONENTS glslc)
 find_program(glslc_executable NAMES glslc HINTS Vulkan::glslc)
-#list(APPEND EXTRA_LIB_INCL ${GLFW_DIR}/deps)
+list(APPEND EXTRA_LIB_INCL ${GLFW_DIR}/deps)
 list(APPEND EXTRA_LIBS Vulkan::Vulkan)
 add_subdirectory(Modules/vk-bootstrap)
 list(APPEND EXTRA_LIBS vk-bootstrap)
@@ -123,16 +123,16 @@ add_custom_command(COMMAND
     OUTPUT ${shaders_bin_dir}
 )
 
+MESSAGE(STATUS "[Compiling SHADERS] :")
 foreach(shader_src IN LISTS shaders_list)
     get_filename_component(filename_and_ext ${shader_src} NAME)
     set(shader_dst ${shaders_bin_dir}/${filename_and_ext}.spv)
-    # MESSAGE(STATUS "[SHADERS] - Compiling:\n  From: ${shader_src}\n  To  : ${shader_dst}")
+    MESSAGE(STATUS "   ${shader_src} => ./build/${shader_dst}")
     add_custom_command(COMMAND ${glslc_executable} -o ${shader_dst} ${shader_src} OUTPUT ${shader_dst})
-
     list(APPEND EXTRA_SHADERS ${shaders_bin_dir}/${filename_and_ext}.spv)
 endforeach()
 
-add_custom_target(shaders ALL DEPENDS ${EXTRA_SHADERS}) # Seems like unneeded
+# add_custom_target(shaders ALL DEPENDS ${EXTRA_SHADERS}) # Seems like unneeded
 
 
 # ------------------------- #
@@ -146,19 +146,21 @@ list(APPEND EXTRA_HEADERS
     ${SRC}/btm_base.hpp
     ${SRC}/btm_tools.hpp
     ${SRC}/btm_window.hpp
+    ${SRC}/btm_app.hpp
 
     ${SRC}/Vk/vk_base.hpp
-    ${SRC}/Vk/vk_engine.hpp
+    ${SRC}/Vk/vk_renderer.hpp
     ${SRC}/Vk/vk_str.hpp
     ${SRC}/Vk/vk_init.hpp
     ${SRC}/Vk/vk_types.hpp
-    )
+)
     
     # file(GLOB EXTRA_SOURCES ${SRC}/*.cpp)
 list(APPEND EXTRA_SOURCES
     ${SRC}/btm_window.cpp
+    ${SRC}/btm_renderer.cpp
 
-    ${SRC}/Vk/vk_engine.cpp
+    ${SRC}/Vk/vk_renderer.cpp
 )
 
 add_library(${PROJECT_NAME}
@@ -189,9 +191,9 @@ target_compile_definitions(${PROJECT_NAME}
 # Compile Flags [ Windows ]
 if(MSVC)
     if (CMAKE_BUILD_TYPE EQUAL "RELEASE")
-        target_compile_options(${PROJECT_NAME} PRIVATE /O2 /MD)
+        target_compile_options(${PROJECT_NAME} PRIVATE /Ox /W4 /WX /MD)
     else()
-        target_compile_options(${PROJECT_NAME} PRIVATE /W3 /WX /MDd /Zi)
+        target_compile_options(${PROJECT_NAME} PRIVATE /Zi /W4 /WX /MDd)
     endif()
 
 # Compile Flags [ Unix / Linux / MacOS ]
@@ -244,5 +246,5 @@ endfunction()
 # endif()
 
 # NEW_EXE( VkDemo Tests/VkDemo.cpp )
-NEW_EXE( BasicDemo Tests/BasicDemo.cpp )
+NEW_EXE( main Tests/main.cpp )
 NEW_EXE( ImGuiDemo Tests/ImGuiDemo.cpp )

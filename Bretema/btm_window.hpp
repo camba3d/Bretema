@@ -23,21 +23,25 @@ class App;
 class Window
 {
 public:
-    Window(int32_t w, int32_t h, std::string const &title);
+    Window(int32_t w, int32_t h, std::string const &title, App *app);
 
-    void *handle() const;  // @dani : should be private? (check implications)
+    void *handle() const;
 
     std::vector<char const *> extensions() const;
 
-    std::string title() const { return mTitle; }
-    void        title(std::string title) { mTitle = std::move(title); }
-    void        titleInfo(std::string const &info);
+    inline std::string title() const { return mTitle; }
+    inline void        title(std::string title) { mTitle = std::move(title); }
+
+    void addTitleInfo(std::string const &info);
 
     glm::vec2 size() const;
     void      size(int32_t w, int32_t h);
 
+    inline bool focus() { return mFocus; }
+    inline void focus(bool f) { mFocus = f; }
+
     void destroy();
-    bool shouldClose() const;
+    bool isMarkedToClose() const;
 
     static void pollEvents();
     static void waitEvents();
@@ -48,17 +52,15 @@ private:
     bool mDelete = true;
 
     GLFWwindow *mHandle = nullptr;
-    int32_t     mW      = 1280;
-    int32_t     mH      = 720;
-    std::string mTitle  = "";
 
-    static inline std::vector<char const *> sExtensions = {};
+    int32_t     mW     = 1280;
+    int32_t     mH     = 720;
+    std::string mTitle = "";
 
-    static inline bool sIsWindowContextInitialized = false;
+    bool mFocus = false;
 
-    static inline std::string const sLogTag = "BTM_WINDOW => ";
-
-    friend class btm::App;
+    static inline std::vector<char const *> sExtensions                 = {};
+    static inline bool                      sIsWindowContextInitialized = false;
 };
 
 }  // namespace btm

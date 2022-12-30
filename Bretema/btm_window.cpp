@@ -1,5 +1,7 @@
 #include "btm_window.hpp"
 
+#include "btm_app.hpp"
+
 #include <vector>
 
 namespace btm
@@ -9,13 +11,33 @@ using w_IS = Input::State;
 using w_IK = Input::Key;
 using w_IM = Input::Mouse;
 
-// ===== CTOR =====
+static void *sMainWindow = nullptr;
 
-Window::Window(int32_t w, int32_t h, std::string const &title) : mW(w), mH(h), mTitle(title)
+static umap<void *, btm::Window *> sHandleToWindow {};
+
+App &BTM_APP(GLFWwindow *handle)
 {
+    App *ptApp = ((App *)(glfwGetWindowUserPointer(handle)));
+    BTM_ASSERT(ptApp);
+    return *ptApp;
+}
+btm::Window &WIN_SELF(GLFWwindow *handle)
+{
+    BTM_ASSERT(sHandleToWindow.count(handle) > 0);
+    btm::Window *ptWin = sHandleToWindow[handle];
+    BTM_ASSERT(ptWin);
+    return *ptWin;
+}
+
+Window::Window(int32_t w, int32_t h, std::string const &title, App *app) : mW(w), mH(h), mTitle(title)
+{
+    BTM_ABORT_IF(!app, "Window requires a valid App pointer");
+
+    bool const wasWindowContextInitialized = sIsWindowContextInitialized;
+
     if (!sIsWindowContextInitialized)
     {
-        BTM_ABORT_IF(!glfwInit(), sLogTag + "Initializing Window-Manager");
+        BTM_ABORT_IF(!glfwInit(), "Couldn't initialize Window-Manager");
         glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);   // Avoid OpenGL context creation
         glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);      // Resize windows takes special care
         glfwWindowHint(GLFW_FOCUS_ON_SHOW, GLFW_TRUE);  // Focus the window when its opened
@@ -27,28 +49,42 @@ Window::Window(int32_t w, int32_t h, std::string const &title) : mW(w), mH(h), m
         sIsWindowContextInitialized = true;
     }
 
-    // mHandle = glfwCreateWindow(mW, mH, (BTM_APP->mName + " :: " + mTitle).c_str(), nullptr, nullptr);
-    mHandle = glfwCreateWindow(mW, mH, ("Bretema :: " + mTitle).c_str(), nullptr, nullptr);
-    BTM_ABORT_IF(!mHandle, sLogTag + "Creating a new Window");
+    // Create window object
+    mHandle = glfwCreateWindow(mW, mH, (app->name() + " :: " + mTitle).c_str(), nullptr, nullptr);
+    BTM_ABORT_IF(!mHandle, "Couldn't create a new Window");
 
-    // // Window Dependent Events
-    // // Resize
-    // glfwSetFramebufferSizeCallback(mHandle, [](GLFWwindow *p, int w, int h) { BTM_APP->size(p, w, h); });
-    // // Focus
-    // glfwSetCursorEnterCallback(mHandle, [](GLFWwindow *p, int focus) { focus ? BTM_APP->focus(p) : []() {}(); });
+    // Store app pointer into window object
+    glfwSetWindowUserPointer(mHandle, app);
 
-    // // Window Independent Events
-    // // Keyboard
-    // glfwSetKeyCallback(mHandle, [](GLFWwindow *, int k, int, int a, int) { BTM_APP->key((w_IK)k, (w_IS)a); });
-    // // Mouse
-    // glfwSetMouseButtonCallback(mHandle, [](GLFWwindow *, int b, int a, int) { BTM_APP->mouse((w_IM)b, (w_IS)a); });
-    // // Cursor
-    // glfwSetCursorPosCallback(mHandle, [](GLFWwindow *, double x, double y) { BTM_APP->cursor(x, y); });
+    // Store window handle to object relation
+    sHandleToWindow[mHandle] = this;
+
+    // Store main window object
+    if (!wasWindowContextInitialized)
+        sMainWindow = mHandle;
+
+    // clang-format off
+
+    // Window Dependent Events
+    // . Resize
+    glfwSetFramebufferSizeCallback(mHandle, [](GLFWwindow *p, int w, int h) { WIN_SELF(p).size(w, h); });
+    // . Focus
+    glfwSetCursorEnterCallback(mHandle, [](GLFWwindow *p, int focus) { WIN_SELF(p).focus((bool)focus); });
+    // . On Close
+    glfwSetWindowCloseCallback(mHandle, [](GLFWwindow *p) { if (p == sMainWindow) BTM_APP(p).markToClose(); });
+    
+    // Window Independent Events
+    // . Cursor
+    glfwSetCursorPosCallback(mHandle, [](GLFWwindow *p, double x, double y) { BTM_APP(p).cursor({x, y}); });
+    // . Keyboard
+    glfwSetKeyCallback(mHandle, [](GLFWwindow *p, int k, int, int a, int) { BTM_APP(p).key((w_IK)k, (w_IS)a); });
+    // . Mouse
+    glfwSetMouseButtonCallback(mHandle, [](GLFWwindow *p, int b, int a, int) { BTM_APP(p).mouse((w_IM)b, (w_IS)a); });
+
+    // clang-format on
 }
 
-// ===== ACTIONs =====
-
-bool Window::shouldClose() const
+bool Window::isMarkedToClose() const
 {
     return mHandle ? glfwWindowShouldClose(mHandle) : true;
 }
@@ -60,7 +96,6 @@ void Window::destroy()
         mHandle = nullptr;
     }
 }
-
 void Window::pollEvents()
 {
     glfwPollEvents();
@@ -69,40 +104,35 @@ void Window::waitEvents()
 {
     glfwWaitEvents();
 }
-
 void Window::terminate()
 {
     glfwTerminate();
 }
 
-// ===== GETTERs =====
-
 glm::vec2 Window::size() const
 {
     return { mW, mH };
 }
-std::vector<char const *> Window::extensions() const
-{
-    return sExtensions;
-}
-void *Window::handle() const
-{
-    return mHandle;
-}
-
-// ===== SETTERs =====
-
 void Window::size(int32_t w, int32_t h)
 {
     mW = w;
     mH = h;
 }
 
-void Window::titleInfo(std::string const &info)
+void *Window::handle() const
+{
+    return mHandle;
+}
+
+std::vector<char const *> Window::extensions() const
+{
+    return sExtensions;
+}
+
+void Window::addTitleInfo(std::string const &info)
 {
     if (mHandle)
-        glfwSetWindowTitle(mHandle, ("Bretema :: " + mTitle + " ::" + info).c_str());
-    // glfwSetWindowTitle(mHandle, (BTM_APP->mName + " :: " + mTitle + " ::" + info).c_str());
+        glfwSetWindowTitle(mHandle, (BTM_APP(mHandle).name() + " :: " + mTitle + " ::" + info).c_str());
 }
 
 }  // namespace btm

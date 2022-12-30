@@ -125,15 +125,6 @@ using uset = std::unordered_set<T>;
     } while (0)
 
 // C++ Contiguous container to C raw data
-// #define BTM_SizeOf(v)       (v.size() < 1 ? v.size() : v.size() * sizeof(v.at(0)))
-// #define BTM_SizeOfU32(v)    static_cast<uint32_t>(C_SizeOf(v))
-// #define BTM_SizeOfAs(T2, v) static_cast<T2>(C_SizeOf(v))
-// #define BTM_Count(v)        v.size()
-// #define BTM_CountU32(v)     static_cast<uint32_t>(C_Count(v))
-// #define BTM_CountAs(T2, v)  static_cast<T2>(C_Count(v))
-// #define BTM_Data(v)         v.data()
-// #define BTM_DataAs(T2, v)   reinterpret_cast<T2>(C_Data(v))
-
 #define BTM_SIZEOF(type, v)  (v.size() < 1 ? static_cast<type>(v.size()) : v.size() * sizeof(type))
 #define BTM_SIZEOFu32(v)     BTM_SIZEOF(uint32_t, v)
 #define BTM_SIZE(type, v)    static_cast<type>(v.size())
@@ -325,30 +316,30 @@ enum struct Key
 }  // namespace Input
 
 // UTILS
-namespace Utils
-{
-inline std::vector<char> read(std::string const &filepath)
-{
-    // . Open file (and defer close) from the end or return empty
-    auto file = std::ifstream { filepath, std::ios::ate | std::ios::binary };
-    BTM_DEFER(file.close());
+// namespace Utils
+// {
+// inline std::vector<char> read(std::string const &filepath)
+// {
+//     // . Open file (and defer close) from the end or return empty
+//     auto file = std::ifstream { filepath, std::ios::ate | std::ios::binary };
+//     BTM_DEFER(file.close());
 
-    if (!file.is_open())
-    {
-        BTM_ASSERT_X("Issues opening file: {}", filepath);
-        return {};
-    }
+//     if (!file.is_open())
+//     {
+//         BTM_ASSERT_X("Issues opening file: {}", filepath);
+//         return {};
+//     }
 
-    // . Create a buffer with the size of the file
-    size_t const      fileSize = (size_t)file.tellg();
-    std::vector<char> buffer(fileSize);
+//     // . Create a buffer with the size of the file
+//     size_t const      fileSize = (size_t)file.tellg();
+//     std::vector<char> buffer(fileSize);
 
-    // . Move back to file begins, read and close
-    file.seekg(0);
-    file.read(buffer.data(), fileSize);
+//     // . Move back to file begins, read and close
+//     file.seekg(0);
+//     file.read(buffer.data(), fileSize);
 
-    return buffer;
-}
-}  // namespace Utils
+//     return buffer;
+// }
+// }  // namespace Utils
 
 }  // namespace btm

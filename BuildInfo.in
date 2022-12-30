@@ -1,0 +1,11 @@
+#pragma once
+
+// clang-format off
+
+struct
+{
+  int version_major = @Bretema_VERSION_MAJOR@;
+  int version_minor = @Bretema_VERSION_MINOR@;
+} BTM_BUILD_INFO;
+
+// clang-format on

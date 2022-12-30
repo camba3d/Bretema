@@ -44,7 +44,7 @@ LambdaBodyIndentation: Signature
 
 AlignEscapedNewlines: Left
 AlignOperands: AlignAfterOperator
-# AlignArrayOfStructures: Left #Right  ## Be careful, this also affects to initializer_list as ctro
+# AlignArrayOfStructures: Left #Right  ## Be careful, this also affects to initializer_list as ctor
 
 AlignTrailingComments: true
 AlignAfterOpenBracket: AlwaysBreak
@@ -109,8 +109,8 @@ NamespaceIndentation: None
 
 # ========================================================
 
-IncludeBlocks: Regroup
-SortIncludes: CaseInsensitive
+SortIncludes: Never
+IncludeBlocks: Preserve
 SortUsingDeclarations: true
 
 # ========================================================

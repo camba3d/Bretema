@@ -32,7 +32,10 @@
 !readme.md
 
 !imgui.ini
-!buildinfo.h.in
+
+!buildinfo.in
+
+!build.py
 
 
 # Extra rules over whitelist
