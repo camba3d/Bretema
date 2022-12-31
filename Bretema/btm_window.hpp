@@ -30,9 +30,8 @@ public:
     std::vector<char const *> extensions() const;
 
     inline std::string title() const { return mTitle; }
-    inline void        title(std::string title) { mTitle = std::move(title); }
-
-    void addTitleInfo(std::string const &info);
+    void               title(std::string title);
+    void               titleInfo(std::string info);
 
     glm::vec2 size() const;
     void      size(int32_t w, int32_t h);
@@ -45,17 +44,20 @@ public:
 
     static void pollEvents();
     static void waitEvents();
-
     static void terminate();
 
 private:
+    void refreshTitle();
+
     bool mDelete = true;
 
     GLFWwindow *mHandle = nullptr;
 
-    int32_t     mW     = 1280;
-    int32_t     mH     = 720;
-    std::string mTitle = "";
+    int32_t mW = 1280;
+    int32_t mH = 720;
+
+    std::string mTitle     = "";
+    std::string mTitleInfo = "";
 
     bool mFocus = false;
 

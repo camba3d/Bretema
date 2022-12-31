@@ -7,13 +7,13 @@
 namespace btm
 {
 
-using w_IS = Input::State;
-using w_IK = Input::Key;
-using w_IM = Input::Mouse;
+using IS = Input::State;
+using IK = Input::Key;
+using IM = Input::Mouse;
 
 static void *sMainWindow = nullptr;
 
-static umap<void *, btm::Window *> sHandleToWindow {};
+static umap<void *, Window *> sHandleToWindow {};
 
 App &BTM_APP(GLFWwindow *handle)
 {
@@ -21,10 +21,10 @@ App &BTM_APP(GLFWwindow *handle)
     BTM_ASSERT(ptApp);
     return *ptApp;
 }
-btm::Window &WIN_SELF(GLFWwindow *handle)
+Window &WIN_SELF(GLFWwindow *handle)
 {
     BTM_ASSERT(sHandleToWindow.count(handle) > 0);
-    btm::Window *ptWin = sHandleToWindow[handle];
+    Window *ptWin = sHandleToWindow[handle];
     BTM_ASSERT(ptWin);
     return *ptWin;
 }
@@ -32,8 +32,6 @@ btm::Window &WIN_SELF(GLFWwindow *handle)
 Window::Window(int32_t w, int32_t h, std::string const &title, App *app) : mW(w), mH(h), mTitle(title)
 {
     BTM_ABORT_IF(!app, "Window requires a valid App pointer");
-
-    bool const wasWindowContextInitialized = sIsWindowContextInitialized;
 
     if (!sIsWindowContextInitialized)
     {
@@ -50,7 +48,7 @@ Window::Window(int32_t w, int32_t h, std::string const &title, App *app) : mW(w)
     }
 
     // Create window object
-    mHandle = glfwCreateWindow(mW, mH, (app->name() + " :: " + mTitle).c_str(), nullptr, nullptr);
+    mHandle = glfwCreateWindow(mW, mH, "", nullptr, nullptr);
     BTM_ABORT_IF(!mHandle, "Couldn't create a new Window");
 
     // Store app pointer into window object
@@ -60,7 +58,7 @@ Window::Window(int32_t w, int32_t h, std::string const &title, App *app) : mW(w)
     sHandleToWindow[mHandle] = this;
 
     // Store main window object
-    if (!wasWindowContextInitialized)
+    if (!sMainWindow)
         sMainWindow = mHandle;
 
     // clang-format off
@@ -77,11 +75,13 @@ Window::Window(int32_t w, int32_t h, std::string const &title, App *app) : mW(w)
     // . Cursor
     glfwSetCursorPosCallback(mHandle, [](GLFWwindow *p, double x, double y) { BTM_APP(p).cursor({x, y}); });
     // . Keyboard
-    glfwSetKeyCallback(mHandle, [](GLFWwindow *p, int k, int, int a, int) { BTM_APP(p).key((w_IK)k, (w_IS)a); });
+    glfwSetKeyCallback(mHandle, [](GLFWwindow *p, int k, int, int s, int) { BTM_APP(p).key((IK)k, (IS)s); });
     // . Mouse
-    glfwSetMouseButtonCallback(mHandle, [](GLFWwindow *p, int b, int a, int) { BTM_APP(p).mouse((w_IM)b, (w_IS)a); });
+    glfwSetMouseButtonCallback(mHandle, [](GLFWwindow *p, int m, int s, int) { BTM_APP(p).mouse((IM)m, (IS)s); });
 
     // clang-format on
+
+    refreshTitle();
 }
 
 bool Window::isMarkedToClose() const
@@ -106,6 +106,7 @@ void Window::waitEvents()
 }
 void Window::terminate()
 {
+    sIsWindowContextInitialized = false;  // Ensures recreation of window-context after app/renderer 'cleanup'
     glfwTerminate();
 }
 
@@ -129,10 +130,22 @@ std::vector<char const *> Window::extensions() const
     return sExtensions;
 }
 
-void Window::addTitleInfo(std::string const &info)
+void Window::refreshTitle()
 {
     if (mHandle)
-        glfwSetWindowTitle(mHandle, (BTM_APP(mHandle).name() + " :: " + mTitle + " ::" + info).c_str());
+        glfwSetWindowTitle(mHandle, (BTM_APP(mHandle).name() + " :: " + mTitle + " ::" + mTitleInfo).c_str());
+}
+
+void Window::title(std::string title)
+{
+    mTitle = std::move(title);
+    refreshTitle();
+}
+
+void Window::titleInfo(std::string info)
+{
+    mTitleInfo = std::move(info);
+    refreshTitle();
 }
 
 }  // namespace btm

@@ -77,9 +77,10 @@ using uset = std::unordered_set<T>;
 #define BTM_ERR(msg)  fmt::print("(e) ({}:{})\n → {}\n", __FILE__, __LINE__, msg)
 
 // Logging w/ Format
-#define BTM_INFOF(msg, ...) BTM_INFO(fmt::format(msg, __VA_ARGS__))
-#define BTM_WARNF(msg, ...) BTM_WARN(fmt::format(msg, __VA_ARGS__))
-#define BTM_ERRF(msg, ...)  BTM_ERR(fmt::format(msg, __VA_ARGS__))
+#define BTM_FMT(msg, ...)   fmt::format(msg, __VA_ARGS__)
+#define BTM_INFOF(msg, ...) BTM_INFO(BTM_FMT(msg, __VA_ARGS__))
+#define BTM_WARNF(msg, ...) BTM_WARN(BTM_FMT(msg, __VA_ARGS__))
+#define BTM_ERRF(msg, ...)  BTM_ERR(BTM_FMT(msg, __VA_ARGS__))
 
 // Custom Assert
 #ifndef NDEBUG

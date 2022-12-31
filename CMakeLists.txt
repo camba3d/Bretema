@@ -143,10 +143,11 @@ set(SRC "Bretema")
 
 # file(GLOB EXTRA_HEADERS ${SRC}/*.h)
 list(APPEND EXTRA_HEADERS
+    ${SRC}/btm_app.hpp
     ${SRC}/btm_base.hpp
+    ${SRC}/btm_renderer.hpp
     ${SRC}/btm_tools.hpp
     ${SRC}/btm_window.hpp
-    ${SRC}/btm_app.hpp
 
     ${SRC}/Vk/vk_base.hpp
     ${SRC}/Vk/vk_renderer.hpp
@@ -157,8 +158,9 @@ list(APPEND EXTRA_HEADERS
     
     # file(GLOB EXTRA_SOURCES ${SRC}/*.cpp)
 list(APPEND EXTRA_SOURCES
-    ${SRC}/btm_window.cpp
+    ${SRC}/btm_app.cpp
     ${SRC}/btm_renderer.cpp
+    ${SRC}/btm_window.cpp
 
     ${SRC}/Vk/vk_renderer.cpp
 )

@@ -2,7 +2,7 @@
 
 int main()
 {
-    btm::App bretema { "Bretema" };
+    btm::App bretema { "Bretema", btm::RenderAPI::Vulkan };
 
     while (true)  // Allows app restart
     {
