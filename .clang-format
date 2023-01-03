@@ -18,6 +18,7 @@ ColumnLimit: 120
 # ========================================================
 
 PointerAlignment: Right
+ReferenceAlignment: Right
 
 # ========================================================
 
@@ -80,8 +81,9 @@ AlwaysBreakAfterReturnType: None
 AlwaysBreakBeforeMultilineStrings: false
 AlwaysBreakTemplateDeclarations: true
 
-BreakBeforeBraces: Allman #Custom
+BreakBeforeBraces: Allman
 
+# BreakBeforeBraces: Custom
 # BraceWrapping:
 #   AfterClass:      true
 #   AfterControlStatement: false

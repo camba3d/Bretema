@@ -112,6 +112,22 @@ inline auto MultisamplingState(VkSampleCountFlagBits sampleCount = VK_SAMPLE_COU
     return info;
 }
 
+inline auto PipelineLayout(void *pNext = nullptr)
+{
+    VkPipelineLayoutCreateInfo info {};
+    info.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+    info.pNext = pNext;
+
+    // @later
+    info.flags                  = 0;
+    info.setLayoutCount         = 0;
+    info.pSetLayouts            = nullptr;
+    info.pushConstantRangeCount = 0;
+    info.pPushConstantRanges    = nullptr;
+
+    return info;
+}
+
 }  // namespace CreateInfo
 
 namespace AllocInfo
@@ -144,28 +160,37 @@ inline VkShaderModule ShaderModule(VkDevice device, std::string const &name, VkS
         { VK_SHADER_STAGE_FRAGMENT_BIT, "frag" },
         { VK_SHADER_STAGE_COMPUTE_BIT, "comp" },
     };
-    static auto const sShadersPath = std::string("./assets/shaders/");  // get this path from #define
 
-    if (!name.empty() and sStageToExt.count(stage) > 0)
+    // TODO / FIXME : On 'install' change shaders path to absolute from a selected resources-path
+    // static auto const sShadersPath = std::string("./Assets/Shaders/");
+    static auto const sShadersPath = std::string("./build/Assets/Shaders/");
+
+    if (sStageToExt.count(stage) < 1)
     {
-        BTM_ASSERT(0);
-        return {};
+        BTM_ERR("Shaders support is limited to: .vert, .frag and .comp");
+        return VK_NULL_HANDLE;
+    }
+
+    if (name.empty())
+    {
+        BTM_ERR("Shader name cannot be empty");
+        return VK_NULL_HANDLE;
     }
 
     std::string const path = sShadersPath + name + "." + sStageToExt[stage] + ".spv";
-    std::string const code = btm::fs::read(path);
+    auto const        code = btm::fs::read(path);
 
     if (code.empty())
     {
-        BTM_ASSERT(0);
         BTM_ERRF("Failed to open shader '{}'!", path);
+        BTM_ASSERT(0);
         return {};
     }
 
     VkShaderModuleCreateInfo info {};
     info.sType    = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
     info.pNext    = nullptr;
-    info.codeSize = BTM_SIZEOFu32(code);
+    info.codeSize = BTM_SIZEu32(code);
     info.pCode    = BTM_DATA(const uint32_t *, code);
 
     VkShaderModule shaderModule;
@@ -217,15 +242,14 @@ VkPipeline Pipeline(vk::PipelineBuilder pb, VkDevice device, VkRenderPass pass)
 
     // it's easy to error out on create graphics pipeline, so we handle it a bit better than the common VK_CHECK case
     VkPipeline pipeline;
+
     if (vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &info, nullptr, &pipeline) != VK_SUCCESS)
     {
         BTM_ERR("Couldn't create pipeline");
         return VK_NULL_HANDLE;
     }
-    else
-    {
-        return pipeline;
-    }
+
+    return pipeline;
 }
 
 }  // namespace Create

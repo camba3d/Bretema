@@ -7,6 +7,7 @@
 // ^^^ Include the <vk/dx/gl/mt/wg>-Renderer files before the BaseRenderer
 
 #include "../btm_base.hpp"
+#include "../btm_tools.hpp"
 #include "../btm_renderer.hpp"
 
 namespace btm::vk
@@ -14,6 +15,8 @@ namespace btm::vk
 
 class Renderer : public btm::BaseRenderer
 {
+    static constexpr uint64_t sOneSec = 1000000000;
+
 public:
     Renderer(Ref<btm::Window> window);
     virtual void update() override { BTM_WARN("NOT IMPLEMENTED"); }
@@ -24,14 +27,15 @@ private:
     void initVulkan();
     void initSwapchain();
     void initCommands();
-    void initDefaultrenderpass();
+    void initDefaultRenderPass();
     void initFramebuffers();
     void initSyncStructures();
     void initPipelines();
 
     inline VkExtent2D extent() { return VkExtent2D(mViewportSize.x, mViewportSize.y); }
 
-    int32_t mFrameNumber = 0;
+    btm::ds::DeletionQueue mMainDelQueue {};  // add deletion funcs after create an vk-object, using:
+                                              // mMainDelQueue.push_back([=]() {  });
 
     VkInstance               mInstance       = VK_NULL_HANDLE;  // Vulkan library handle
     VkDebugUtilsMessengerEXT mDebugMessenger = VK_NULL_HANDLE;  // Vulkan debug output handle
@@ -59,9 +63,8 @@ private:
     VkSemaphore mRenderSemaphore  = VK_NULL_HANDLE;
     VkFence     mRenderFence      = VK_NULL_HANDLE;
 
-    // shaders
-
-    // pipelines
+    VkPipelineLayout mTrianglePipelineLayout = VK_NULL_HANDLE;  // inputs/outputs of the shader
+    VkPipeline       mTrianglePipeline       = VK_NULL_HANDLE;  // pipeline
 };
 
 }  // namespace btm::vk

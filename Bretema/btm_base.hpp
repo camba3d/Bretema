@@ -126,11 +126,11 @@ using uset = std::unordered_set<T>;
     } while (0)
 
 // C++ Contiguous container to C raw data
-#define BTM_SIZEOF(type, v)  (v.size() < 1 ? static_cast<type>(v.size()) : v.size() * sizeof(type))
-#define BTM_SIZEOFu32(v)     BTM_SIZEOF(uint32_t, v)
-#define BTM_SIZE(type, v)    static_cast<type>(v.size())
-#define BTM_SIZEu32(type, v) BTM_SIZE(uint32_t, v)
-#define BTM_DATA(type, v)    reinterpret_cast<type>(v.data())
+#define BTM_SIZEOF(type, v) (v.size() < 1 ? static_cast<type>(v.size()) : v.size() * sizeof(type))
+#define BTM_SIZEOFu32(v)    BTM_SIZEOF(uint32_t, v)
+#define BTM_SIZE(type, v)   static_cast<type>(v.size())
+#define BTM_SIZEu32(v)      BTM_SIZE(uint32_t, v)
+#define BTM_DATA(type, v)   reinterpret_cast<type>(v.data())
 
 // clang-format off
 // . Defer

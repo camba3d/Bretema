@@ -2,8 +2,32 @@
 
 #include "btm_base.hpp"
 
+#include <filesystem>
 #include <fstream>
 #include <string>
+
+namespace btm::ds
+{
+
+class DeletionQueue
+{
+public:
+    void push_back(std::function<void()> &&function) { deleteFuncs.push_back(function); }
+
+    void flush()
+    {
+        for (auto it = deleteFuncs.rbegin(); it != deleteFuncs.rend(); it++)
+        {
+            (*it)();
+        }
+        deleteFuncs.clear();
+    }
+
+private:
+    std::vector<std::function<void()>> deleteFuncs;
+};
+
+}  // namespace btm::ds
 
 namespace btm::fs
 {

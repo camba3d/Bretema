@@ -33,6 +33,8 @@ public:
 protected:
     inline void markAsInit() { mInit = true; }
 
+    int32_t mFrameNumber = 0;
+
     bool      mInit         = false;
     void     *mWindowHandle = nullptr;
     glm::vec2 mViewportSize = { 1280, 720 };

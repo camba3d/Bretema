@@ -1,5 +1,4 @@
 #include "vk_renderer.hpp"
-
 #include "vk_init.hpp"
 
 #include <chrono>
@@ -17,36 +16,34 @@ Renderer::Renderer(Ref<btm::Window> window) : btm::BaseRenderer(window)
 {
     // * https://github.com/charles-lunarg/vk-bootstrap/blob/master/docs/getting_started.md
 
-    BTM_INFO("INIT...");
     initVulkan();
-    BTM_INFO("initVulkan [DONE]");
     initSwapchain();
-    BTM_INFO("initSwapchain [DONE]");
-    initCommands();
-    BTM_INFO("initCommands [DONE]");
-    initDefaultrenderpass();
-    BTM_INFO("initDefaultrenderpass [DONE]");
+    initDefaultRenderPass();
     initFramebuffers();
-    BTM_INFO("initFramebuffers [DONE]");
+    initCommands();
     initSyncStructures();
-    BTM_INFO("initSyncStructures [DONE]");
+    initPipelines();
+
+    // init_descriptors();
+    // init_pipelines();
+    // load_images();
+    // load_meshes();
+    // init_scene();
 
     markAsInit();
 }
 
 void Renderer::draw()
 {
-    uint64_t _1s = 1000000000;
-
     auto cmd = mMainCommandBuffer;
 
     // Wait for GPU (1 second timeout)
-    VK_CHECK(vkWaitForFences(mDevice, 1, &mRenderFence, true, _1s));
+    VK_CHECK(vkWaitForFences(mDevice, 1, &mRenderFence, true, sOneSec));
     VK_CHECK(vkResetFences(mDevice, 1, &mRenderFence));
 
     // Request image from the swapchain (1 second timeout)
     uint32_t swapchainImageIndex;
-    VK_CHECK(vkAcquireNextImageKHR(mDevice, mSwapchain, _1s, mPresentSemaphore, nullptr, &swapchainImageIndex));
+    VK_CHECK(vkAcquireNextImageKHR(mDevice, mSwapchain, sOneSec, mPresentSemaphore, nullptr, &swapchainImageIndex));
 
     // Reset command buffer
     VK_CHECK(vkResetCommandBuffer(cmd, 0));
@@ -78,6 +75,11 @@ void Renderer::draw()
     renderpassBI.clearValueCount       = 1;
     renderpassBI.pClearValues          = &clear;
     vkCmdBeginRenderPass(cmd, &renderpassBI, VK_SUBPASS_CONTENTS_INLINE);
+
+    // once we start adding rendering commands, they will go here
+
+    vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, mTrianglePipeline);
+    vkCmdDraw(cmd, 3, 1, 0, 0);
 
     // Finalize the render pass
     vkCmdEndRenderPass(cmd);
@@ -126,39 +128,12 @@ void Renderer::cleanup()
     if (!isInitialized())
         return;
 
-    vkDeviceWaitIdle(mDevice);  //????
+    vkWaitForFences(mDevice, 1, &mRenderFence, true, sOneSec);  // make sure the GPU has stopped doing its things
 
-    // Sync objects
-    vkDestroyFence(mDevice, mRenderFence, nullptr);
-    vkDestroySemaphore(mDevice, mRenderSemaphore, nullptr);
-    vkDestroySemaphore(mDevice, mPresentSemaphore, nullptr);
+    mMainDelQueue.flush();
 
-    // Commands
-    vkDestroyCommandPool(mDevice, mCommandPool, nullptr);
-
-    // Default RenderPass
-    vkDestroyRenderPass(mDevice, mDefaultRenderPass, nullptr);
-
-    // Swapchain Resources : framebuffers
-    for (int32_t i = mFramebuffers.size() - 1; i >= 0; --i)
-        if (mFramebuffers[i])
-            vkDestroyFramebuffer(mDevice, mFramebuffers[i], nullptr);
-
-    // Swapchain Resources : imageviews
-    for (int32_t i = mSwapchainImageViews.size() - 1; i >= 0; --i)
-        if (mSwapchainImageViews[i])
-            vkDestroyImageView(mDevice, mSwapchainImageViews[i], nullptr);
-
-    // Swapchain
-    vkDestroySwapchainKHR(mDevice, mSwapchain, nullptr);
-
-    // Device
     vkDestroyDevice(mDevice, nullptr);
-
-    // Surface (in a future could be more than one surface)
     vkDestroySurfaceKHR(mInstance, mSurface, nullptr);
-
-    // Instance
     vkb::destroy_debug_utils_messenger(mInstance, mDebugMessenger);
     vkDestroyInstance(mInstance, nullptr);
 }
@@ -227,17 +202,22 @@ void Renderer::initSwapchain()
     auto vkbSwapchain = vkbSwapchainResult.value();
     mSwapchain        = vkbSwapchain.swapchain;
 
-    mViewportSize = { vkbSwapchain.extent.width, vkbSwapchain.extent.height };
-
+    // Swapchain images
     auto vkbSwapchainImagesResult = vkbSwapchain.get_images();
     VKB_CHECK(vkbSwapchainImagesResult);
     mSwapchainImages = vkbSwapchainImagesResult.value();
 
+    // Swapchain image-views
     auto vkbSwapchainImageViewsResult = vkbSwapchain.get_image_views();
     VKB_CHECK(vkbSwapchainImageViewsResult);
     mSwapchainImageViews = vkbSwapchainImageViewsResult.value();
 
+    // Swapchain image-format and viewport
     mSwapchainImageFormat = vkbSwapchain.image_format;
+    mViewportSize         = { vkbSwapchain.extent.width, vkbSwapchain.extent.height };
+
+    // Swapchain deletion-queue
+    mMainDelQueue.push_back([this]() { vkDestroySwapchainKHR(mDevice, mSwapchain, nullptr); });
 }
 
 void Renderer::initCommands()
@@ -250,9 +230,11 @@ void Renderer::initCommands()
     // Allocate the default command buffer that we will use for rendering
     auto const cmdAllocInfo = vk::AllocInfo::CommanddBuffer(mCommandPool);
     VK_CHECK(vkAllocateCommandBuffers(mDevice, &cmdAllocInfo, &mMainCommandBuffer));
+
+    mMainDelQueue.push_back([this]() { vkDestroyCommandPool(mDevice, mCommandPool, nullptr); });
 }
 
-void Renderer::initDefaultrenderpass()
+void Renderer::initDefaultRenderPass()
 {
     VkAttachmentDescription color0 = {};
     color0.format                  = mSwapchainImageFormat;             // Copy swapchain format
@@ -283,6 +265,9 @@ void Renderer::initDefaultrenderpass()
     renderpassCI.pSubpasses             = &subpass;
 
     VK_CHECK(vkCreateRenderPass(mDevice, &renderpassCI, nullptr, &mDefaultRenderPass));
+
+    // RenderPass deletion-queue
+    mMainDelQueue.push_back([this]() { vkDestroyRenderPass(mDevice, mDefaultRenderPass, nullptr); });
 }
 
 void Renderer::initFramebuffers()
@@ -308,6 +293,16 @@ void Renderer::initFramebuffers()
     {
         framebufferCI.pAttachments = &mSwapchainImageViews[i];
         VK_CHECK(vkCreateFramebuffer(mDevice, &framebufferCI, nullptr, &mFramebuffers[i]));
+
+        // deletion-queue
+        mMainDelQueue.push_back(
+          [this, i]()
+          {
+              // Framebuffer
+              vkDestroyFramebuffer(mDevice, mFramebuffers[i], nullptr);
+              // SwapchainIamgeView
+              vkDestroyImageView(mDevice, mSwapchainImageViews[i], nullptr);
+          });
     }
 }
 
@@ -319,6 +314,18 @@ void Renderer::initSyncStructures()
     auto const semaphoreCI = vk::CreateInfo::Semaphore();
     VK_CHECK(vkCreateSemaphore(mDevice, &semaphoreCI, nullptr, &mPresentSemaphore));
     VK_CHECK(vkCreateSemaphore(mDevice, &semaphoreCI, nullptr, &mRenderSemaphore));
+
+    // deletion-queue
+    mMainDelQueue.push_back(
+      [this]()
+      {
+          // Fence(s)
+          vkDestroyFence(mDevice, mRenderFence, nullptr);
+
+          // Semaphore(s)
+          vkDestroySemaphore(mDevice, mPresentSemaphore, nullptr);
+          vkDestroySemaphore(mDevice, mRenderSemaphore, nullptr);
+      });
 }
 
 void Renderer::initPipelines()
@@ -326,7 +333,49 @@ void Renderer::initPipelines()
     auto triVert = vk::Create::ShaderModule(mDevice, "tri", VK_SHADER_STAGE_VERTEX_BIT);
     auto triFrag = vk::Create::ShaderModule(mDevice, "tri", VK_SHADER_STAGE_FRAGMENT_BIT);
 
+    // deletion-queue
+    mMainDelQueue.push_back(
+      [=, this]()
+      {
+          vkDestroyShaderModule(mDevice, triVert, nullptr);
+          vkDestroyShaderModule(mDevice, triFrag, nullptr);
+      });
+
     BTM_ASSERT(triVert && triFrag);
+
+    // Pipeline Layout(s)
+    auto const info = vk::CreateInfo::PipelineLayout();
+    VK_CHECK(vkCreatePipelineLayout(mDevice, &info, nullptr, &mTrianglePipelineLayout));
+
+    // Pipeline(s)
+    PipelineBuilder pb;
+    pb.shaderStages.push_back(vk::CreateInfo::PipelineShaderStage(VK_SHADER_STAGE_VERTEX_BIT, triVert));
+    pb.shaderStages.push_back(vk::CreateInfo::PipelineShaderStage(VK_SHADER_STAGE_FRAGMENT_BIT, triFrag));
+    pb.vertexInputInfo      = vk::CreateInfo::VertexInputState();
+    pb.inputAssembly        = vk::CreateInfo::InputAssembly();
+    pb.viewport.x           = 0.0f;
+    pb.viewport.y           = 0.0f;
+    pb.viewport.width       = mViewportSize.x;
+    pb.viewport.height      = mViewportSize.y;
+    pb.viewport.minDepth    = 0.0f;
+    pb.viewport.maxDepth    = 1.0f;
+    pb.scissor.offset       = { 0, 0 };
+    pb.scissor.extent       = extent();
+    pb.rasterizer           = vk::CreateInfo::RasterizationState();
+    pb.multisampling        = vk::CreateInfo::MultisamplingState();
+    pb.colorBlendAttachment = vk::Blend::None;
+    pb.pipelineLayout       = mTrianglePipelineLayout;
+    mTrianglePipeline       = vk::Create::Pipeline(pb, mDevice, mDefaultRenderPass);
+
+    // deletion-queue
+    mMainDelQueue.push_back(
+      [this]()
+      {
+          // Pipeline(s)
+          vkDestroyPipeline(mDevice, mTrianglePipeline, nullptr);
+          // Pipeline Layout(s)
+          vkDestroyPipelineLayout(mDevice, mTrianglePipelineLayout, nullptr);
+      });
 }
 
 //-----------------------------------------------------------------------------
