@@ -3,10 +3,56 @@
 #include "../btm_base.hpp"
 #include "vk_base.hpp"
 
+#include <vma/vk_mem_alloc.h>
+
 #include <vector>
 
 namespace btm::vk
 {
+
+struct AllocatedBuffer
+{
+    VkBuffer      buffer;
+    VmaAllocation allocation;
+};
+
+struct VertexInputDescription
+{
+    std::vector<VkVertexInputBindingDescription>   bindings;
+    std::vector<VkVertexInputAttributeDescription> attributes;
+
+    VkPipelineVertexInputStateCreateFlags flags = 0;
+};
+
+struct Vertex
+{
+    glm::vec3 position;
+    glm::vec3 normal;
+    glm::vec3 color;
+
+    static VertexInputDescription inputDesc()
+    {
+        static auto constexpr vec3_f32 = VK_FORMAT_R32G32B32_SFLOAT;
+
+        VertexInputDescription desc;
+
+        desc.bindings.push_back({ 0, sizeof(Vertex), VK_VERTEX_INPUT_RATE_VERTEX });
+
+        desc.attributes.push_back({ 0, 0, vec3_f32, offsetof(Vertex, position) });
+        desc.attributes.push_back({ 1, 0, vec3_f32, offsetof(Vertex, normal) });
+        desc.attributes.push_back({ 2, 0, vec3_f32, offsetof(Vertex, color) });
+
+        return desc;
+    }
+};
+using Vertices = std::vector<Vertex>;
+
+struct Mesh
+{
+    int32_t         vertexCount = 0;
+    // AllocatedBuffer indices;
+    AllocatedBuffer vertices;
+};
 
 struct Queue
 {

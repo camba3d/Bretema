@@ -10,6 +10,8 @@
 #include "../btm_tools.hpp"
 #include "../btm_renderer.hpp"
 
+#include <vma/vk_mem_alloc.h>
+
 namespace btm::vk
 {
 
@@ -32,6 +34,9 @@ private:
     void initSyncStructures();
     void initPipelines();
 
+    void loadMeshes();
+    Mesh createMesh(Vertices const &verts);
+
     inline VkExtent2D extent() { return VkExtent2D(mViewportSize.x, mViewportSize.y); }
 
     btm::ds::DeletionQueue mMainDelQueue {};  // add deletion funcs after create an vk-object, using:
@@ -41,6 +46,7 @@ private:
     VkDebugUtilsMessengerEXT mDebugMessenger = VK_NULL_HANDLE;  // Vulkan debug output handle
     VkPhysicalDevice         mChosenGPU      = VK_NULL_HANDLE;  // GPU chosen as the default device
     VkDevice                 mDevice         = VK_NULL_HANDLE;  // Vulkan device for commands
+    VmaAllocator             mAllocator      = VK_NULL_HANDLE;  // Memory Allocator - AMD lib
     VkSurfaceKHR             mSurface        = VK_NULL_HANDLE;  // Vulkan window surface (in a future could be an array)
 
     VkSwapchainKHR           mSwapchain            = VK_NULL_HANDLE;           // Vulkan swapchain
@@ -63,8 +69,15 @@ private:
     VkSemaphore mRenderSemaphore  = VK_NULL_HANDLE;
     VkFence     mRenderFence      = VK_NULL_HANDLE;
 
-    VkPipelineLayout mTrianglePipelineLayout = VK_NULL_HANDLE;  // inputs/outputs of the shader
-    VkPipeline       mTrianglePipeline       = VK_NULL_HANDLE;  // pipeline
+    // Pipeline Layout(s) : inputs/outputs of the shader
+    VkPipelineLayout mTrianglePipelineLayout = VK_NULL_HANDLE;
+
+    // Pipeline(s)
+    VkPipeline mTrianglePipeline = VK_NULL_HANDLE;
+    VkPipeline mMeshPipeline     = VK_NULL_HANDLE;
+
+    // Meshe(s)
+    Mesh mTriangleMesh;
 };
 
 }  // namespace btm::vk

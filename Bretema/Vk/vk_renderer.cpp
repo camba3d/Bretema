@@ -27,7 +27,7 @@ Renderer::Renderer(Ref<btm::Window> window) : btm::BaseRenderer(window)
     // init_descriptors();
     // init_pipelines();
     // load_images();
-    // load_meshes();
+    loadMeshes();
     // init_scene();
 
     markAsInit();
@@ -74,15 +74,25 @@ void Renderer::draw()
     renderpassBI.framebuffer           = mFramebuffers[swapchainImageIndex];
     renderpassBI.clearValueCount       = 1;
     renderpassBI.pClearValues          = &clear;
+
+    //===========
+
     vkCmdBeginRenderPass(cmd, &renderpassBI, VK_SUBPASS_CONTENTS_INLINE);
 
     // once we start adding rendering commands, they will go here
+    vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, mMeshPipeline);
 
-    vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, mTrianglePipeline);
-    vkCmdDraw(cmd, 3, 1, 0, 0);
+    // bind the mesh vertex buffer with offset 0
+    VkDeviceSize offset = 0;
+    vkCmdBindVertexBuffers(cmd, 0, 1, &mTriangleMesh.vertices.buffer, &offset);
+
+    // we can now draw the mesh
+    vkCmdDraw(cmd, mTriangleMesh.vertexCount, 1, 0, 0);
 
     // Finalize the render pass
     vkCmdEndRenderPass(cmd);
+
+    //===========
 
     // Finalize the command buffer (we can no longer add commands, but it can now be executed)
     VK_CHECK(vkEndCommandBuffer(cmd));
@@ -132,6 +142,7 @@ void Renderer::cleanup()
 
     mMainDelQueue.flush();
 
+    vmaDestroyAllocator(mAllocator);
     vkDestroyDevice(mDevice, nullptr);
     vkDestroySurfaceKHR(mInstance, mSurface, nullptr);
     vkb::destroy_debug_utils_messenger(mInstance, mDebugMessenger);
@@ -158,7 +169,7 @@ void Renderer::initVulkan()
     // Debug messenger
     mDebugMessenger = vkbInstance.debug_messenger;
 
-    // Surface : // @dani externalize this calls
+    // Surface : // @dani externalize this call ??
     glfwCreateWindowSurface(mInstance, (GLFWwindow *)mWindowHandle, nullptr, &mSurface);
 
     // vkb : Select a GPU based on some criteria
@@ -178,6 +189,13 @@ void Renderer::initVulkan()
 
     // Device
     mDevice = vkbDevice.device;
+
+    // Initialize the memory allocator
+    VmaAllocatorCreateInfo allocatorInfo = {};
+    allocatorInfo.physicalDevice         = mChosenGPU;
+    allocatorInfo.device                 = mDevice;
+    allocatorInfo.instance               = mInstance;
+    vmaCreateAllocator(&allocatorInfo, &mAllocator);
 
     // Queues
     mGraphicsQ = { vkbDevice, vkb::QueueType::graphics };
@@ -330,27 +348,39 @@ void Renderer::initSyncStructures()
 
 void Renderer::initPipelines()
 {
-    auto triVert = vk::Create::ShaderModule(mDevice, "tri", VK_SHADER_STAGE_VERTEX_BIT);
-    auto triFrag = vk::Create::ShaderModule(mDevice, "tri", VK_SHADER_STAGE_FRAGMENT_BIT);
+    // Shaders
+
+    auto vs_tri  = vk::Create::ShaderModule(mDevice, "tri", VK_SHADER_STAGE_VERTEX_BIT);
+    auto fs_tri  = vk::Create::ShaderModule(mDevice, "tri", VK_SHADER_STAGE_FRAGMENT_BIT);
+    auto vs_mesh = vk::Create::ShaderModule(mDevice, "mesh", VK_SHADER_STAGE_VERTEX_BIT);
+    auto fs_mesh = vk::Create::ShaderModule(mDevice, "mesh", VK_SHADER_STAGE_FRAGMENT_BIT);
 
     // deletion-queue
     mMainDelQueue.push_back(
       [=, this]()
       {
-          vkDestroyShaderModule(mDevice, triVert, nullptr);
-          vkDestroyShaderModule(mDevice, triFrag, nullptr);
+          vkDestroyShaderModule(mDevice, vs_tri, nullptr);
+          vkDestroyShaderModule(mDevice, fs_tri, nullptr);
+          vkDestroyShaderModule(mDevice, vs_mesh, nullptr);
+          vkDestroyShaderModule(mDevice, fs_mesh, nullptr);
       });
 
-    BTM_ASSERT(triVert && triFrag);
-
     // Pipeline Layout(s)
+
     auto const info = vk::CreateInfo::PipelineLayout();
     VK_CHECK(vkCreatePipelineLayout(mDevice, &info, nullptr, &mTrianglePipelineLayout));
 
-    // Pipeline(s)
+    // deletion-queue :: @note might this be deleted after pipelines ??
+    mMainDelQueue.push_back([this]() { vkDestroyPipelineLayout(mDevice, mTrianglePipelineLayout, nullptr); });
+
+    //=====
+
     PipelineBuilder pb;
-    pb.shaderStages.push_back(vk::CreateInfo::PipelineShaderStage(VK_SHADER_STAGE_VERTEX_BIT, triVert));
-    pb.shaderStages.push_back(vk::CreateInfo::PipelineShaderStage(VK_SHADER_STAGE_FRAGMENT_BIT, triFrag));
+
+    // Pipeline 1
+
+    pb.shaderStages.push_back(vk::CreateInfo::PipelineShaderStage(VK_SHADER_STAGE_VERTEX_BIT, vs_tri));
+    pb.shaderStages.push_back(vk::CreateInfo::PipelineShaderStage(VK_SHADER_STAGE_FRAGMENT_BIT, fs_tri));
     pb.vertexInputInfo      = vk::CreateInfo::VertexInputState();
     pb.inputAssembly        = vk::CreateInfo::InputAssembly();
     pb.viewport.x           = 0.0f;
@@ -365,17 +395,94 @@ void Renderer::initPipelines()
     pb.multisampling        = vk::CreateInfo::MultisamplingState();
     pb.colorBlendAttachment = vk::Blend::None;
     pb.pipelineLayout       = mTrianglePipelineLayout;
-    mTrianglePipeline       = vk::Create::Pipeline(pb, mDevice, mDefaultRenderPass);
+
+    mTrianglePipeline = vk::Create::Pipeline(pb, mDevice, mDefaultRenderPass);
+
+    // Pipeline 2
+
+    pb.shaderStages.clear();
+
+    pb.shaderStages.push_back(vk::CreateInfo::PipelineShaderStage(VK_SHADER_STAGE_VERTEX_BIT, vs_mesh));
+    pb.shaderStages.push_back(vk::CreateInfo::PipelineShaderStage(VK_SHADER_STAGE_FRAGMENT_BIT, fs_mesh));
+
+    VertexInputDescription vertexDesc = Vertex::inputDesc();
+
+    pb.vertexInputInfo                                 = vk::CreateInfo::VertexInputState();
+    pb.vertexInputInfo.vertexAttributeDescriptionCount = vertexDesc.attributes.size();
+    pb.vertexInputInfo.pVertexAttributeDescriptions    = vertexDesc.attributes.data();
+    pb.vertexInputInfo.vertexBindingDescriptionCount   = vertexDesc.bindings.size();
+    pb.vertexInputInfo.pVertexBindingDescriptions      = vertexDesc.bindings.data();
+
+    mMeshPipeline = vk::Create::Pipeline(pb, mDevice, mDefaultRenderPass);
 
     // deletion-queue
     mMainDelQueue.push_back(
       [this]()
       {
-          // Pipeline(s)
           vkDestroyPipeline(mDevice, mTrianglePipeline, nullptr);
-          // Pipeline Layout(s)
-          vkDestroyPipelineLayout(mDevice, mTrianglePipelineLayout, nullptr);
+          vkDestroyPipeline(mDevice, mMeshPipeline, nullptr);
       });
+}
+
+//-----------------------------------------------------------------------------
+
+void Renderer::loadMeshes()
+{
+    Vertices verts = {};
+    verts.resize(3);
+
+    verts[0].position = { 1.f, 1.f, 0.f };
+    verts[1].position = { -1.f, 1.f, 0.f };
+    verts[2].position = { 0.f, -1.f, 0.f };
+
+    verts[0].color = Color::Orange;
+    verts[1].color = Color::StrongYellow;
+    verts[2].color = Color::Yellow;
+
+    mTriangleMesh = createMesh(verts);
+}
+
+//-----------------------------------------------------------------------------
+
+Mesh Renderer::createMesh(Vertices const &verts)
+{
+    VkBufferCreateInfo bufferInfo = {};
+    bufferInfo.sType              = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+    bufferInfo.size               = verts.size() * sizeof(Vertex);  // bytes
+    bufferInfo.usage              = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
+
+    VmaAllocationCreateInfo vmaallocInfo = {};
+    vmaallocInfo.usage                   = VMA_MEMORY_USAGE_CPU_TO_GPU;  //@deprecated
+
+    Mesh mesh;
+    mesh.vertexCount = verts.size();
+
+    // Indices
+    //...@todo
+
+    // Vertices
+    VK_CHECK(vmaCreateBuffer(
+      mAllocator,
+      &bufferInfo,
+      &vmaallocInfo,
+      &mesh.vertices.buffer,
+      &mesh.vertices.allocation,
+      nullptr));
+
+    void *data;
+    vmaMapMemory(mAllocator, mesh.vertices.allocation, &data);
+    memcpy(data, verts.data(), verts.size() * sizeof(Vertex));
+    vmaUnmapMemory(mAllocator, mesh.vertices.allocation);
+
+    // deletion-queue
+    mMainDelQueue.push_back(
+      [=, this]()
+      {
+          vmaDestroyBuffer(mAllocator, mesh.vertices.buffer, mesh.vertices.allocation);  //
+          //
+      });
+
+    return mesh;
 }
 
 //-----------------------------------------------------------------------------

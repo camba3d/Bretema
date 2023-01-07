@@ -316,6 +316,20 @@ enum struct Key
 
 }  // namespace Input
 
+// COLORS
+namespace Color
+{
+glm::vec3 constexpr Red          = { 1.f, 0.f, 0.f };
+glm::vec3 constexpr Green        = { 0.f, 1.f, 0.f };
+glm::vec3 constexpr Blue         = { 1.f, 0.f, 0.f };
+glm::vec3 constexpr Magenta      = { 1.f, 0.f, 1.f };
+glm::vec3 constexpr Yellow       = { 1.f, 1.f, 0.f };
+glm::vec3 constexpr Cyan         = { 0.f, 1.f, 1.f };
+glm::vec3 constexpr Lime         = { .5f, 1.f, 0.f };
+glm::vec3 constexpr Orange       = { 1.f, .3f, 0.f };
+glm::vec3 constexpr StrongYellow = { 1.f, .5f, 0.f };
+}  // namespace Color
+
 // UTILS
 // namespace Utils
 // {

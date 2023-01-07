@@ -162,6 +162,7 @@ list(APPEND EXTRA_SOURCES
     ${SRC}/btm_renderer.cpp
     ${SRC}/btm_window.cpp
 
+    ${SRC}/Vk/vk_base.cpp
     ${SRC}/Vk/vk_renderer.cpp
 )
 
