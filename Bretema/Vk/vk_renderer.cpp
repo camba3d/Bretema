@@ -75,24 +75,34 @@ void Renderer::draw()
     renderpassBI.clearValueCount       = 1;
     renderpassBI.pClearValues          = &clear;
 
-    //===========
-
     vkCmdBeginRenderPass(cmd, &renderpassBI, VK_SUBPASS_CONTENTS_INLINE);
 
-    // once we start adding rendering commands, they will go here
-    vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, mMeshPipeline);
+    //===========
+
+    vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, mPipelines[1]);
 
     // bind the mesh vertex buffer with offset 0
     VkDeviceSize offset = 0;
-    vkCmdBindVertexBuffers(cmd, 0, 1, &mTriangleMesh.vertices.buffer, &offset);
+    vkCmdBindVertexBuffers(cmd, 0, 1, &mMeshes[0].vertices.buffer, &offset);
+
+    // set push constant MVP
+    glm::vec3 camPos     = { 0.f, 0.f, -4.f };
+    glm::mat4 view       = glm::translate(glm::mat4(1.f), camPos);
+    glm::mat4 projection = glm::perspective(glm::radians(70.f), mViewportSize.x / mViewportSize.y, 0.1f, 200.0f);
+    // projection[1][1] *= -1;  // ??
+    glm::mat4 model      = glm::rotate(glm::mat4(1.f), glm::radians(mFrameNumber * 0.4f), glm::vec3(0, 1, 0));
+    MeshPushConstants constants;
+    constants.modelViewProj = projection * view * model;
+    // upload the matrix to the GPU via push constants
+    vkCmdPushConstants(cmd, mPipelineLayouts[1], VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(MeshPushConstants), &constants);
 
     // we can now draw the mesh
-    vkCmdDraw(cmd, mTriangleMesh.vertexCount, 1, 0, 0);
+    vkCmdDraw(cmd, mMeshes[0].vertexCount, 1, 0, 0);
+
+    //===========
 
     // Finalize the render pass
     vkCmdEndRenderPass(cmd);
-
-    //===========
 
     // Finalize the command buffer (we can no longer add commands, but it can now be executed)
     VK_CHECK(vkEndCommandBuffer(cmd));
@@ -246,7 +256,7 @@ void Renderer::initCommands()
     VK_CHECK(vkCreateCommandPool(mDevice, &cmdPoolCI, nullptr, &mCommandPool));
 
     // Allocate the default command buffer that we will use for rendering
-    auto const cmdAllocInfo = vk::AllocInfo::CommanddBuffer(mCommandPool);
+    auto const cmdAllocInfo = vk::AllocInfo::CommandBuffer(mCommandPool);
     VK_CHECK(vkAllocateCommandBuffers(mDevice, &cmdAllocInfo, &mMainCommandBuffer));
 
     mMainDelQueue.push_back([this]() { vkDestroyCommandPool(mDevice, mCommandPool, nullptr); });
@@ -346,32 +356,47 @@ void Renderer::initSyncStructures()
       });
 }
 
+#define BTM_CREATE_VS(name)                                                                \
+    auto vs_##name = vk::Create::ShaderModule(mDevice, #name, VK_SHADER_STAGE_VERTEX_BIT); \
+    BTM_DEFER_(defer_vs_##name, vkDestroyShaderModule(mDevice, vs_##name, nullptr))
+
+#define BTM_CREATE_FS(name)                                                                  \
+    auto fs_##name = vk::Create::ShaderModule(mDevice, #name, VK_SHADER_STAGE_FRAGMENT_BIT); \
+    BTM_DEFER_(defer_fs_##name, vkDestroyShaderModule(mDevice, fs_##name, nullptr))
+
+#define BTM_CREATE_DRAW_SHADER(name) \
+    BTM_CREATE_VS(name);             \
+    BTM_CREATE_FS(name);
+
 void Renderer::initPipelines()
 {
     // Shaders
-
-    auto vs_tri  = vk::Create::ShaderModule(mDevice, "tri", VK_SHADER_STAGE_VERTEX_BIT);
-    auto fs_tri  = vk::Create::ShaderModule(mDevice, "tri", VK_SHADER_STAGE_FRAGMENT_BIT);
-    auto vs_mesh = vk::Create::ShaderModule(mDevice, "mesh", VK_SHADER_STAGE_VERTEX_BIT);
-    auto fs_mesh = vk::Create::ShaderModule(mDevice, "mesh", VK_SHADER_STAGE_FRAGMENT_BIT);
-
-    // deletion-queue
-    mMainDelQueue.push_back(
-      [=, this]()
-      {
-          vkDestroyShaderModule(mDevice, vs_tri, nullptr);
-          vkDestroyShaderModule(mDevice, fs_tri, nullptr);
-          vkDestroyShaderModule(mDevice, vs_mesh, nullptr);
-          vkDestroyShaderModule(mDevice, fs_mesh, nullptr);
-      });
+    BTM_CREATE_DRAW_SHADER(tri);
+    BTM_CREATE_DRAW_SHADER(mesh);
 
     // Pipeline Layout(s)
 
-    auto const info = vk::CreateInfo::PipelineLayout();
-    VK_CHECK(vkCreatePipelineLayout(mDevice, &info, nullptr, &mTrianglePipelineLayout));
+    mPipelineLayouts = std::vector<VkPipelineLayout>(100, VK_NULL_HANDLE);
+
+    auto const infoTri = vk::CreateInfo::PipelineLayout();
+    VK_CHECK(vkCreatePipelineLayout(mDevice, &infoTri, nullptr, &mPipelineLayouts[0]));
+
+    auto infoMesh = vk::CreateInfo::PipelineLayout();
+
+    VkPushConstantRange push_constant = { VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(MeshPushConstants) };
+    infoMesh.pPushConstantRanges      = &push_constant;
+    infoMesh.pushConstantRangeCount   = 1;
+
+    VK_CHECK(vkCreatePipelineLayout(mDevice, &infoMesh, nullptr, &mPipelineLayouts[1]));
 
     // deletion-queue :: @note might this be deleted after pipelines ??
-    mMainDelQueue.push_back([this]() { vkDestroyPipelineLayout(mDevice, mTrianglePipelineLayout, nullptr); });
+    mMainDelQueue.push_back(
+      [this]()
+      {
+          for (auto layout : mPipelineLayouts)
+              if (layout != VK_NULL_HANDLE)
+                  vkDestroyPipelineLayout(mDevice, layout, nullptr);
+      });
 
     //=====
 
@@ -394,9 +419,9 @@ void Renderer::initPipelines()
     pb.rasterizer           = vk::CreateInfo::RasterizationState();
     pb.multisampling        = vk::CreateInfo::MultisamplingState();
     pb.colorBlendAttachment = vk::Blend::None;
-    pb.pipelineLayout       = mTrianglePipelineLayout;
+    pb.pipelineLayout       = mPipelineLayouts[0];
 
-    mTrianglePipeline = vk::Create::Pipeline(pb, mDevice, mDefaultRenderPass);
+    mPipelines.push_back(vk::Create::Pipeline(pb, mDevice, mDefaultRenderPass));
 
     // Pipeline 2
 
@@ -404,23 +429,19 @@ void Renderer::initPipelines()
 
     pb.shaderStages.push_back(vk::CreateInfo::PipelineShaderStage(VK_SHADER_STAGE_VERTEX_BIT, vs_mesh));
     pb.shaderStages.push_back(vk::CreateInfo::PipelineShaderStage(VK_SHADER_STAGE_FRAGMENT_BIT, fs_mesh));
+    pb.vertexInputInfo = vk::CreateInfo::VertexInputState(Vertex3::inputDesc());
+    pb.rasterizer      = vk::CreateInfo::RasterizationState(btm::Cull::NONE);
+    pb.multisampling   = vk::CreateInfo::MultisamplingState(btm::Samples::_1);  // Must match with renderpass ...
+    pb.pipelineLayout  = mPipelineLayouts[1];
 
-    VertexInputDescription vertexDesc = Vertex::inputDesc();
-
-    pb.vertexInputInfo                                 = vk::CreateInfo::VertexInputState();
-    pb.vertexInputInfo.vertexAttributeDescriptionCount = vertexDesc.attributes.size();
-    pb.vertexInputInfo.pVertexAttributeDescriptions    = vertexDesc.attributes.data();
-    pb.vertexInputInfo.vertexBindingDescriptionCount   = vertexDesc.bindings.size();
-    pb.vertexInputInfo.pVertexBindingDescriptions      = vertexDesc.bindings.data();
-
-    mMeshPipeline = vk::Create::Pipeline(pb, mDevice, mDefaultRenderPass);
+    mPipelines.push_back(vk::Create::Pipeline(pb, mDevice, mDefaultRenderPass));
 
     // deletion-queue
     mMainDelQueue.push_back(
       [this]()
       {
-          vkDestroyPipeline(mDevice, mTrianglePipeline, nullptr);
-          vkDestroyPipeline(mDevice, mMeshPipeline, nullptr);
+          for (auto pipeline : mPipelines)
+              vkDestroyPipeline(mDevice, pipeline, nullptr);
       });
 }
 
@@ -428,7 +449,7 @@ void Renderer::initPipelines()
 
 void Renderer::loadMeshes()
 {
-    Vertices verts = {};
+    Vertices3 verts = {};
     verts.resize(3);
 
     verts[0].position = { 1.f, 1.f, 0.f };
@@ -439,16 +460,16 @@ void Renderer::loadMeshes()
     verts[1].color = Color::StrongYellow;
     verts[2].color = Color::Yellow;
 
-    mTriangleMesh = createMesh(verts);
+    mMeshes.push_back(createMesh(verts));
 }
 
 //-----------------------------------------------------------------------------
 
-Mesh Renderer::createMesh(Vertices const &verts)
+Mesh Renderer::createMesh(Vertices3 const &verts)
 {
     VkBufferCreateInfo bufferInfo = {};
     bufferInfo.sType              = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-    bufferInfo.size               = verts.size() * sizeof(Vertex);  // bytes
+    bufferInfo.size               = verts.size() * sizeof(Vertex3);  // bytes
     bufferInfo.usage              = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
 
     VmaAllocationCreateInfo vmaallocInfo = {};
@@ -471,7 +492,7 @@ Mesh Renderer::createMesh(Vertices const &verts)
 
     void *data;
     vmaMapMemory(mAllocator, mesh.vertices.allocation, &data);
-    memcpy(data, verts.data(), verts.size() * sizeof(Vertex));
+    memcpy(data, verts.data(), verts.size() * sizeof(Vertex3));
     vmaUnmapMemory(mAllocator, mesh.vertices.allocation);
 
     // deletion-queue

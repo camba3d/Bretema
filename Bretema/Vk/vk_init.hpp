@@ -54,30 +54,40 @@ inline auto PipelineShaderStage(VkShaderStageFlagBits stage, VkShaderModule shad
     return info;
 }
 
-inline auto VertexInputState(void *pNext = nullptr)
+inline auto VertexInputState(VertexInputDescription const &desc = {}, void *pNext = nullptr)
 {
     VkPipelineVertexInputStateCreateInfo info {};
     info.sType                           = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
     info.pNext                           = pNext;
-    info.vertexBindingDescriptionCount   = 0;  // no vertex bindings or attributes
-    info.vertexAttributeDescriptionCount = 0;  // no vertex bindings or attributes
+    info.vertexBindingDescriptionCount   = 0;
+    info.vertexAttributeDescriptionCount = 0;
+
+    if (desc.bindings.size() >= 1 && desc.bindings.data())
+    {
+        info.vertexBindingDescriptionCount = desc.bindings.size();
+        info.pVertexBindingDescriptions    = desc.bindings.data();
+    }
+
+    if (desc.attributes.size() >= 1 && desc.attributes.data())
+    {
+        info.vertexAttributeDescriptionCount = desc.attributes.size();
+        info.pVertexAttributeDescriptions    = desc.attributes.data();
+    }
+
     return info;
 }
 
-inline auto InputAssembly(VkPrimitiveTopology topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, void *pNext = nullptr)
+inline auto InputAssembly(void *pNext = nullptr)
 {
     VkPipelineInputAssemblyStateCreateInfo info {};
     info.sType                  = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
     info.pNext                  = pNext;
-    info.topology               = topology;
+    info.topology               = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
     info.primitiveRestartEnable = VK_FALSE;  // we are not going to use primitive restart
     return info;
 }
 
-inline auto RasterizationState(
-  VkCullModeFlagBits cullMode  = VK_CULL_MODE_BACK_BIT,
-  VkFrontFace        frontFace = VK_FRONT_FACE_CLOCKWISE,
-  void              *pNext     = nullptr)
+inline auto RasterizationState(btm::Cull cullMode = btm::Cull::CCW, void *pNext = nullptr)
 {
     VkPipelineRasterizationStateCreateInfo info {};
     info.sType                   = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
@@ -87,8 +97,8 @@ inline auto RasterizationState(
     info.polygonMode             = VK_POLYGON_MODE_FILL;
     info.lineWidth               = 1.0f;
     // no backface cull
-    info.cullMode                = cullMode;
-    info.frontFace               = frontFace;
+    info.cullMode                = static_cast<VkCullModeFlagBits>(cullMode);
+    info.frontFace               = VK_FRONT_FACE_CLOCKWISE;
     // no depth bias
     info.depthBiasEnable         = VK_FALSE;
     info.depthBiasConstantFactor = 0.0f;
@@ -98,13 +108,13 @@ inline auto RasterizationState(
     return info;
 }
 
-inline auto MultisamplingState(VkSampleCountFlagBits sampleCount = VK_SAMPLE_COUNT_1_BIT, void *pNext = nullptr)
+inline auto MultisamplingState(btm::Samples sampleCount = btm::Samples::_1, void *pNext = nullptr)
 {
     VkPipelineMultisampleStateCreateInfo info {};
     info.sType                 = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
     info.pNext                 = pNext;
     info.sampleShadingEnable   = VK_FALSE;
-    info.rasterizationSamples  = sampleCount;  // multisampling defaulted to no multisampling
+    info.rasterizationSamples  = static_cast<VkSampleCountFlagBits>(BTM_BIT((int)sampleCount));
     info.minSampleShading      = 1.0f;
     info.pSampleMask           = nullptr;
     info.alphaToCoverageEnable = VK_FALSE;
@@ -133,7 +143,7 @@ inline auto PipelineLayout(void *pNext = nullptr)
 namespace AllocInfo
 {
 
-inline auto CommanddBuffer(
+inline auto CommandBuffer(
   VkCommandPool        pool,
   uint32_t             count = 1,
   VkCommandBufferLevel level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,

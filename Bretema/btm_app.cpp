@@ -55,7 +55,8 @@ void App::run()
             isAnyWindowOpen |= !close;
         }
 
-        btm::Window::waitEvents();
+        // btm::Window::waitEvents();
+        btm::Window::pollEvents();
     }
 }
 

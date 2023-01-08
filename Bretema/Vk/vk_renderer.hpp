@@ -19,6 +19,12 @@ class Renderer : public btm::BaseRenderer
 {
     static constexpr uint64_t sOneSec = 1000000000;
 
+    struct MeshPushConstants
+    {
+        glm::vec4 data;
+        glm::mat4 modelViewProj;
+    };
+
 public:
     Renderer(Ref<btm::Window> window);
     virtual void update() override { BTM_WARN("NOT IMPLEMENTED"); }
@@ -35,12 +41,12 @@ private:
     void initPipelines();
 
     void loadMeshes();
-    Mesh createMesh(Vertices const &verts);
+    Mesh createMesh(Vertices3 const &verts);
 
     inline VkExtent2D extent() { return VkExtent2D(mViewportSize.x, mViewportSize.y); }
 
     btm::ds::DeletionQueue mMainDelQueue {};  // add deletion funcs after create an vk-object, using:
-                                              // mMainDelQueue.push_back([=]() {  });
+                                              // mMainDelQueue.push_back([this]() {  });
 
     VkInstance               mInstance       = VK_NULL_HANDLE;  // Vulkan library handle
     VkDebugUtilsMessengerEXT mDebugMessenger = VK_NULL_HANDLE;  // Vulkan debug output handle
@@ -63,21 +69,18 @@ private:
     VkCommandBuffer mMainCommandBuffer;  // Main command buffer
 
     VkRenderPass mDefaultRenderPass          = VK_NULL_HANDLE;  // Basic renderpass config with (1) color and subpass
-    std::vector<VkFramebuffer> mFramebuffers = {};              // List of FBOs, one per swapchain-image(view)
+    std::vector<VkFramebuffer> mFramebuffers = {};              // Bucket of FBOs, one per swapchain-image(view)
 
+    // There is room to improve here, check:
+    // * https://vulkan-tutorial.com/Drawing_a_triangle/Drawing/Rendering_and_presentation
     VkSemaphore mPresentSemaphore = VK_NULL_HANDLE;
     VkSemaphore mRenderSemaphore  = VK_NULL_HANDLE;
     VkFence     mRenderFence      = VK_NULL_HANDLE;
 
-    // Pipeline Layout(s) : inputs/outputs of the shader
-    VkPipelineLayout mTrianglePipelineLayout = VK_NULL_HANDLE;
+    std::vector<VkPipelineLayout> mPipelineLayouts = {};  // Bucket of pipeline-layouts
+    std::vector<VkPipeline>       mPipelines       = {};  // Bucket of pipelines
 
-    // Pipeline(s)
-    VkPipeline mTrianglePipeline = VK_NULL_HANDLE;
-    VkPipeline mMeshPipeline     = VK_NULL_HANDLE;
-
-    // Meshe(s)
-    Mesh mTriangleMesh;
+    std::vector<Mesh> mMeshes = {};  // Bucket of mesehes
 };
 
 }  // namespace btm::vk

@@ -140,7 +140,8 @@ using uset = std::unordered_set<T>;
 #define BTM_CONCAT_(a, b) a##b
 #define BTM_CONCAT(a, b) BTM_CONCAT_(a,b)
 using   BTM_DEFER_PTR = std::unique_ptr<void,std::function<void(void*)>>;
-#define BTM_DEFER(fn) auto BTM_CONCAT(__defer__, __LINE__) = BTM_DEFER_PTR([](){static int a=0; return &a;}(), [&](void*){fn;})
+#define BTM_DEFER_(name, fn) auto name = BTM_DEFER_PTR([](){static int a=0; return &a;}(), [&](void*){fn;})
+#define BTM_DEFER(fn) BTM_DEFER_(BTM_CONCAT(__defer__, __LINE__), fn)
 // clang-format on
 
 //===========================

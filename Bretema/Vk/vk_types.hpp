@@ -24,28 +24,41 @@ struct VertexInputDescription
     VkPipelineVertexInputStateCreateFlags flags = 0;
 };
 
-struct Vertex
+struct Vertex3
 {
     glm::vec3 position;
     glm::vec3 normal;
     glm::vec3 color;
 
-    static VertexInputDescription inputDesc()
+    static VertexInputDescription const &inputDesc()
     {
-        static auto constexpr vec3_f32 = VK_FORMAT_R32G32B32_SFLOAT;
+        static auto const desc = []()
+        {
+            static auto constexpr vec3_f32 = VK_FORMAT_R32G32B32_SFLOAT;
 
-        VertexInputDescription desc;
+            VertexInputDescription desc;
 
-        desc.bindings.push_back({ 0, sizeof(Vertex), VK_VERTEX_INPUT_RATE_VERTEX });
+            desc.bindings.push_back({ 0, sizeof(Vertex3), VK_VERTEX_INPUT_RATE_VERTEX });
 
-        desc.attributes.push_back({ 0, 0, vec3_f32, offsetof(Vertex, position) });
-        desc.attributes.push_back({ 1, 0, vec3_f32, offsetof(Vertex, normal) });
-        desc.attributes.push_back({ 2, 0, vec3_f32, offsetof(Vertex, color) });
+            desc.attributes.push_back({ 0, 0, vec3_f32, offsetof(Vertex3, position) });
+            desc.attributes.push_back({ 1, 0, vec3_f32, offsetof(Vertex3, normal) });
+            desc.attributes.push_back({ 2, 0, vec3_f32, offsetof(Vertex3, color) });
+
+            return desc;
+        }();
 
         return desc;
+
+        // desc.bindings.push_back({ 0, sizeof(Vertex3), VK_VERTEX_INPUT_RATE_VERTEX });
+
+        // desc.attributes.push_back({ 0, 0, vec3_f32, offsetof(Vertex3, position) });
+        // desc.attributes.push_back({ 1, 0, vec3_f32, offsetof(Vertex3, normal) });
+        // desc.attributes.push_back({ 2, 0, vec3_f32, offsetof(Vertex3, color) });
+
+        // return desc;
     }
 };
-using Vertices = std::vector<Vertex>;
+using Vertices3 = std::vector<Vertex3>;
 
 struct Mesh
 {

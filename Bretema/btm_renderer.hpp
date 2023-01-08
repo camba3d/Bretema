@@ -16,6 +16,72 @@
 namespace btm
 {
 
+//===========================
+//= TYPEDEFS
+//===========================
+
+using UUID = std::string;
+
+//===========================
+//= CONTANTS
+//===========================
+
+glm::vec3 constexpr RIGHT = { 1, 0, 0 };
+glm::vec3 constexpr UP    = { 0, 1, 0 };
+glm::vec3 constexpr FRONT = { 0, 0, 1 };
+
+//===========================
+//= ENUMS
+//===========================
+
+enum struct Cull
+{
+    NONE,
+    CW,
+    CCW,
+};
+
+enum struct Compare
+{
+    NONE,
+    LESS,
+    LESS_EQ,
+    GREAT,
+    GREAT_EQ
+};
+using Depth = Compare;
+
+enum struct Samples
+{
+    _1,
+    _2,
+    _4,
+    _8,
+    _16,
+    _32,
+    _64,
+};
+
+//===========================
+//= HELPER STRUCTS
+//===========================
+
+struct Area2D
+{
+    glm::vec2 off = {};  // Rect's init-point
+    glm::vec2 ext = {};  // Rect's end-point
+};
+
+struct Area3D
+{
+    glm::vec3 off = {};  // Cube's init-point
+    glm::vec3 ext = {};  // Cube's end-point
+};
+
+//===========================
+//= BASE RENDERER
+//===========================
+
 class BaseRenderer
 {
 public:
