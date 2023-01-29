@@ -27,6 +27,19 @@ option(OPT_TESTS "Compile tests instead of main app" OFF)
 
 
 # ------------------------- #
+# - FUNCTIONS
+# ------------------------- #
+
+function(copy_directory src dest)
+    message(STATUS "Copying directory ${src} to ${dest}")
+    execute_process(COMMAND ${CMAKE_COMMAND} -E copy_directory ${src} ${dest})
+endfunction()
+
+function(copy_source_to_build path_name)
+    copy_directory(${CMAKE_SOURCE_DIR}/${path_name} ${CMAKE_BINARY_DIR}/${path_name})
+endfunction()
+
+# ------------------------- #
 # - THIRD PARTY
 # ------------------------- #
 
@@ -134,6 +147,12 @@ endforeach()
 
 # add_custom_target(shaders ALL DEPENDS ${EXTRA_SHADERS}) # Seems like unneeded
 
+
+# ------------------------- #
+# - COPY ASSETS
+# ------------------------- #
+
+copy_source_to_build(Assets/Geometry)
 
 # ------------------------- #
 # - PROJECT

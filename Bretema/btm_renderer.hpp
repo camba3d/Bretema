@@ -79,6 +79,31 @@ struct Area3D
 };
 
 //===========================
+//= TYPES
+//===========================
+
+struct Mesh
+{
+    struct Instance
+    {
+        glm::mat4 transform;
+        glm::vec4 color;
+    };
+
+    // Indices
+    std::vector<uint32_t> indices;
+
+    // Vertices
+    std::vector<float> positions = {};  // 3:xyz
+    std::vector<float> uvs0      = {};  // 2:xy
+    std::vector<float> normals   = {};  // 3:xyz
+    std::vector<float> tangents  = {};  // 4 : xyzw - XYZ:normalized, W:-1|+1 (handeness)
+
+    // Instances
+    std::vector<Instance> instances;
+};
+
+//===========================
 //= BASE RENDERER
 //===========================
 
@@ -105,5 +130,12 @@ protected:
     void     *mWindowHandle = nullptr;
     glm::vec2 mViewportSize = { 1280, 720 };
 };
+
+//===========================
+//= TOOLS
+//===========================
+
+std::vector<Mesh> parseGltf(std::string const &filepath);
+// std::vector<Mesh> parseGltf(std::uint8_t const *data, std::size_t size);
 
 }  // namespace btm

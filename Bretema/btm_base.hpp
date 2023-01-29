@@ -39,16 +39,16 @@
 
 // Type Aliases
 
-using i8   = int8_t;
-using i16  = int16_t;
-using i32  = int32_t;
-using i64  = int64_t;
-using ui8  = uint8_t;
-using ui16 = uint16_t;
-using ui32 = uint32_t;
-using ui64 = uint64_t;
-using f32  = float_t;
-using f64  = double_t;
+using i8  = int8_t;
+using i16 = int16_t;
+using i32 = int32_t;
+using i64 = int64_t;
+using u8  = uint8_t;
+using u16 = uint16_t;
+using u32 = uint32_t;
+using u64 = uint64_t;
+using f32 = float_t;
+using f64 = double_t;
 
 template<typename T>
 using Ref = std::shared_ptr<T>;
@@ -72,9 +72,15 @@ using uset = std::unordered_set<T>;
 #define BTM_PTRSTR(p) fmt::format("{}", fmt::ptr(p))
 
 // Logging w/o Format
-#define BTM_INFO(msg) fmt::print("(i) ({}:{})\n → {}\n", __FILE__, __LINE__, msg)
-#define BTM_WARN(msg) fmt::print("(w) ({}:{})\n → {}\n", __FILE__, __LINE__, msg)
-#define BTM_ERR(msg)  fmt::print("(e) ({}:{})\n → {}\n", __FILE__, __LINE__, msg)
+#if 0  // verbose
+#    define BTM_INFO(msg) fmt::print("[I] - ({}:{})\n → {}\n", __FILE__, __LINE__, msg)
+#    define BTM_WARN(msg) fmt::print("[W] - ({}:{})\n → {}\n", __FILE__, __LINE__, msg)
+#    define BTM_ERR(msg)  fmt::print("[E] - ({}:{})\n → {}\n", __FILE__, __LINE__, msg)
+#else
+#    define BTM_INFO(msg) fmt::print("[I] (...{:.10}:{}) - {}\n", __FILE__, __LINE__, msg)
+#    define BTM_WARN(msg) fmt::print("[W] (...{:.10}:{}) - {}\n", __FILE__, __LINE__, msg)
+#    define BTM_ERR(msg)  fmt::print("[E] (...{:.10}:{}) - {}\n", __FILE__, __LINE__, msg)
+#endif
 
 // Logging w/ Format
 #define BTM_FMT(msg, ...)   fmt::format(msg, __VA_ARGS__)
