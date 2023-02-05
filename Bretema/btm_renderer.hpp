@@ -84,6 +84,8 @@ struct Area3D
 
 struct Mesh
 {
+    std::string name = "";
+
     struct Instance
     {
         glm::mat4 transform;
@@ -139,3 +141,28 @@ std::vector<Mesh> parseGltf(std::string const &filepath);
 // std::vector<Mesh> parseGltf(std::uint8_t const *data, std::size_t size);
 
 }  // namespace btm
+
+//.............................................................................
+//.............................................................................
+//.............................................................................
+//.............................................................................
+//.............................................................................
+
+//=====================================
+// PRINT HELPERS
+//=====================================
+
+template<>
+struct fmt::formatter<btm::Mesh>
+{
+    constexpr auto parse(format_parse_context &ctx) -> decltype(ctx.begin()) { return ctx.begin(); }
+
+    template<typename FormatContext>
+    auto format(const btm::Mesh &mesh, FormatContext &ctx) const -> decltype(ctx.out())
+    {
+        auto const x = mesh.positions.at(0);
+        auto const y = mesh.positions.at(1);
+        auto const z = mesh.positions.at(2);
+        return fmt::format_to(ctx.out(), "{} : ({},{},{})", mesh.name, x, y, z);
+    }
+};

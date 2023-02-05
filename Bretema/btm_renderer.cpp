@@ -40,7 +40,7 @@ void digestMeshAttribute(
 
     if (accessorIdx < 0 or bufferViewIdx < 0)
     {
-        BTM_WARNF("Parsing {} : accessor or buffer not found", name);
+        // BTM_WARNF("Parsing {} : accessor or buffer not found", name);
         return;
     }
 
@@ -50,7 +50,7 @@ void digestMeshAttribute(
     float const *data = reinterpret_cast<float const *>(&buffer.data[view.byteOffset + accessor.byteOffset]);
 
     size_t const numVertices = accessor.count / components;
-    BTM_INFOF("Parsing {} : {} vertices (size {})", name, numVertices, components);
+    // BTM_INFOF("Parsing {} : {} vertices (size {})", name, numVertices, components);
 
     for (size_t i = 0; i < numVertices; ++i)
     {
@@ -103,21 +103,23 @@ std::vector<Mesh> parseGltf(std::string const &filepath)
 
     for (const auto &mesh : model.meshes)
     {
-        Mesh tempMesh;
+        Mesh outMesh;
+        outMesh.name = mesh.name;
         for (const auto &primitive : mesh.primitives)
         {
             if (primitive.mode != TINYGLTF_MODE_TRIANGLES)
                 continue;
 
-            digestMeshAttribute(model, primitive, "POSITION", tempMesh.positions, 3);
-            digestMeshAttribute(model, primitive, "TEXCOORD_Ø", tempMesh.uvs0, 2);
-            digestMeshAttribute(model, primitive, "NORMAL", tempMesh.normals, 3);
-            digestMeshAttribute(model, primitive, "TANGENT", tempMesh.tangents, 4);
+            digestMeshAttribute(model, primitive, "POSITION", outMesh.positions, 3);
+            digestMeshAttribute(model, primitive, "TEXCOORD_Ø", outMesh.uvs0, 2);
+            digestMeshAttribute(model, primitive, "NORMAL", outMesh.normals, 3);
+            digestMeshAttribute(model, primitive, "TANGENT", outMesh.tangents, 4);
         }
-        meshes.push_back(tempMesh);
+        meshes.push_back(outMesh);
     }
 
-    BTM_INFOF("END parseGltf => {} : {}", filepath, meshes.size());
+    // BTM_INFOF("END parseGltf => {} : {}", filepath, meshes.size());
+    BTM_INFOF("END parseGltf => {} : {}", filepath, meshes[0]);
 
     // if (meshes.size() > 0)
     //     for (auto const &v : meshes.at(0).normals)
