@@ -135,7 +135,7 @@ public:
 
 protected:
     inline void markAsInit() { mInit = true; }
-
+    
     int32_t mFrameNumber = 0;
 
     bool      mInit         = false;
