@@ -3,16 +3,18 @@ import shutil
 import argparse
 
 
+## TODO: UPDATE THIS TO USE 'subprocess' NOT 'os.system'... *facepalm*
+
 if __name__ == "__main__":
 
     # CLI
 
-    ap = argparse.ArgumentParser(description='Project Builder...')
-    ap.add_argument('--build', default=False, action=argparse.BooleanOptionalAction)
-    ap.add_argument('--clean', default=False, action=argparse.BooleanOptionalAction)
-    ap.add_argument('--tests', default=False, action=argparse.BooleanOptionalAction)
-    ap.add_argument('--debug', default=False, action=argparse.BooleanOptionalAction)
-    ap.add_argument('--release', default=False, action=argparse.BooleanOptionalAction)
+    ap = argparse.ArgumentParser(description="Project Builder...")
+    ap.add_argument("--build", default=False, action=argparse.BooleanOptionalAction)
+    ap.add_argument("--clean", default=False, action=argparse.BooleanOptionalAction)
+    ap.add_argument("--tests", default=False, action=argparse.BooleanOptionalAction)
+    ap.add_argument("--debug", default=False, action=argparse.BooleanOptionalAction)
+    ap.add_argument("--release", default=False, action=argparse.BooleanOptionalAction)
     args = ap.parse_args()
 
     if args.release and args.debug:

@@ -429,7 +429,7 @@ void Renderer::initPipelines()
 
     pb.shaderStages.push_back(vk::CreateInfo::PipelineShaderStage(VK_SHADER_STAGE_VERTEX_BIT, vs_mesh));
     pb.shaderStages.push_back(vk::CreateInfo::PipelineShaderStage(VK_SHADER_STAGE_FRAGMENT_BIT, fs_mesh));
-    pb.vertexInputInfo = vk::CreateInfo::VertexInputState(Vertex3::inputDesc());
+    pb.vertexInputInfo = vk::CreateInfo::VertexInputState(VertexInputDescription::get());
     pb.rasterizer      = vk::CreateInfo::RasterizationState(btm::Cull::NONE);
     pb.multisampling   = vk::CreateInfo::MultisamplingState(btm::Samples::_1);  // Must match with renderpass ...
     pb.pipelineLayout  = mPipelineLayouts[1];
@@ -449,31 +449,34 @@ void Renderer::initPipelines()
 
 void Renderer::loadMeshes()
 {
-    Vertices3 verts = {};
-    verts.resize(3);
+    btm::Mesh mesh;
 
-    verts[0].position = { 1.f, 1.f, 0.f };
-    verts[1].position = { -1.f, 1.f, 0.f };
-    verts[2].position = { 0.f, -1.f, 0.f };
+    mesh.vertices.resize(3);
 
-    verts[0].color = Color::Orange;
-    verts[1].color = Color::StrongYellow;
-    verts[2].color = Color::Yellow;
+    mesh.vertices[0].pos = { 1.f, 1.f, 0.f };
+    mesh.vertices[1].pos = { -1.f, 1.f, 0.f };
+    mesh.vertices[2].pos = { 0.f, -1.f, 0.f };
 
-    mMeshes.push_back(createMesh(verts));
+    // verts[0].color = Color::Orange;
+    // verts[1].color = Color::StrongYellow;
+    // verts[2].color = Color::Yellow;
+
+    // auto const gltf = btm::parseGltf("./Assets/Geometry/default_scene_A.gltf");  // @HERE!
+
+    mMeshes.push_back(createMesh(mesh.vertices));
 }
 
 //-----------------------------------------------------------------------------
 
-Mesh Renderer::createMesh(Vertices3 const &verts)
+Mesh Renderer::createMesh(btm::Vertices const &verts)
 {
     VkBufferCreateInfo bufferInfo = {};
     bufferInfo.sType              = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-    bufferInfo.size               = verts.size() * sizeof(Vertex3);  // bytes
+    bufferInfo.size               = verts.size() * sizeof(btm::Mesh::Vertex);  // bytes
     bufferInfo.usage              = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
 
     VmaAllocationCreateInfo vmaallocInfo = {};
-    vmaallocInfo.usage                   = VMA_MEMORY_USAGE_CPU_TO_GPU;  //@deprecated
+    vmaallocInfo.usage                   = VMA_MEMORY_USAGE_CPU_TO_GPU;  //@deprecated ??
 
     Mesh mesh;
     mesh.vertexCount = verts.size();
@@ -492,16 +495,12 @@ Mesh Renderer::createMesh(Vertices3 const &verts)
 
     void *data;
     vmaMapMemory(mAllocator, mesh.vertices.allocation, &data);
-    memcpy(data, verts.data(), verts.size() * sizeof(Vertex3));
+    memcpy(data, verts.data(), verts.size() * sizeof(btm::Mesh::Vertex));
     vmaUnmapMemory(mAllocator, mesh.vertices.allocation);
 
     // deletion-queue
-    mMainDelQueue.push_back(
-      [=, this]()
-      {
-          vmaDestroyBuffer(mAllocator, mesh.vertices.buffer, mesh.vertices.allocation);  //
-          //
-      });
+    mMainDelQueue.push_back([=, this]()
+                            { vmaDestroyBuffer(mAllocator, mesh.vertices.buffer, mesh.vertices.allocation); });
 
     return mesh;
 }

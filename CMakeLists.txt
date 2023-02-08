@@ -15,7 +15,7 @@ configure_file(BuildInfo.in BuildInfo.hpp)
 # Show only warning messages
 #set(CMAKE_MESSAGE_LOG_LEVEL "WARNING")
 
-# Export compile commands 
+# Export compile commands
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 
@@ -174,7 +174,7 @@ list(APPEND EXTRA_HEADERS
     ${SRC}/Vk/vk_init.hpp
     ${SRC}/Vk/vk_types.hpp
 )
-    
+
     # file(GLOB EXTRA_SOURCES ${SRC}/*.cpp)
 list(APPEND EXTRA_SOURCES
     ${SRC}/btm_app.cpp
@@ -199,8 +199,8 @@ target_compile_features(${PROJECT_NAME}
     PUBLIC
         cxx_std_20
 )
-set_property(TARGET ${PROJECT_NAME} 
-    PROPERTY 
+set_property(TARGET ${PROJECT_NAME}
+    PROPERTY
         CXX_STANDARD 20
 )
 
@@ -225,7 +225,7 @@ else()
     else()
         target_compile_options(${PROJECT_NAME} PRIVATE -O0 -g3 -ggdb -Wall -Wpedantic -Wextra -Wrange-loop-construct -Wno-missing-field-initializers)
     endif()
-endif() 
+endif()
 
 target_include_directories(${PROJECT_NAME}
     PUBLIC

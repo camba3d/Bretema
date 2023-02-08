@@ -22,43 +22,23 @@ struct VertexInputDescription
     std::vector<VkVertexInputAttributeDescription> attributes;
 
     VkPipelineVertexInputStateCreateFlags flags = 0;
-};
 
-struct Vertex3
-{
-    glm::vec3 position;
-    glm::vec3 normal;
-    glm::vec3 color;
-
-    static VertexInputDescription const &inputDesc()
+    static VertexInputDescription const &get()
     {
         static auto const desc = []()
         {
-            static auto constexpr vec3_f32 = VK_FORMAT_R32G32B32_SFLOAT;
-
-            VertexInputDescription desc;
-
-            desc.bindings.push_back({ 0, sizeof(Vertex3), VK_VERTEX_INPUT_RATE_VERTEX });
-
-            desc.attributes.push_back({ 0, 0, vec3_f32, offsetof(Vertex3, position) });
-            desc.attributes.push_back({ 1, 0, vec3_f32, offsetof(Vertex3, normal) });
-            desc.attributes.push_back({ 2, 0, vec3_f32, offsetof(Vertex3, color) });
-
-            return desc;
+            VertexInputDescription D;
+            D.bindings.push_back({ 0, sizeof(float) * (3 + 2 + 3 + 4), VK_VERTEX_INPUT_RATE_VERTEX });
+            D.attributes.push_back({ 0, 0, VK_FORMAT_R32G32B32_SFLOAT, 0 });     // pos
+            D.attributes.push_back({ 1, 0, VK_FORMAT_R32G32_SFLOAT, 0 });        // uv0
+            D.attributes.push_back({ 2, 0, VK_FORMAT_R32G32B32_SFLOAT, 0 });     // normal
+            D.attributes.push_back({ 3, 0, VK_FORMAT_R32G32B32A32_SFLOAT, 0 });  // tangent
+            return D;
         }();
 
         return desc;
-
-        // desc.bindings.push_back({ 0, sizeof(Vertex3), VK_VERTEX_INPUT_RATE_VERTEX });
-
-        // desc.attributes.push_back({ 0, 0, vec3_f32, offsetof(Vertex3, position) });
-        // desc.attributes.push_back({ 1, 0, vec3_f32, offsetof(Vertex3, normal) });
-        // desc.attributes.push_back({ 2, 0, vec3_f32, offsetof(Vertex3, color) });
-
-        // return desc;
     }
 };
-using Vertices3 = std::vector<Vertex3>;
 
 struct Mesh
 {

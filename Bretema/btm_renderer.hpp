@@ -37,8 +37,8 @@ glm::vec3 constexpr FRONT = { 0, 0, 1 };
 enum struct Cull
 {
     NONE,
-    CW,
-    CCW,
+    CW,   // Front
+    CCW,  // Back
 };
 
 enum struct Compare
@@ -86,24 +86,34 @@ struct Mesh
 {
     std::string name = "";
 
+    enum VertexType
+    {
+        Pos,
+        UV0,
+        Normal,
+        Tangent
+    };
+
+    struct Vertex
+    {
+        glm::vec3 pos     = {};  // 3:xyz
+        glm::vec2 uv0     = {};  // 2:xy
+        glm::vec3 normal  = {};  // 3:xyz
+        glm::vec4 tangent = {};  // 4 : xyzw - XYZ:normalized, W:-1|+1 (handeness)
+    };
+
     struct Instance
     {
         glm::mat4 transform;
         glm::vec4 color;
     };
 
-    // Indices
     std::vector<uint32_t> indices;
-
-    // Vertices
-    std::vector<float> positions = {};  // 3:xyz
-    std::vector<float> uvs0      = {};  // 2:xy
-    std::vector<float> normals   = {};  // 3:xyz
-    std::vector<float> tangents  = {};  // 4 : xyzw - XYZ:normalized, W:-1|+1 (handeness)
-
-    // Instances
+    std::vector<Vertex>   vertices;
     std::vector<Instance> instances;
 };
+using Vertices  = std::vector<Mesh::Vertex>;
+using Instances = std::vector<Mesh::Instance>;
 
 //===========================
 //= BASE RENDERER
@@ -160,9 +170,9 @@ struct fmt::formatter<btm::Mesh>
     template<typename FormatContext>
     auto format(const btm::Mesh &mesh, FormatContext &ctx) const -> decltype(ctx.out())
     {
-        auto const x = mesh.positions.at(0);
-        auto const y = mesh.positions.at(1);
-        auto const z = mesh.positions.at(2);
+        auto const x = mesh.vertices.at(0).pos.x;
+        auto const y = mesh.vertices.at(0).pos.y;
+        auto const z = mesh.vertices.at(0).pos.z;
         return fmt::format_to(ctx.out(), "{} : ({},{},{})", mesh.name, x, y, z);
     }
 };

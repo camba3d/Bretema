@@ -41,7 +41,7 @@ private:
     void initPipelines();
 
     void loadMeshes();
-    Mesh createMesh(Vertices3 const &verts);
+    Mesh createMesh(btm::Vertices const &verts);
 
     inline VkExtent2D extent() { return VkExtent2D(mViewportSize.x, mViewportSize.y); }
 

@@ -18,77 +18,44 @@ BaseRenderer::BaseRenderer(Ref<btm::Window> window)
     BTM_ASSERT_X(mViewportSize.x > 0 && mViewportSize.y > 0, "Invalid viewport size");
 }
 
-// // Get glTF mesh attribute
-void digestMeshAttribute(
-  tinygltf::Model const     &model,
-  tinygltf::Primitive const &primitive,
-  std::string const         &name,
-  std::vector<float>        &out,
-  size_t                     components)
-{
-    int accessorIdx   = -1;
-    int bufferViewIdx = -1;
-    for (auto const &attribute : primitive.attributes)
-    {
-        if (attribute.first == name)
-        {
-            accessorIdx   = attribute.second;
-            bufferViewIdx = model.accessors[accessorIdx].bufferView;
-            break;
-        }
-    }
-
-    if (accessorIdx < 0 or bufferViewIdx < 0)
-    {
-        // BTM_WARNF("Parsing {} : accessor or buffer not found", name);
-        return;
-    }
-
-    tinygltf::Accessor const   &accessor = model.accessors[accessorIdx];
-    tinygltf::BufferView const &view     = model.bufferViews[bufferViewIdx];
-    tinygltf::Buffer const     &buffer   = model.buffers[view.buffer];
-    float const *data = reinterpret_cast<float const *>(&buffer.data[view.byteOffset + accessor.byteOffset]);
-
-    size_t const numVertices = accessor.count / components;
-    // BTM_INFOF("Parsing {} : {} vertices (size {})", name, numVertices, components);
-
-    for (size_t i = 0; i < numVertices; ++i)
-    {
-        size_t curr = components * i;
-        out.push_back(data[curr + 0]);  // x
-        out.push_back(data[curr + 1]);  // y
-        if (components > 2)
-            out.push_back(data[curr + 2]);  // z
-        if (components > 3)
-            out.push_back(data[curr + 3]);  // w
-    }
-}
-
 // Load a glTF scene from a file path
+
+auto getVec2 = [](float const *d, int i) { return glm::vec2 { d[i + 0], d[i + 1] }; };
+auto getVec3 = [](float const *d, int i) { return glm::vec3 { d[i + 0], d[i + 1], d[i + 2] }; };
+auto getVec4 = [](float const *d, int i) { return glm::vec4 { d[i + 0], d[i + 1], d[i + 2], d[i + 3] }; };
+
 std::vector<Mesh> parseGltf(std::string const &filepath)
 {
+    //-------------------------------------
+    // READ FILE FROM DISK
+    //-------------------------------------
+
     std::ifstream   file { filepath, std::ios::binary };
     auto            fileBegin = std::istreambuf_iterator<char>(file);
     auto            fileEnd   = std::istreambuf_iterator<char>();
-    std::vector<u8> data { fileBegin, fileEnd };
+    std::vector<u8> raw { fileBegin, fileEnd };
 
-    bool const isBinary = data[0] == 'g' and data[1] == 'l' and data[2] == 'T' and data[3] == 'F';
+    bool const isBinary = raw[0] == 'g' and raw[1] == 'l' and raw[2] == 'T' and raw[3] == 'F';
 
     BTM_INFOF("parseGltf => {} : {}", filepath, isBinary);
 
-    if (data.empty())
+    if (raw.empty())
     {
         BTM_ERRF("File '{}' empty or invalid", filepath);
         BTM_ASSERT(0);
         return {};
     }
 
+    //-------------------------------------
+    // PARSE FILE WITH TINYGLTF
+    //-------------------------------------
+
     tinygltf::Model    model;
     tinygltf::TinyGLTF ctx;
     std::string        err, warn;
 
     bool const ok = !isBinary ? ctx.LoadASCIIFromFile(&model, &err, &warn, filepath)
-                              : ctx.LoadBinaryFromMemory(&model, &err, &warn, data.data(), data.size());
+                              : ctx.LoadBinaryFromMemory(&model, &err, &warn, raw.data(), raw.size());
 
     if (!err.empty())
         BTM_ERRF("Loading GLTF '{}' : {}", filepath, err);
@@ -99,24 +66,88 @@ std::vector<Mesh> parseGltf(std::string const &filepath)
     if (!err.empty() or !warn.empty() or !ok)
         return {};
 
+    //-------------------------------------
+    // POPULATE MESHES ARRAY
+    //-------------------------------------
+
     std::vector<Mesh> meshes;
 
     for (const auto &mesh : model.meshes)
     {
         Mesh outMesh;
         outMesh.name = mesh.name;
+
+        // ... Populate mesh
+        //-------------------------------------
         for (const auto &primitive : mesh.primitives)
         {
             if (primitive.mode != TINYGLTF_MODE_TRIANGLES)
                 continue;
 
-            digestMeshAttribute(model, primitive, "POSITION", outMesh.positions, 3);
-            digestMeshAttribute(model, primitive, "TEXCOORD_Ø", outMesh.uvs0, 2);
-            digestMeshAttribute(model, primitive, "NORMAL", outMesh.normals, 3);
-            digestMeshAttribute(model, primitive, "TANGENT", outMesh.tangents, 4);
+            static std::array const sAttributes = {
+                std::make_tuple(Mesh::Pos, 3, "POSITION"),
+                std::make_tuple(Mesh::UV0, 2, "TEXCOORD_Ø"),
+                std::make_tuple(Mesh::Normal, 3, "NORMAL"),
+                std::make_tuple(Mesh::Tangent, 4, "TANGENT"),
+            };
+
+            for (auto const &[type, components, name] : sAttributes)
+            {
+                // ... Gather indices
+                //-------------------------------------
+                int accessorIdx   = -1;
+                int bufferViewIdx = -1;
+                for (auto const &attribute : primitive.attributes)  //@dani : Is there room to improve, or even needed?
+                {
+                    if (attribute.first == name)
+                    {
+                        accessorIdx   = attribute.second;
+                        bufferViewIdx = model.accessors[accessorIdx].bufferView;
+                        break;
+                    }
+                }
+                if (accessorIdx < 0 or bufferViewIdx < 0)
+                {
+                    // BTM_WARNF("Parsing {} : accessor or buffer not found", name);
+                    continue;
+                }
+
+                // ... Gather data
+                //-------------------------------------
+                tinygltf::Accessor const   &accessor    = model.accessors[accessorIdx];
+                size_t const                numVertices = accessor.count / components;
+                tinygltf::BufferView const &view        = model.bufferViews[bufferViewIdx];
+                tinygltf::Buffer const     &buffer      = model.buffers[view.buffer];
+                int32_t const               offset      = view.byteOffset + accessor.byteOffset;
+                float const                *data        = reinterpret_cast<float const *>(&buffer.data[offset]);
+
+                // BTM_INFOF("Parsing {} : {} vertices (size {})", name, numVertices, components);
+
+                // ... Store data in atrributes
+                //-------------------------------------
+                outMesh.vertices.resize(numVertices);
+
+                for (size_t i = 0; i < numVertices; ++i)
+                {
+                    size_t curr = components * i;
+                    auto  &v    = outMesh.vertices[i];
+
+                    switch (type)
+                    {
+                        case Mesh::Pos: v.pos = getVec3(data, curr); break;
+                        case Mesh::UV0: v.uv0 = getVec2(data, curr); break;
+                        case Mesh::Normal: v.normal = getVec3(data, curr); break;
+                        case Mesh::Tangent: v.tangent = getVec4(data, curr); break;
+                        default: break;
+                    }
+                }
+            }
         }
+
         meshes.push_back(outMesh);
     }
+
+    //-------------------------------------
 
     // BTM_INFOF("END parseGltf => {} : {}", filepath, meshes.size());
     BTM_INFOF("END parseGltf => {} : {}", filepath, meshes[0]);
