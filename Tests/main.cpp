@@ -2,20 +2,21 @@
 
 int main()
 {
-    btm::parseGltf("./Assets/Geometry/default_scene_A.gltf");
-    btm::parseGltf("./Assets/Geometry/default_scene_B.gltf");
-    btm::parseGltf("./Assets/Geometry/default_scene_C.glb");
+    // btm::parseGltf("./Assets/Geometry/default_scene_A.gltf");
+    // btm::parseGltf("./Assets/Geometry/default_scene_B.gltf");
+    // btm::parseGltf("./Assets/Geometry/default_scene_C.glb");
 
     // return 0;
+    //
 
-    btm::App bretema { "Bretema", btm::RenderAPI::Vulkan };
+    btm::App app { "Bretema", btm::RenderAPI::Vulkan };
     while (true)  // Allows app restart
     {
-        bretema.run();
-        bretema.cleanup();
-        if (bretema.isMarkedToClose())
+        app.run();
+        app.cleanup();
+        if (app.isMarkedToClose())
             break;
-        bretema.reset();
+        app.reset();
     }
 
     return 0;

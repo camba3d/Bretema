@@ -463,7 +463,10 @@ void Renderer::loadMeshes()
 
     // auto const gltf = btm::parseGltf("./Assets/Geometry/default_scene_A.gltf");  // @HERE!
 
-    mMeshes.push_back(createMesh(mesh.vertices));
+    // mMeshes.push_back(createMesh(mesh.vertices));
+
+    auto meshes = btm::parseGltf("./Assets/Geometry/default_scene_A.gltf");
+    mMeshes.push_back(createMesh(meshes.at(0).vertices));
 }
 
 //-----------------------------------------------------------------------------

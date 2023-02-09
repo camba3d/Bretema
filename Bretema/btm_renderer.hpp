@@ -135,7 +135,7 @@ public:
 
 protected:
     inline void markAsInit() { mInit = true; }
-    
+
     int32_t mFrameNumber = 0;
 
     bool      mInit         = false;
@@ -170,9 +170,10 @@ struct fmt::formatter<btm::Mesh>
     template<typename FormatContext>
     auto format(const btm::Mesh &mesh, FormatContext &ctx) const -> decltype(ctx.out())
     {
-        auto const x = mesh.vertices.at(0).pos.x;
-        auto const y = mesh.vertices.at(0).pos.y;
-        auto const z = mesh.vertices.at(0).pos.z;
-        return fmt::format_to(ctx.out(), "{} : ({},{},{})", mesh.name, x, y, z);
+        std::string verticesStr = "";
+        for (auto const &v : mesh.vertices)
+            verticesStr += BTM_FMT("({},{},{})", v.pos.x, v.pos.y, v.pos.z) + "\n";
+
+        return fmt::format_to(ctx.out(), "\n\n{} :\n{}", mesh.name, verticesStr);
     }
 };

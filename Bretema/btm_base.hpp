@@ -72,14 +72,26 @@ using uset = std::unordered_set<T>;
 #define BTM_PTRSTR(p) fmt::format("{}", fmt::ptr(p))
 
 // Logging w/o Format
+
+auto const TrimStr = [](auto const &s, int32_t nChars) -> std::string_view
+{
+    std::string_view const sv = s;
+
+    if (nChars < 1)
+        return sv;
+
+    size_t const n = static_cast<size_t>(nChars);
+    return sv.substr(sv.length() >= n ? sv.length() - n : 0);
+};
+
 #if 0  // verbose
 #    define BTM_INFO(msg) fmt::print("[I] - ({}:{})\n → {}\n", __FILE__, __LINE__, msg)
 #    define BTM_WARN(msg) fmt::print("[W] - ({}:{})\n → {}\n", __FILE__, __LINE__, msg)
 #    define BTM_ERR(msg)  fmt::print("[E] - ({}:{})\n → {}\n", __FILE__, __LINE__, msg)
 #else
-#    define BTM_INFO(msg) fmt::print("[I] (...{:.10}:{}) - {}\n", __FILE__, __LINE__, msg)
-#    define BTM_WARN(msg) fmt::print("[W] (...{:.10}:{}) - {}\n", __FILE__, __LINE__, msg)
-#    define BTM_ERR(msg)  fmt::print("[E] (...{:.10}:{}) - {}\n", __FILE__, __LINE__, msg)
+#    define BTM_INFO(msg) fmt::print("[I] (...{}:{}) - {}\n", TrimStr(__FILE__, 20), __LINE__, msg)
+#    define BTM_WARN(msg) fmt::print("[W] (...{}:{}) - {}\n", TrimStr(__FILE__, 20), __LINE__, msg)
+#    define BTM_ERR(msg)  fmt::print("[E] (...{}:{}) - {}\n", TrimStr(__FILE__, 20), __LINE__, msg)
 #endif
 
 // Logging w/ Format
