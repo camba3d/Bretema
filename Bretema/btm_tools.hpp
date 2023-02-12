@@ -54,3 +54,39 @@ inline std::string read(std::string const &path)
 }
 
 }  // namespace btm::fs
+
+namespace btm::bin  // Binary data tools
+{
+inline std::vector<u8> read(std::string const &path)
+{
+    std::ifstream   file { path, std::ios::binary };
+    auto            fileBegin = std::istreambuf_iterator<char>(file);
+    auto            fileEnd   = std::istreambuf_iterator<char>();
+    std::vector<u8> raw { fileBegin, fileEnd };
+
+    // if (raw.empty())
+    // {
+    //     BTM_ERRF("File '{}' empty or invalid", path);
+    //     BTM_ASSERT(0);
+    //     return {};
+    // }
+
+    return raw;
+}
+
+template<typename T>
+inline bool checkMagic(std::span<const T> bin, std::vector<T> const &magic)
+{
+    if (magic.empty() || bin.size() < magic.size())
+        return false;
+
+    bool match = true;
+    for (size_t i = 0; i < magic.size(); ++i)
+    {
+        match &= bin[i] == magic[i];
+    }
+
+    return match;
+}
+
+}  // namespace btm::bin

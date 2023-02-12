@@ -33,6 +33,14 @@
 // Fmt
 #include <fmt/format.h>
 
+// Span
+#if 1
+#    include <span>
+#else
+#    define TCB_SPAN_NAMESPACE_NAME std
+#    include "span.hpp"
+#endif
+
 //===========================
 //= GLOBAL
 //===========================
@@ -47,8 +55,8 @@ using u8  = uint8_t;
 using u16 = uint16_t;
 using u32 = uint32_t;
 using u64 = uint64_t;
-using f32 = float_t;
-using f64 = double_t;
+using f32 = float;
+using f64 = double;
 
 template<typename T>
 using Ref = std::shared_ptr<T>;

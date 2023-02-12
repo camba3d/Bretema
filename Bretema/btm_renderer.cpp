@@ -1,4 +1,5 @@
 #include "btm_renderer.hpp"
+#include "btm_tools.hpp"
 
 #define TINYGLTF_IMPLEMENTATION
 #define STB_IMAGE_IMPLEMENTATION
@@ -25,52 +26,8 @@ auto getVec3   = [](float const *d, int i) { return glm::vec3 { d[i + 0], d[i + 
 auto getVec4   = [](float const *d, int i) { return glm::vec4 { d[i + 0], d[i + 1], d[i + 2], d[i + 3] }; };
 auto getFloats = [](float const *d, int i) { return glm::vec4 { d[i + 0], d[i + 1], d[i + 2], d[i + 3] }; };
 
-std::vector<Mesh> parseGltf(std::string const &filepath)
+std::vector<Mesh> parseGltf(tinygltf::TinyGLTF const &ctx, tinygltf::Model const &model)
 {
-    //-------------------------------------
-    // READ FILE FROM DISK
-    //-------------------------------------
-
-    std::ifstream   file { filepath, std::ios::binary };
-    auto            fileBegin = std::istreambuf_iterator<char>(file);
-    auto            fileEnd   = std::istreambuf_iterator<char>();
-    std::vector<u8> raw { fileBegin, fileEnd };
-
-    bool const isBinary = raw[0] == 'g' and raw[1] == 'l' and raw[2] == 'T' and raw[3] == 'F';
-
-    BTM_INFOF("parseGltf => {} : {}", filepath, isBinary);
-
-    if (raw.empty())
-    {
-        BTM_ERRF("File '{}' empty or invalid", filepath);
-        BTM_ASSERT(0);
-        return {};
-    }
-
-    //-------------------------------------
-    // PARSE FILE WITH TINYGLTF
-    //-------------------------------------
-
-    tinygltf::Model    model;
-    tinygltf::TinyGLTF ctx;
-    std::string        err, warn;
-
-    bool const ok = !isBinary ? ctx.LoadASCIIFromFile(&model, &err, &warn, filepath)
-                              : ctx.LoadBinaryFromMemory(&model, &err, &warn, raw.data(), raw.size());
-
-    if (!err.empty())
-        BTM_ERRF("Loading GLTF '{}' : {}", filepath, err);
-    if (!warn.empty())
-        BTM_WARNF("Loading GLTF '{}' : {}", filepath, warn);
-    if (!ok)
-        BTM_WARNF("Loading GLTF '{}' : Undefined error", filepath);
-    if (!err.empty() or !warn.empty() or !ok)
-        return {};
-
-    //-------------------------------------
-    // POPULATE MESHES ARRAY
-    //-------------------------------------
-
     std::vector<Mesh> meshes;
 
     for (auto const &mesh : model.meshes)
@@ -90,6 +47,32 @@ std::vector<Mesh> parseGltf(std::string const &filepath)
                 std::make_tuple(Mesh::Normal, 3, "NORMAL"),   std::make_tuple(Mesh::Tangent, 4, "TANGENT"),
                 std::make_tuple(Mesh::Tangent, 4, "TANGENT"),
             };
+
+            // INDICES
+
+            const int                   indicesAccessorIndex   = primitive.indices;
+            const tinygltf::Accessor   &indicesAccessor        = model.accessors[indicesAccessorIndex];
+            const int                   indicesBufferViewIndex = indicesAccessor.bufferView;
+            const tinygltf::BufferView &indicesBufferView      = model.bufferViews[indicesBufferViewIndex];
+            const int                   indicesBufferIndex     = indicesBufferView.buffer;
+            const tinygltf::Buffer     &indicesBuffer          = model.buffers[indicesBufferIndex];
+            const void                 *indicesData            = &indicesBuffer.data[indicesBufferView.byteOffset];
+            const uint16_t             *indicesArray           = static_cast<const uint16_t *>(indicesData);
+            const int                   indicesCount           = indicesAccessor.count;
+
+            //-----
+
+            auto const  accessorIdx   = primitive.indices;
+            auto const  bufferViewIdx = model.accessors[accessorIdx].bufferView;
+            // assert(accessorIdx < 0 or bufferViewIdx < 0)
+            auto const &accessor      = model.accessors[accessorIdx];
+            auto const &bufferView    = model.bufferViews[bufferViewIdx];
+            auto const  bufferIdx     = bufferView.buffer;
+            auto const &buffer        = model.buffers[bufferView.buffer];
+            auto const  offset        = bufferView.byteOffset + accessor.byteOffset;
+            void const *raw           = &buffer.data[offset];
+            auto const *data          = static_cast<uint32_t const *>(raw);
+            //-----
 
             /* INDICES
             //=============================================
@@ -134,6 +117,7 @@ std::vector<Mesh> parseGltf(std::string const &filepath)
                         break;
                     }
                 }
+
                 if (accessorIdx < 0 or bufferViewIdx < 0)
                 {
                     // BTM_WARNF("Parsing {} : accessor or buffer not found", name);
@@ -144,17 +128,17 @@ std::vector<Mesh> parseGltf(std::string const &filepath)
 
                 // ... Gather data
                 //-------------------------------------
-                tinygltf::Accessor const   &accessor    = model.accessors[accessorIdx];
-                size_t const                numVertices = accessor.count / components;
-                tinygltf::BufferView const &view        = model.bufferViews[bufferViewIdx];
-                tinygltf::Buffer const     &buffer      = model.buffers[view.buffer];
-                int32_t const               offset      = view.byteOffset + accessor.byteOffset;
-                float const                *data        = reinterpret_cast<float const *>(&buffer.data[offset]);
+                tinygltf::Accessor const   &accessor = model.accessors[accessorIdx];
+                tinygltf::BufferView const &view     = model.bufferViews[bufferViewIdx];
+                tinygltf::Buffer const     &buffer   = model.buffers[view.buffer];
+                int32_t const               offset   = view.byteOffset + accessor.byteOffset;
+                float const                *data     = reinterpret_cast<float const *>(&buffer.data[offset]);
 
                 // BTM_INFOF("Parsing {} : {} vertices (size {})", name, numVertices, components);
 
                 // ... Store data in atrributes
                 //-------------------------------------
+                size_t const numVertices = accessor.count / components;
                 outMesh.vertices.resize(numVertices);
 
                 for (size_t i = 0; i < numVertices; ++i)
@@ -177,16 +161,56 @@ std::vector<Mesh> parseGltf(std::string const &filepath)
         meshes.push_back(outMesh);
     }
 
-    //-------------------------------------
-
-    // BTM_INFOF("END parseGltf => {} : {}", filepath, meshes.size());
-    BTM_INFOF("END parseGltf => {} : {}", filepath, meshes[0]);
-
-    // if (meshes.size() > 0)
-    //     for (auto const &v : meshes.at(0).normals)
-    //         BTM_INFOF("aaaaaaaaaaaaaaaaaaaaa {}", v);
+    BTM_INFOF("END ParseGltf => {}", meshes[0]);
 
     return meshes;
+}
+
+std::vector<Mesh> parseGltf(std::string const &filepath)
+{
+    auto const bin   = btm::bin::read(filepath);
+    auto const isBin = btm::bin::checkMagic(std::span(bin.data(), 4), { 'g', 'l', 'T', 'F' });
+
+    if (bin.empty())
+        return {};
+
+    tinygltf::TinyGLTF ctx;  //@dani : make this part of the renderer? or "global" to only init it once...
+    tinygltf::Model    model;
+    std::string        err, warn;
+
+    bool const ok = !isBin ? ctx.LoadASCIIFromFile(&model, &err, &warn, filepath)
+                           : ctx.LoadBinaryFromMemory(&model, &err, &warn, bin.data(), bin.size());
+
+    if (!err.empty())
+        BTM_ERRF("Loading GLTF '{}' : {}", filepath, err);
+    if (!warn.empty())
+        BTM_WARNF("Loading GLTF '{}' : {}", filepath, warn);
+    if (!ok)
+        BTM_WARNF("Loading GLTF '{}' : Undefined error", filepath);
+    if (!err.empty() or !warn.empty() or !ok)
+        return {};
+
+    return parseGltf(ctx, model);
+}
+
+std::vector<Mesh> parseGltf(std::span<u8> bin)
+{
+    tinygltf::TinyGLTF ctx;  //@dani : make this part of the renderer? or "global" to only init it once...
+    tinygltf::Model    model;
+    std::string        err, warn;
+
+    bool const ok = ctx.LoadBinaryFromMemory(&model, &err, &warn, bin.data(), bin.size());
+
+    if (!err.empty())
+        BTM_ERRF("Loading Bin GLTF : {}", err);
+    if (!warn.empty())
+        BTM_WARNF("Loading Bin GLTF : {}", warn);
+    if (!ok)
+        BTM_WARN("Loading Bin GLTF : Undefined error");
+    if (!err.empty() or !warn.empty() or !ok)
+        return {};
+
+    return parseGltf(ctx, model);
 }
 
 }  // namespace btm
