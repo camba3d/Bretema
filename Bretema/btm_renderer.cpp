@@ -20,9 +20,10 @@ BaseRenderer::BaseRenderer(Ref<btm::Window> window)
 
 // Load a glTF scene from a file path
 
-auto getVec2 = [](float const *d, int i) { return glm::vec2 { d[i + 0], d[i + 1] }; };
-auto getVec3 = [](float const *d, int i) { return glm::vec3 { d[i + 0], d[i + 1], d[i + 2] }; };
-auto getVec4 = [](float const *d, int i) { return glm::vec4 { d[i + 0], d[i + 1], d[i + 2], d[i + 3] }; };
+auto getVec2   = [](float const *d, int i) { return glm::vec2 { d[i + 0], d[i + 1] }; };
+auto getVec3   = [](float const *d, int i) { return glm::vec3 { d[i + 0], d[i + 1], d[i + 2] }; };
+auto getVec4   = [](float const *d, int i) { return glm::vec4 { d[i + 0], d[i + 1], d[i + 2], d[i + 3] }; };
+auto getFloats = [](float const *d, int i) { return glm::vec4 { d[i + 0], d[i + 1], d[i + 2], d[i + 3] }; };
 
 std::vector<Mesh> parseGltf(std::string const &filepath)
 {
@@ -72,7 +73,7 @@ std::vector<Mesh> parseGltf(std::string const &filepath)
 
     std::vector<Mesh> meshes;
 
-    for (const auto &mesh : model.meshes)
+    for (auto const &mesh : model.meshes)
     {
         Mesh outMesh;
         outMesh.name = mesh.name;
@@ -85,11 +86,36 @@ std::vector<Mesh> parseGltf(std::string const &filepath)
                 continue;
 
             static std::array const sAttributes = {
-                std::make_tuple(Mesh::Pos, 3, "POSITION"),
-                std::make_tuple(Mesh::UV0, 2, "TEXCOORD_Ø"),
-                std::make_tuple(Mesh::Normal, 3, "NORMAL"),
+                std::make_tuple(Mesh::Pos, 3, "POSITION"),    std::make_tuple(Mesh::UV0, 2, "TEXCOORD_Ø"),
+                std::make_tuple(Mesh::Normal, 3, "NORMAL"),   std::make_tuple(Mesh::Tangent, 4, "TANGENT"),
                 std::make_tuple(Mesh::Tangent, 4, "TANGENT"),
             };
+
+            /* INDICES
+            //=============================================
+              // Get the accessor index for the indices of the primitive
+              const int indicesAccessorIndex = primitive.indices;
+              // Get the accessor for the indices
+              const tinygltf::Accessor &indicesAccessor = model.accessors[indicesAccessorIndex];
+              // Get the buffer view index for the indices
+              const int indicesBufferViewIndex = indicesAccessor.bufferView;
+              // Get the buffer view for the indices
+              const tinygltf::BufferView &indicesBufferView = model.bufferViews[indicesBufferViewIndex];
+              // Get the buffer index for the indices
+              const int indicesBufferIndex = indicesBufferView.buffer;
+              // Get the buffer for the indices
+              const tinygltf::Buffer &indicesBuffer = model.buffers[indicesBufferIndex];
+              // Get the data pointer for the indices
+              const void *indicesData = &indicesBuffer.data[indicesBufferView.byteOffset];
+              // Cast the data pointer to the desired data type (for example, uint16_t)
+              const uint16_t *indicesArray = static_cast<const uint16_t *>(indicesData);
+              // The number of elements in the indices array is determined by the count property of the accessor
+              const int indicesCount = indicesAccessor.count;
+              // Do something with the indices array, for example, print it
+              for (int i = 0; i < indicesCount; i++) {
+                std::cout << indicesArray[i] << " ";
+              }
+            */
 
             for (auto const &[type, components, name] : sAttributes)
             {
@@ -97,7 +123,9 @@ std::vector<Mesh> parseGltf(std::string const &filepath)
                 //-------------------------------------
                 int accessorIdx   = -1;
                 int bufferViewIdx = -1;
-                for (auto const &attribute : primitive.attributes)  //@dani : Is there room to improve, or even needed?
+
+                //@dani : Segment the process in helper functions, it will help to simplify Indicies read also.
+                for (auto const &attribute : primitive.attributes)
                 {
                     if (attribute.first == name)
                     {
@@ -111,6 +139,8 @@ std::vector<Mesh> parseGltf(std::string const &filepath)
                     // BTM_WARNF("Parsing {} : accessor or buffer not found", name);
                     continue;
                 }
+
+                BTM_INFOF("iiiiiiiiindex => {}/{}", accessorIdx, bufferViewIdx);
 
                 // ... Gather data
                 //-------------------------------------
