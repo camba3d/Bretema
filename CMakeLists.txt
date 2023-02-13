@@ -12,9 +12,6 @@ set(CMAKE_CXX_STANDARD 20)
 # Configure file
 configure_file(BuildInfo.in BuildInfo.hpp)
 
-# Show only warning messages
-set(CMAKE_MESSAGE_LOG_LEVEL "WARNING")
-
 # Export compile commands
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
