@@ -149,8 +149,7 @@ std::vector<Mesh> parseGltf(std::string const &filepath)
 
     //-------------------------------------
 
-    // BTM_INFOF("END parseGltf => {} : {}", filepath, meshes.size());
-    BTM_INFOF("END parseGltf => {} : {}", filepath, meshes[0]);
+    BTM_INFOF("END parseGltf => {} : {}", filepath, meshes);
 
     // if (meshes.size() > 0)
     //     for (auto const &v : meshes.at(0).normals)

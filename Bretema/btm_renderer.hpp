@@ -114,6 +114,7 @@ struct Mesh
 };
 using Vertices  = std::vector<Mesh::Vertex>;
 using Instances = std::vector<Mesh::Instance>;
+using MeshGroup = std::vector<Mesh>;
 
 //===========================
 //= BASE RENDERER
@@ -152,16 +153,22 @@ std::vector<Mesh> parseGltf(std::string const &filepath);
 
 }  // namespace btm
 
-//.............................................................................
-//.............................................................................
-//.............................................................................
-//.............................................................................
-//.............................................................................
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
 
 //=====================================
 // PRINT HELPERS
 //=====================================
 
+// Mesh
 template<>
 struct fmt::formatter<btm::Mesh>
 {
@@ -175,5 +182,22 @@ struct fmt::formatter<btm::Mesh>
             verticesStr += BTM_FMT("({},{},{})", v.pos.x, v.pos.y, v.pos.z) + "\n";
 
         return fmt::format_to(ctx.out(), "\n\n{} :\n{}", mesh.name, verticesStr);
+    }
+};
+
+// MeshGroup
+template<>
+struct fmt::formatter<btm::MeshGroup>
+{
+    constexpr auto parse(format_parse_context &ctx) -> decltype(ctx.begin()) { return ctx.begin(); }
+
+    template<typename FormatContext>
+    auto format(const btm::MeshGroup &meshGroup, FormatContext &ctx) const -> decltype(ctx.out())
+    {
+        std::string meshGroupStr = "";
+        for (auto const &mesh : meshGroup)
+            meshGroupStr += BTM_FMT("{}", mesh) + "\n";
+
+        return fmt::format_to(ctx.out(), "\n\nMeshGroup :{}", meshGroupStr);
     }
 };
