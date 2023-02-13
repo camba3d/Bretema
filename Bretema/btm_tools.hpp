@@ -4,8 +4,10 @@
 
 #include <filesystem>
 #include <fstream>
-#include <string>
 
+//=====================================
+// DATA STRUCTURES & DATA STRUCTURES TOOLS
+//=====================================
 namespace btm::ds
 {
 
@@ -27,12 +29,40 @@ private:
     std::vector<std::function<void()>> deleteFuncs;
 };
 
+template<typename T>
+auto view(std::vector<T> const &src, size_t len, size_t offset = 0) -> std::span<T const>
+{
+    size_t const fixedLen    = std::min(src.size(), len);
+    size_t const fixedOffset = offset > fixedLen ? 0 : offset;
+    return { src.data() + fixedOffset, fixedLen };
+};
+
+template<typename T>
+auto view(T const *src, size_t len, size_t offset = 0) -> std::span<T const>
+{
+    size_t const fixedOffset = offset > len ? 0 : offset;
+    return std::span<T const>(src + fixedOffset, len);
+};
+
+template<typename T>
+auto merge(auto &dst, std::span<T> src) -> void
+{
+    if (!src.data() || src.empty())
+        return;
+
+    dst.reserve(dst.size() + src.size());
+    dst.insert(dst.end(), src.begin(), src.end());
+};
+
 }  // namespace btm::ds
 
+//=====================================
+// FILES / FILESYSTEM TOOLS
+//=====================================
 namespace btm::fs
 {
 
-inline std::string read(std::string const &path)
+inline auto read(std::string const &path) -> std::string
 {
     // Use ::ate to avoid '.seekg(0, std::ios::end)'
     auto file = std::ifstream { path, std::ios::ate | std::ios::binary };
@@ -55,9 +85,13 @@ inline std::string read(std::string const &path)
 
 }  // namespace btm::fs
 
-namespace btm::bin  // Binary data tools
+//=====================================
+// BINARY DATA TOOLS
+//=====================================
+namespace btm::bin
 {
-inline std::vector<u8> read(std::string const &path)
+
+inline auto read(std::string const &path) -> std::vector<u8>
 {
     std::ifstream   file { path, std::ios::binary };
     auto            fileBegin = std::istreambuf_iterator<char>(file);
@@ -75,7 +109,7 @@ inline std::vector<u8> read(std::string const &path)
 }
 
 template<typename T>
-inline bool checkMagic(std::span<const T> bin, std::vector<T> const &magic)
+auto checkMagic(std::span<const T> bin, std::vector<T> const &magic) -> bool
 {
     if (magic.empty() || bin.size() < magic.size())
         return false;
@@ -90,3 +124,37 @@ inline bool checkMagic(std::span<const T> bin, std::vector<T> const &magic)
 }
 
 }  // namespace btm::bin
+
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+
+//=====================================
+// PRINT HELPERS
+//=====================================
+
+// SPAN (DS::VIEW)
+template<typename T>
+struct fmt::formatter<std::span<T const>>
+{
+    constexpr auto parse(format_parse_context &ctx) -> decltype(ctx.begin()) { return ctx.begin(); }
+
+    template<typename FormatContext>
+    auto format(std::span<T const> dataView, FormatContext &ctx) const -> decltype(ctx.out())
+    {
+        std::string s = "";
+        for (auto const &v : dataView)
+            s += BTM_FMT("{}, ", v);
+        if (!dataView.empty())
+            s.erase(s.end() - 2, s.end());
+
+        return fmt::format_to(ctx.out(), "{}", s);
+    }
+};

@@ -89,8 +89,8 @@ void Renderer::draw()
     glm::vec3 camPos     = { 0.f, 0.f, -4.f };
     glm::mat4 view       = glm::translate(glm::mat4(1.f), camPos);
     glm::mat4 projection = glm::perspective(glm::radians(70.f), mViewportSize.x / mViewportSize.y, 0.1f, 200.0f);
-    // projection[1][1] *= -1;  // ??
     glm::mat4 model      = glm::rotate(glm::mat4(1.f), glm::radians(mFrameNumber * 0.4f), glm::vec3(0, 1, 0));
+    projection[1][1] *= -1;  // ??
     MeshPushConstants constants;
     constants.modelViewProj = projection * view * model;
     // upload the matrix to the GPU via push constants
@@ -465,8 +465,16 @@ void Renderer::loadMeshes()
 
     // mMeshes.push_back(createMesh(mesh.vertices));
 
-    auto meshes = btm::parseGltf("./Assets/Geometry/default_scene_A.gltf");
-    mMeshes.push_back(createMesh(meshes.at(0).vertices));
+    auto const meshes = btm::parseGltf("./Assets/Geometry/suzanne.glb");
+    // mMeshes.push_back(createMesh(meshes.at(0).vertices));
+
+    // Unwrap indices (temporal) @dani
+    btm::Vertices verts;
+    for (auto const i : meshes[0].indices)
+    {
+        verts.push_back(meshes[0].vertices[i]);
+    }
+    mMeshes.push_back(createMesh(verts));
 }
 
 //-----------------------------------------------------------------------------

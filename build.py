@@ -3,18 +3,23 @@ import shutil
 import argparse
 
 
-## TODO: UPDATE THIS TO USE 'subprocess' NOT 'os.system'... *facepalm*
+# TODO: UPDATE THIS TO USE 'subprocess' NOT 'os.system'... *facepalm*
 
 if __name__ == "__main__":
 
     # CLI
 
     ap = argparse.ArgumentParser(description="Project Builder...")
-    ap.add_argument("--build", default=False, action=argparse.BooleanOptionalAction)
-    ap.add_argument("--clean", default=False, action=argparse.BooleanOptionalAction)
-    ap.add_argument("--tests", default=False, action=argparse.BooleanOptionalAction)
-    ap.add_argument("--debug", default=False, action=argparse.BooleanOptionalAction)
-    ap.add_argument("--release", default=False, action=argparse.BooleanOptionalAction)
+    ap.add_argument("--build", default=False,
+                    action=argparse.BooleanOptionalAction)
+    ap.add_argument("--clean", default=False,
+                    action=argparse.BooleanOptionalAction)
+    ap.add_argument("--tests", default=False,
+                    action=argparse.BooleanOptionalAction)
+    ap.add_argument("--debug", default=False,
+                    action=argparse.BooleanOptionalAction)
+    ap.add_argument("--release", default=False,
+                    action=argparse.BooleanOptionalAction)
     args = ap.parse_args()
 
     if args.release and args.debug:
@@ -26,7 +31,8 @@ if __name__ == "__main__":
     build_type_str = "Release" if args.release == 1 else "Debug"
 
     args_msg_tmpl = "[args] => clean:{}, build:{}, tests:{}, type:{}"
-    args_msg = args_msg_tmpl.format(args.clean, args.build, build_tests_str, build_type_str)
+    args_msg = args_msg_tmpl.format(
+        args.clean, args.build, build_tests_str, build_type_str)
     print(args_msg)
 
     # Create build folder
@@ -63,7 +69,7 @@ if __name__ == "__main__":
 
         os.chdir(path)
 
-        cmake_cmd_tmpl = 'cmake -DCMAKE_BUILD_TYPE={} .. -G "Ninja" -DOPT_TESTS={}'
+        cmake_cmd_tmpl = 'cmake --log-level=WARNING -DCMAKE_BUILD_TYPE={} .. -G "Ninja" -DOPT_TESTS={}'
         cmake_cmd = cmake_cmd_tmpl.format(build_type_str, build_tests_str)
 
         print("\n[cmake] => {}".format(cmake_cmd))

@@ -13,7 +13,7 @@ set(CMAKE_CXX_STANDARD 20)
 configure_file(BuildInfo.in BuildInfo.hpp)
 
 # Show only warning messages
-#set(CMAKE_MESSAGE_LOG_LEVEL "WARNING")
+set(CMAKE_MESSAGE_LOG_LEVEL "WARNING")
 
 # Export compile commands
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
@@ -140,7 +140,7 @@ MESSAGE(STATUS "[Compiling SHADERS] :")
 foreach(shader_src IN LISTS shaders_list)
     get_filename_component(filename_and_ext ${shader_src} NAME)
     set(shader_dst ${shaders_bin_dir}/${filename_and_ext}.spv)
-    MESSAGE(STATUS "   ${shader_src} => ./build/${shader_dst}")
+    # MESSAGE(STATUS "   ${shader_src} => ./build/${shader_dst}")
     add_custom_command(COMMAND ${glslc_executable} -o ${shader_dst} ${shader_src} OUTPUT ${shader_dst})
     list(APPEND EXTRA_SHADERS ${shaders_bin_dir}/${filename_and_ext}.spv)
 endforeach()

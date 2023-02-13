@@ -21,32 +21,21 @@ BaseRenderer::BaseRenderer(Ref<btm::Window> window)
 
 // Load a glTF scene from a file path
 
-auto getVec2   = [](float const *d, int i) { return glm::vec2 { d[i + 0], d[i + 1] }; };
-auto getVec3   = [](float const *d, int i) { return glm::vec3 { d[i + 0], d[i + 1], d[i + 2] }; };
-auto getVec4   = [](float const *d, int i) { return glm::vec4 { d[i + 0], d[i + 1], d[i + 2], d[i + 3] }; };
-auto getFloats = [](float const *d, int i) { return glm::vec4 { d[i + 0], d[i + 1], d[i + 2], d[i + 3] }; };
-
 template<typename T>
-std::tuple<T const *, u32> digestMeshProp(tinygltf::Model const &model, int32_t accessorIdx)
+auto digestMeshProp(tinygltf::Model const &model, int32_t accessorIdx)
 {
-    T const *data  = nullptr;
-    u32      count = 0;
-
     if (accessorIdx < 0)
-        return std::make_tuple(data, count);
+        return ds::view((T *)nullptr, 0);
 
     auto const &accessor   = model.accessors[accessorIdx];
     auto const &bufferView = model.bufferViews[accessor.bufferView];
     auto const &buffer     = model.buffers[bufferView.buffer];
-    auto const  offset     = bufferView.byteOffset + accessor.byteOffset;
+    auto const  offset     = bufferView.byteOffset;
 
-    data  = reinterpret_cast<T const *>(&buffer.data[offset]);
-    count = static_cast<u32>(accessor.count);
-
-    return std::make_tuple(data, count);
+    return ds::view(reinterpret_cast<T const *>(&buffer.data[offset]), accessor.count);
 }
 
-std::vector<Mesh> parseGltf(tinygltf::TinyGLTF const &ctx, tinygltf::Model const &model)
+std::vector<Mesh> parseGltf(tinygltf::Model const &model)
 {
     std::vector<Mesh> meshes;
 
@@ -60,47 +49,46 @@ std::vector<Mesh> parseGltf(tinygltf::TinyGLTF const &ctx, tinygltf::Model const
             if (primitive.mode != TINYGLTF_MODE_TRIANGLES)
                 continue;
 
-            // INDICES
-            auto [data, count] = digestMeshProp<u32>(model, primitive.indices);
-            outMesh.indices.assign(data, data + count);
+            auto const &p = primitive;
+            auto idx = [&p](const char *name) { return p.attributes.count(name) > 0 ? p.attributes.at(name) : -1; };
 
-            // ATTRIBUTES
-            static std::array const sAttributes = {
-                std::make_tuple(Mesh::Pos, 3, "POSITION"),
-                std::make_tuple(Mesh::UV0, 2, "TEXCOORD_Ø"),
-                std::make_tuple(Mesh::Normal, 3, "NORMAL"),
-                std::make_tuple(Mesh::Tangent, 4, "TANGENT"),
-            };
-
-            for (auto const &[type, components, name] : sAttributes)
+            // INDICES (must read as uint16_t)
             {
-                int32_t accessorIdx = primitive.attributes.count(name) > 0 ? primitive.attributes.at(name) : -1;
-                auto [data, count]  = digestMeshProp<float>(model, accessorIdx);
-
-                size_t const numVertices = count / components;
-                outMesh.vertices.resize(numVertices);
-
-                for (size_t i = 0; i < numVertices; ++i)
-                {
-                    size_t curr = components * i;
-                    auto  &v    = outMesh.vertices[i];
-
-                    switch (type)
-                    {
-                        case Mesh::Pos: v.pos = getVec3(data, curr); break;
-                        case Mesh::UV0: v.uv0 = getVec2(data, curr); break;
-                        case Mesh::Normal: v.normal = getVec3(data, curr); break;
-                        case Mesh::Tangent: v.tangent = getVec4(data, curr); break;
-                        default: break;
-                    }
-                }
+                auto const dataView = digestMeshProp<u16>(model, primitive.indices);
+                ds::merge(outMesh.indices, dataView);
             }
+            // POS
+            {
+                auto const dataView = digestMeshProp<glm::vec3>(model, idx("POSITION"));
+
+                if (outMesh.vertices.empty())
+                    outMesh.vertices.resize(dataView.size());
+
+                for (size_t i = 0; i < dataView.size(); ++i)
+                    outMesh.vertices[i].pos = dataView[i];
+            }
+            // UV0
+            {
+                auto const dataView = digestMeshProp<glm::vec2>(model, idx("TEXCOORD_Ø"));
+                for (size_t i = 0; i < dataView.size(); ++i)
+                    outMesh.vertices[i].uv0 = dataView[i];
+            }
+            // NORMAL
+            {
+                auto const dataView = digestMeshProp<glm::vec3>(model, idx("NORMAL"));
+                for (size_t i = 0; i < dataView.size(); ++i)
+                    outMesh.vertices[i].normal = dataView[i];
+            }
+            // TANGENT
+            {
+                auto const dataView = digestMeshProp<glm::vec4>(model, idx("TANGENT"));
+                for (size_t i = 0; i < dataView.size(); ++i)
+                    outMesh.vertices[i].tangent = dataView[i];
+            }
+
+            meshes.push_back(outMesh);
         }
-
-        meshes.push_back(outMesh);
     }
-
-    BTM_INFOF("END ParseGltf => {}", meshes);
 
     return meshes;
 }
@@ -108,12 +96,12 @@ std::vector<Mesh> parseGltf(tinygltf::TinyGLTF const &ctx, tinygltf::Model const
 std::vector<Mesh> parseGltf(std::string const &filepath)
 {
     auto const bin   = btm::bin::read(filepath);
-    auto const isBin = btm::bin::checkMagic(std::span(bin.data(), 4), { 'g', 'l', 'T', 'F' });
+    auto const isBin = btm::bin::checkMagic(ds::view(bin, 4), { 'g', 'l', 'T', 'F' });
 
     if (bin.empty())
         return {};
 
-    tinygltf::TinyGLTF ctx;  //@dani : make this part of the renderer? or "global" to only init it once...
+    tinygltf::TinyGLTF ctx;
     tinygltf::Model    model;
     std::string        err, warn;
 
@@ -129,12 +117,12 @@ std::vector<Mesh> parseGltf(std::string const &filepath)
     if (!err.empty() or !warn.empty() or !ok)
         return {};
 
-    return parseGltf(ctx, model);
+    return parseGltf(model);
 }
 
 std::vector<Mesh> parseGltf(std::span<u8> bin)
 {
-    tinygltf::TinyGLTF ctx;  //@dani : make this part of the renderer? or "global" to only init it once...
+    tinygltf::TinyGLTF ctx;
     tinygltf::Model    model;
     std::string        err, warn;
 
@@ -149,7 +137,7 @@ std::vector<Mesh> parseGltf(std::span<u8> bin)
     if (!err.empty() or !warn.empty() or !ok)
         return {};
 
-    return parseGltf(ctx, model);
+    return parseGltf(model);
 }
 
 }  // namespace btm

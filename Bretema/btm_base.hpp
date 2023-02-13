@@ -15,6 +15,7 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
+#include <array>
 
 // Glm
 #define GLM_ENABLE_EXPERIMENTAL
@@ -176,6 +177,7 @@ using   BTM_DEFER_PTR = std::unique_ptr<void,std::function<void(void*)>>;
 
 namespace btm
 {
+
 // INPUT
 namespace Input
 {
@@ -385,3 +387,65 @@ glm::vec3 constexpr StrongYellow = { 1.f, .5f, 0.f };
 // }  // namespace Utils
 
 }  // namespace btm
+
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+
+//=====================================
+// PRINT HELPERS
+//=====================================
+
+int constexpr __sFGP = 3;  // fmt:glm float precission
+
+// GLM
+template<>
+struct fmt::formatter<glm::vec2>
+{
+    constexpr auto parse(format_parse_context &ctx) -> decltype(ctx.begin()) { return ctx.begin(); }
+
+    template<typename FormatContext>
+    auto format(const glm::vec2 &v, FormatContext &ctx) const -> decltype(ctx.out())
+    {
+        return fmt::format_to(ctx.out(), "({:.{}f},{:.{}f})", v.x, __sFGP, v.y, __sFGP);
+    }
+};
+template<>
+struct fmt::formatter<glm::vec3>
+{
+    constexpr auto parse(format_parse_context &ctx) -> decltype(ctx.begin()) { return ctx.begin(); }
+
+    template<typename FormatContext>
+    auto format(const glm::vec3 &v, FormatContext &ctx) const -> decltype(ctx.out())
+    {
+        return fmt::format_to(ctx.out(), "({:.{}f},{:.{}f},{:.{}f})", v.x, __sFGP, v.y, __sFGP, v.z, __sFGP);
+    }
+};
+template<>
+struct fmt::formatter<glm::vec4>
+{
+    constexpr auto parse(format_parse_context &ctx) -> decltype(ctx.begin()) { return ctx.begin(); }
+
+    template<typename FormatContext>
+    auto format(const glm::vec4 &v, FormatContext &ctx) const -> decltype(ctx.out())
+    {
+        return fmt::format_to(
+          ctx.out(),
+          "({:.{}f},{:.{}f},{:.{}f},{:.{}f})",
+          v.x,
+          __sFGP,
+          v.y,
+          __sFGP,
+          v.z,
+          __sFGP,
+          v.w,
+          __sFGP);
+    }
+};

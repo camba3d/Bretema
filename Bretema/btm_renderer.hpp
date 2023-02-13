@@ -86,14 +86,6 @@ struct Mesh
 {
     std::string name = "";
 
-    enum VertexType
-    {
-        Pos,
-        UV0,
-        Normal,
-        Tangent
-    };
-
     struct Vertex
     {
         glm::vec3 pos     = {};  // 3:xyz
@@ -108,7 +100,7 @@ struct Mesh
         glm::vec4 color;
     };
 
-    std::vector<uint32_t> indices;
+    std::vector<u16>      indices;
     std::vector<Vertex>   vertices;
     std::vector<Instance> instances;
 };
@@ -177,11 +169,20 @@ struct fmt::formatter<btm::Mesh>
     template<typename FormatContext>
     auto format(const btm::Mesh &mesh, FormatContext &ctx) const -> decltype(ctx.out())
     {
-        std::string verticesStr = "";
-        for (auto const &v : mesh.vertices)
-            verticesStr += BTM_FMT("({},{},{})", v.pos.x, v.pos.y, v.pos.z) + "\n";
+        std::string meshStr = "INDICES:\n";
+        for (auto const &i : mesh.indices)
+            meshStr += BTM_FMT("{}, ", i);
 
-        return fmt::format_to(ctx.out(), "\n\n{} :\n{}", mesh.name, verticesStr);
+        if (!mesh.indices.empty())
+            meshStr.erase(meshStr.end() - 2, meshStr.end());
+
+        meshStr += "\nATTRIBUTES (pos / uv0 / normal / tangent) :\n";
+
+        size_t vn = 0;
+        for (auto const &v : mesh.vertices)
+            meshStr += BTM_FMT("{}: {} / {} / {} / {}", vn++, v.pos, v.uv0, v.normal, v.tangent) + "\n";
+
+        return fmt::format_to(ctx.out(), "\n{}\n......\n{}", mesh.name, meshStr);
     }
 };
 
@@ -198,6 +199,6 @@ struct fmt::formatter<btm::MeshGroup>
         for (auto const &mesh : meshGroup)
             meshGroupStr += BTM_FMT("{}", mesh) + "\n";
 
-        return fmt::format_to(ctx.out(), "\n\nMeshGroup :{}", meshGroupStr);
+        return fmt::format_to(ctx.out(), "\nMESHGROUP\n--------\n{}", meshGroupStr);
     }
 };
