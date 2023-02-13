@@ -26,6 +26,26 @@ auto getVec3   = [](float const *d, int i) { return glm::vec3 { d[i + 0], d[i + 
 auto getVec4   = [](float const *d, int i) { return glm::vec4 { d[i + 0], d[i + 1], d[i + 2], d[i + 3] }; };
 auto getFloats = [](float const *d, int i) { return glm::vec4 { d[i + 0], d[i + 1], d[i + 2], d[i + 3] }; };
 
+template<typename T>
+std::tuple<T const *, u32> digestMeshProp(tinygltf::Model const &model, int32_t accessorIdx)
+{
+    T const *data  = nullptr;
+    u32      count = 0;
+
+    if (accessorIdx < 0)
+        return std::make_tuple(data, count);
+
+    auto const &accessor   = model.accessors[accessorIdx];
+    auto const &bufferView = model.bufferViews[accessor.bufferView];
+    auto const &buffer     = model.buffers[bufferView.buffer];
+    auto const  offset     = bufferView.byteOffset + accessor.byteOffset;
+
+    data  = reinterpret_cast<T const *>(&buffer.data[offset]);
+    count = static_cast<u32>(accessor.count);
+
+    return std::make_tuple(data, count);
+}
+
 std::vector<Mesh> parseGltf(tinygltf::TinyGLTF const &ctx, tinygltf::Model const &model)
 {
     std::vector<Mesh> meshes;
@@ -35,110 +55,29 @@ std::vector<Mesh> parseGltf(tinygltf::TinyGLTF const &ctx, tinygltf::Model const
         Mesh outMesh;
         outMesh.name = mesh.name;
 
-        // ... Populate mesh
-        //-------------------------------------
         for (const auto &primitive : mesh.primitives)
         {
             if (primitive.mode != TINYGLTF_MODE_TRIANGLES)
                 continue;
 
+            // INDICES
+            auto [data, count] = digestMeshProp<u32>(model, primitive.indices);
+            outMesh.indices.assign(data, data + count);
+
+            // ATTRIBUTES
             static std::array const sAttributes = {
-                std::make_tuple(Mesh::Pos, 3, "POSITION"),    std::make_tuple(Mesh::UV0, 2, "TEXCOORD_Ø"),
-                std::make_tuple(Mesh::Normal, 3, "NORMAL"),   std::make_tuple(Mesh::Tangent, 4, "TANGENT"),
+                std::make_tuple(Mesh::Pos, 3, "POSITION"),
+                std::make_tuple(Mesh::UV0, 2, "TEXCOORD_Ø"),
+                std::make_tuple(Mesh::Normal, 3, "NORMAL"),
                 std::make_tuple(Mesh::Tangent, 4, "TANGENT"),
             };
 
-            // INDICES
-
-            const int                   indicesAccessorIndex   = primitive.indices;
-            const tinygltf::Accessor   &indicesAccessor        = model.accessors[indicesAccessorIndex];
-            const int                   indicesBufferViewIndex = indicesAccessor.bufferView;
-            const tinygltf::BufferView &indicesBufferView      = model.bufferViews[indicesBufferViewIndex];
-            const int                   indicesBufferIndex     = indicesBufferView.buffer;
-            const tinygltf::Buffer     &indicesBuffer          = model.buffers[indicesBufferIndex];
-            const void                 *indicesData            = &indicesBuffer.data[indicesBufferView.byteOffset];
-            const uint16_t             *indicesArray           = static_cast<const uint16_t *>(indicesData);
-            const int                   indicesCount           = indicesAccessor.count;
-
-            //-----
-
-            auto const  accessorIdx   = primitive.indices;
-            auto const  bufferViewIdx = model.accessors[accessorIdx].bufferView;
-            // assert(accessorIdx < 0 or bufferViewIdx < 0)
-            auto const &accessor      = model.accessors[accessorIdx];
-            auto const &bufferView    = model.bufferViews[bufferViewIdx];
-            auto const  bufferIdx     = bufferView.buffer;
-            auto const &buffer        = model.buffers[bufferView.buffer];
-            auto const  offset        = bufferView.byteOffset + accessor.byteOffset;
-            void const *raw           = &buffer.data[offset];
-            auto const *data          = static_cast<uint32_t const *>(raw);
-            //-----
-
-            /* INDICES
-            //=============================================
-              // Get the accessor index for the indices of the primitive
-              const int indicesAccessorIndex = primitive.indices;
-              // Get the accessor for the indices
-              const tinygltf::Accessor &indicesAccessor = model.accessors[indicesAccessorIndex];
-              // Get the buffer view index for the indices
-              const int indicesBufferViewIndex = indicesAccessor.bufferView;
-              // Get the buffer view for the indices
-              const tinygltf::BufferView &indicesBufferView = model.bufferViews[indicesBufferViewIndex];
-              // Get the buffer index for the indices
-              const int indicesBufferIndex = indicesBufferView.buffer;
-              // Get the buffer for the indices
-              const tinygltf::Buffer &indicesBuffer = model.buffers[indicesBufferIndex];
-              // Get the data pointer for the indices
-              const void *indicesData = &indicesBuffer.data[indicesBufferView.byteOffset];
-              // Cast the data pointer to the desired data type (for example, uint16_t)
-              const uint16_t *indicesArray = static_cast<const uint16_t *>(indicesData);
-              // The number of elements in the indices array is determined by the count property of the accessor
-              const int indicesCount = indicesAccessor.count;
-              // Do something with the indices array, for example, print it
-              for (int i = 0; i < indicesCount; i++) {
-                std::cout << indicesArray[i] << " ";
-              }
-            */
-
             for (auto const &[type, components, name] : sAttributes)
             {
-                // ... Gather indices
-                //-------------------------------------
-                int accessorIdx   = -1;
-                int bufferViewIdx = -1;
+                int32_t accessorIdx = primitive.attributes.count(name) > 0 ? primitive.attributes.at(name) : -1;
+                auto [data, count]  = digestMeshProp<float>(model, accessorIdx);
 
-                //@dani : Segment the process in helper functions, it will help to simplify Indicies read also.
-                for (auto const &attribute : primitive.attributes)
-                {
-                    if (attribute.first == name)
-                    {
-                        accessorIdx   = attribute.second;
-                        bufferViewIdx = model.accessors[accessorIdx].bufferView;
-                        break;
-                    }
-                }
-
-                if (accessorIdx < 0 or bufferViewIdx < 0)
-                {
-                    // BTM_WARNF("Parsing {} : accessor or buffer not found", name);
-                    continue;
-                }
-
-                BTM_INFOF("iiiiiiiiindex => {}/{}", accessorIdx, bufferViewIdx);
-
-                // ... Gather data
-                //-------------------------------------
-                tinygltf::Accessor const   &accessor = model.accessors[accessorIdx];
-                tinygltf::BufferView const &view     = model.bufferViews[bufferViewIdx];
-                tinygltf::Buffer const     &buffer   = model.buffers[view.buffer];
-                int32_t const               offset   = view.byteOffset + accessor.byteOffset;
-                float const                *data     = reinterpret_cast<float const *>(&buffer.data[offset]);
-
-                // BTM_INFOF("Parsing {} : {} vertices (size {})", name, numVertices, components);
-
-                // ... Store data in atrributes
-                //-------------------------------------
-                size_t const numVertices = accessor.count / components;
+                size_t const numVertices = count / components;
                 outMesh.vertices.resize(numVertices);
 
                 for (size_t i = 0; i < numVertices; ++i)
@@ -161,7 +100,7 @@ std::vector<Mesh> parseGltf(tinygltf::TinyGLTF const &ctx, tinygltf::Model const
         meshes.push_back(outMesh);
     }
 
-    BTM_INFOF("END ParseGltf => {}", meshes[0]);
+    BTM_INFOF("END ParseGltf => {}", meshes);
 
     return meshes;
 }
