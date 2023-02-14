@@ -178,6 +178,9 @@ using   BTM_DEFER_PTR = std::unique_ptr<void,std::function<void(void*)>>;
 namespace btm
 {
 
+// GLOBAL CONSTS
+int constexpr sMaxFloatPrint = 3;  // fmt:glm float precission
+
 // INPUT
 namespace Input
 {
@@ -403,8 +406,6 @@ glm::vec3 constexpr StrongYellow = { 1.f, .5f, 0.f };
 // PRINT HELPERS
 //=====================================
 
-int constexpr __sFGP = 3;  // fmt:glm float precission
-
 // GLM
 template<>
 struct fmt::formatter<glm::vec2>
@@ -414,7 +415,8 @@ struct fmt::formatter<glm::vec2>
     template<typename FormatContext>
     auto format(const glm::vec2 &v, FormatContext &ctx) const -> decltype(ctx.out())
     {
-        return fmt::format_to(ctx.out(), "({:.{}f},{:.{}f})", v.x, __sFGP, v.y, __sFGP);
+        auto const &fp = btm::sMaxFloatPrint;
+        return fmt::format_to(ctx.out(), "({:.{}f},{:.{}f})", v.x, fp, v.y, fp);
     }
 };
 template<>
@@ -425,7 +427,8 @@ struct fmt::formatter<glm::vec3>
     template<typename FormatContext>
     auto format(const glm::vec3 &v, FormatContext &ctx) const -> decltype(ctx.out())
     {
-        return fmt::format_to(ctx.out(), "({:.{}f},{:.{}f},{:.{}f})", v.x, __sFGP, v.y, __sFGP, v.z, __sFGP);
+        auto const &fp = btm::sMaxFloatPrint;
+        return fmt::format_to(ctx.out(), "({:.{}f},{:.{}f},{:.{}f})", v.x, fp, v.y, fp, v.z, fp);
     }
 };
 template<>
@@ -436,16 +439,7 @@ struct fmt::formatter<glm::vec4>
     template<typename FormatContext>
     auto format(const glm::vec4 &v, FormatContext &ctx) const -> decltype(ctx.out())
     {
-        return fmt::format_to(
-          ctx.out(),
-          "({:.{}f},{:.{}f},{:.{}f},{:.{}f})",
-          v.x,
-          __sFGP,
-          v.y,
-          __sFGP,
-          v.z,
-          __sFGP,
-          v.w,
-          __sFGP);
+        auto const &fp = btm::sMaxFloatPrint;
+        return fmt::format_to(ctx.out(), "({:.{}f},{:.{}f},{:.{}f},{:.{}f})", v.x, fp, v.y, fp, v.z, fp, v.w, fp);
     }
 };
