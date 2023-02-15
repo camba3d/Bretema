@@ -141,7 +141,7 @@ protected:
 //===========================
 
 std::vector<Mesh> parseGltf(std::string const &filepath);
-std::vector<Mesh> parseGltf(std::span<u8> bin);
+std::vector<Mesh> parseGltf(std::span<u8 const> bin);
 
 }  // namespace btm
 

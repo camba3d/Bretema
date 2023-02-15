@@ -10,6 +10,10 @@
 namespace btm
 {
 
+//=========================================================
+// Base Renderer
+//=========================================================
+
 BaseRenderer::BaseRenderer(Ref<btm::Window> window)
 {
     mWindowHandle = window->handle();
@@ -19,10 +23,12 @@ BaseRenderer::BaseRenderer(Ref<btm::Window> window)
     BTM_ASSERT_X(mViewportSize.x > 0 && mViewportSize.y > 0, "Invalid viewport size");
 }
 
-// Load a glTF scene from a file path
+//=========================================================
+// GLTF Loader
+//=========================================================
 
 template<typename T>
-auto digestMeshProp(tinygltf::Model const &model, int32_t accessorIdx)
+auto gatherMeshData(tinygltf::Model const &model, int32_t accessorIdx)
 {
     if (accessorIdx < 0)
         return ds::view((T *)nullptr, 0);
@@ -54,12 +60,12 @@ std::vector<Mesh> parseGltf(tinygltf::Model const &model)
 
             // INDICES (must read as uint16_t)
             {
-                auto const dataView = digestMeshProp<u16>(model, primitive.indices);
+                auto const dataView = gatherMeshData<u16>(model, primitive.indices);
                 ds::merge(outMesh.indices, dataView);
             }
             // POS
             {
-                auto const dataView = digestMeshProp<glm::vec3>(model, idx("POSITION"));
+                auto const dataView = gatherMeshData<glm::vec3>(model, idx("POSITION"));
 
                 if (outMesh.vertices.empty())
                     outMesh.vertices.resize(dataView.size());
@@ -69,19 +75,19 @@ std::vector<Mesh> parseGltf(tinygltf::Model const &model)
             }
             // UV0
             {
-                auto const dataView = digestMeshProp<glm::vec2>(model, idx("TEXCOORD_Ø"));
+                auto const dataView = gatherMeshData<glm::vec2>(model, idx("TEXCOORD_Ø"));
                 for (size_t i = 0; i < dataView.size(); ++i)
                     outMesh.vertices[i].uv0 = dataView[i];
             }
             // NORMAL
             {
-                auto const dataView = digestMeshProp<glm::vec3>(model, idx("NORMAL"));
+                auto const dataView = gatherMeshData<glm::vec3>(model, idx("NORMAL"));
                 for (size_t i = 0; i < dataView.size(); ++i)
                     outMesh.vertices[i].normal = dataView[i];
             }
             // TANGENT
             {
-                auto const dataView = digestMeshProp<glm::vec4>(model, idx("TANGENT"));
+                auto const dataView = gatherMeshData<glm::vec4>(model, idx("TANGENT"));
                 for (size_t i = 0; i < dataView.size(); ++i)
                     outMesh.vertices[i].tangent = dataView[i];
             }
@@ -93,51 +99,44 @@ std::vector<Mesh> parseGltf(tinygltf::Model const &model)
     return meshes;
 }
 
-std::vector<Mesh> parseGltf(std::string const &filepath)
+std::vector<Mesh> parseGltf(bool isBin, std::string const &filepath, std::span<u8 const> bin)
 {
-    auto const bin   = btm::bin::read(filepath);
-    auto const isBin = btm::bin::checkMagic(ds::view(bin, 4), { 'g', 'l', 'T', 'F' });
-
-    if (bin.empty())
-        return {};
-
     tinygltf::TinyGLTF ctx;
     tinygltf::Model    model;
     std::string        err, warn;
 
-    bool const ok = !isBin ? ctx.LoadASCIIFromFile(&model, &err, &warn, filepath)
-                           : ctx.LoadBinaryFromMemory(&model, &err, &warn, bin.data(), bin.size());
+    bool const ok = isBin ? ctx.LoadBinaryFromMemory(&model, &err, &warn, bin.data(), bin.size())
+                          : ctx.LoadASCIIFromFile(&model, &err, &warn, filepath);
 
     if (!err.empty())
-        BTM_ERRF("Loading GLTF '{}' : {}", filepath, err);
+        BTM_ERRF("Loading GLTF {}: {}", filepath, err);
+
     if (!warn.empty())
-        BTM_WARNF("Loading GLTF '{}' : {}", filepath, warn);
-    if (!ok)
-        BTM_WARNF("Loading GLTF '{}' : Undefined error", filepath);
-    if (!err.empty() or !warn.empty() or !ok)
+        BTM_WARNF("Loading GLTF {}: {}", filepath, warn);
+
+    if (!ok and (err.empty() or warn.empty()))
+        BTM_ERRF("Loading GLTF {}: Undefined error", filepath);
+
+    if (!ok or !err.empty() or !warn.empty())
         return {};
 
     return parseGltf(model);
 }
 
-std::vector<Mesh> parseGltf(std::span<u8> bin)
+std::vector<Mesh> parseGltf(std::string const &filepath)
 {
-    tinygltf::TinyGLTF ctx;
-    tinygltf::Model    model;
-    std::string        err, warn;
+    auto const bin   = btm::bin::read(filepath);
+    auto const isBin = btm::bin::checkMagic(ds::view(bin, 4), { 'g', 'l', 'T', 'F' });
 
-    bool const ok = ctx.LoadBinaryFromMemory(&model, &err, &warn, bin.data(), bin.size());
+    return parseGltf(isBin, filepath, bin);
+}
 
-    if (!err.empty())
-        BTM_ERRF("Loading Bin GLTF : {}", err);
-    if (!warn.empty())
-        BTM_WARNF("Loading Bin GLTF : {}", warn);
-    if (!ok)
-        BTM_WARN("Loading Bin GLTF : Undefined error");
-    if (!err.empty() or !warn.empty() or !ok)
-        return {};
+std::vector<Mesh> parseGltf(std::span<u8 const> bin, std::string name = "")
+{
+    auto const isBin = btm::bin::checkMagic(bin.subspan(0, 4), { 'g', 'l', 'T', 'F' });
+    BTM_ASSERT(isBin);
 
-    return parseGltf(model);
+    return parseGltf(true, name, bin);
 }
 
 }  // namespace btm

@@ -62,6 +62,8 @@ find_package(Vulkan REQUIRED COMPONENTS glslc)
 find_program(glslc_executable NAMES glslc HINTS Vulkan::glslc)
 list(APPEND EXTRA_LIB_INCL ${GLFW_DIR}/deps)
 list(APPEND EXTRA_LIBS Vulkan::Vulkan)
+
+set(VK_BOOTSTRAP_DISABLE_WARNINGS ON CACHE BOOL "" FORCE)
 add_subdirectory(Modules/vk-bootstrap)
 list(APPEND EXTRA_LIBS vk-bootstrap)
 
