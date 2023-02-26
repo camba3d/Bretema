@@ -17,7 +17,7 @@ namespace btm::vk
 
 class Renderer : public btm::BaseRenderer
 {
-    static constexpr uint64_t sOneSec = 1000000000;
+    static constexpr u64 sOneSec = 1000000000;
 
     struct MeshPushConstants
     {
@@ -44,9 +44,10 @@ private:
     Mesh createMesh(btm::Vertices const &verts);
 
     inline VkExtent2D extent() { return VkExtent2D(mViewportSize.x, mViewportSize.y); }
+    inline VkExtent3D extent3D() { return VkExtent3D(mViewportSize.x, mViewportSize.y, 1); }
 
-    btm::ds::DeletionQueue mMainDelQueue {};  // add deletion funcs after create an vk-object, using:
-                                              // mMainDelQueue.push_back([this]() {  });
+    btm::ds::DeletionQueue mDestroyer {};  // add deletion funcs after create an vk-object, using:
+                                           // mMainDelQueue.push_back([this]() {  });
 
     VkInstance               mInstance       = VK_NULL_HANDLE;  // Vulkan library handle
     VkDebugUtilsMessengerEXT mDebugMessenger = VK_NULL_HANDLE;  // Vulkan debug output handle
@@ -68,8 +69,12 @@ private:
     VkCommandPool   mCommandPool;        // Command pool for graphic-commands right now
     VkCommandBuffer mMainCommandBuffer;  // Main command buffer
 
-    VkRenderPass mDefaultRenderPass          = VK_NULL_HANDLE;  // Basic renderpass config with (1) color and subpass
-    std::vector<VkFramebuffer> mFramebuffers = {};              // Bucket of FBOs, one per swapchain-image(view)
+    VkImageView    mDepthImageView         = VK_NULL_HANDLE;
+    AllocatedImage mDepthImage             = {};
+    static VkFormat constexpr sDepthFormat = VK_FORMAT_D32_SFLOAT;  // @todo: Check VK_FORMAT_D32_SFLOAT_S8_UINT  ??
+
+    VkRenderPass               mDefaultRenderPass = VK_NULL_HANDLE;  // Basic renderpass config with (1) color and subpass
+    std::vector<VkFramebuffer> mFramebuffers      = {};              // Bucket of FBOs, one per swapchain-image(view)
 
     // There is room to improve here, check:
     // * https://vulkan-tutorial.com/Drawing_a_triangle/Drawing/Rendering_and_presentation

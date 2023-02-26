@@ -13,7 +13,7 @@ IndentWidth: 4
 AccessModifierOffset: -4
 ContinuationIndentWidth: 2
 
-ColumnLimit: 120
+ColumnLimit: 140
 
 # ========================================================
 

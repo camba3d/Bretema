@@ -115,7 +115,7 @@ using MeshGroup = std::vector<Mesh>;
 class BaseRenderer
 {
 public:
-    inline static constexpr int32_t sInFlight = 3;
+    inline static constexpr i32 sInFlight = 3;
 
     BaseRenderer(Ref<btm::Window> window);
     virtual ~BaseRenderer() = default;
@@ -129,7 +129,7 @@ public:
 protected:
     inline void markAsInit() { mInit = true; }
 
-    int32_t mFrameNumber = 0;
+    i32 mFrameNumber = 0;
 
     bool      mInit         = false;
     void     *mWindowHandle = nullptr;

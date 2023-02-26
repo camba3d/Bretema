@@ -19,9 +19,8 @@ public:
     void flush()
     {
         for (auto it = deleteFuncs.rbegin(); it != deleteFuncs.rend(); it++)
-        {
             (*it)();
-        }
+
         deleteFuncs.clear();
     }
 

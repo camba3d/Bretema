@@ -15,59 +15,66 @@ namespace btm::vk
 namespace CreateInfo
 {
 
-inline auto CommandPool(uint32_t queueFamilyIndex, VkCommandPoolCreateFlags flags = 0, void *pNext = nullptr)
+inline auto CommandPool(u32 queueFamilyIndex, VkCommandPoolCreateFlags flags = 0, void *pNext = nullptr)
 {
     VkCommandPoolCreateInfo info {};
+
     info.sType            = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
     info.pNext            = pNext;
     info.queueFamilyIndex = queueFamilyIndex;
     info.flags            = flags;
+
     return info;
 }
 
 inline auto Fence(VkFenceCreateFlags flags = VK_FENCE_CREATE_SIGNALED_BIT, void *pNext = nullptr)
 {
     VkFenceCreateInfo info {};
+
     info.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
     info.pNext = pNext;
     info.flags = flags;
+
     return info;
 }
 
 inline auto Semaphore(void *pNext = nullptr)
 {
     VkSemaphoreCreateInfo info {};
+
     info.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
     info.pNext = pNext;
     info.flags = 0;
+
     return info;
 }
 
 inline auto PipelineShaderStage(VkShaderStageFlagBits stage, VkShaderModule shaderModule, void *pNext = nullptr)
 {
     VkPipelineShaderStageCreateInfo info {};
+
     info.sType  = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
     info.pNext  = pNext;
     info.stage  = stage;         // shader stage
     info.module = shaderModule;  // module containing the code for this shader stage
     info.pName  = "main";        // the entry point of the shader
+
     return info;
 }
 
 inline auto VertexInputState(VertexInputDescription const &desc = {}, void *pNext = nullptr)
 {
     VkPipelineVertexInputStateCreateInfo info {};
+
     info.sType                           = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
     info.pNext                           = pNext;
     info.vertexBindingDescriptionCount   = 0;
     info.vertexAttributeDescriptionCount = 0;
-
     if (desc.bindings.size() >= 1 && desc.bindings.data())
     {
         info.vertexBindingDescriptionCount = desc.bindings.size();
         info.pVertexBindingDescriptions    = desc.bindings.data();
     }
-
     if (desc.attributes.size() >= 1 && desc.attributes.data())
     {
         info.vertexAttributeDescriptionCount = desc.attributes.size();
@@ -80,16 +87,19 @@ inline auto VertexInputState(VertexInputDescription const &desc = {}, void *pNex
 inline auto InputAssembly(void *pNext = nullptr)
 {
     VkPipelineInputAssemblyStateCreateInfo info {};
+
     info.sType                  = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
     info.pNext                  = pNext;
     info.topology               = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
     info.primitiveRestartEnable = VK_FALSE;  // we are not going to use primitive restart
+
     return info;
 }
 
 inline auto RasterizationState(btm::Cull cullMode = btm::Cull::CCW, void *pNext = nullptr)
 {
     VkPipelineRasterizationStateCreateInfo info {};
+
     info.sType                   = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
     info.pNext                   = pNext;
     info.depthClampEnable        = VK_FALSE;
@@ -108,26 +118,28 @@ inline auto RasterizationState(btm::Cull cullMode = btm::Cull::CCW, void *pNext 
     return info;
 }
 
-inline auto MultisamplingState(btm::Samples sampleCount = btm::Samples::_1, void *pNext = nullptr)
+inline auto MultisamplingState(Samples samples = Samples::_1, void *pNext = nullptr)
 {
     VkPipelineMultisampleStateCreateInfo info {};
+
     info.sType                 = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
     info.pNext                 = pNext;
     info.sampleShadingEnable   = VK_FALSE;
-    info.rasterizationSamples  = static_cast<VkSampleCountFlagBits>(BTM_BIT((int)sampleCount));
+    info.rasterizationSamples  = static_cast<VkSampleCountFlagBits>(BTM_BIT((i32)samples));
     info.minSampleShading      = 1.0f;
     info.pSampleMask           = nullptr;
     info.alphaToCoverageEnable = VK_FALSE;
     info.alphaToOneEnable      = VK_FALSE;
+
     return info;
 }
 
 inline auto PipelineLayout(void *pNext = nullptr)
 {
     VkPipelineLayoutCreateInfo info {};
-    info.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-    info.pNext = pNext;
 
+    info.sType                  = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+    info.pNext                  = pNext;
     // @later
     info.flags                  = 0;
     info.setLayoutCount         = 0;
@@ -138,16 +150,68 @@ inline auto PipelineLayout(void *pNext = nullptr)
     return info;
 }
 
+inline auto Image(VkFormat format, VkImageUsageFlags usageFlags, VkExtent3D extent, Samples samples = Samples::_1, void *pNext = nullptr)
+{
+    VkImageCreateInfo info {};
+
+    info.sType       = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+    info.pNext       = pNext;
+    info.imageType   = VK_IMAGE_TYPE_2D;  //@todo: extend to cube maps and 3d textures
+    info.format      = format;
+    info.extent      = extent;
+    info.mipLevels   = 1;  //@todo
+    info.arrayLayers = 1;  //@todo: extend to cube maps and 3d textures
+    info.samples     = static_cast<VkSampleCountFlagBits>(BTM_BIT((i32)samples));
+    info.tiling      = VK_IMAGE_TILING_OPTIMAL;
+    info.usage       = usageFlags;
+
+    return info;
+}
+
+//@todo: at some point, may have sense to merge this two functions in btm::vk::Image class, that tracks
+// the image type for the view creation, and reduce verbosity while allowing modify any parameter of the structs...
+inline auto ImageView(VkFormat format, VkImage image, VkImageAspectFlags aspectFlags, void *pNext = nullptr)
+{
+    VkImageViewCreateInfo info {};
+
+    info.sType                           = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+    info.pNext                           = pNext;
+    info.viewType                        = VK_IMAGE_VIEW_TYPE_2D;  //@todo: extend to cube maps and 3d textures
+    info.image                           = image;
+    info.format                          = format;
+    info.subresourceRange.baseMipLevel   = 0;
+    info.subresourceRange.levelCount     = 1;
+    info.subresourceRange.baseArrayLayer = 0;
+    info.subresourceRange.layerCount     = 1;
+    info.subresourceRange.aspectMask     = aspectFlags;
+
+    return info;
+}
+
+inline auto DepthStencil(bool bDepthTest, bool bDepthWrite, VkCompareOp compareOp, void *pNext = nullptr)
+{
+    VkPipelineDepthStencilStateCreateInfo info {};
+
+    info.sType                 = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
+    info.pNext                 = pNext;
+    info.depthTestEnable       = bDepthTest ? VK_TRUE : VK_FALSE;
+    info.depthWriteEnable      = bDepthWrite ? VK_TRUE : VK_FALSE;
+    info.depthCompareOp        = bDepthTest ? compareOp : VK_COMPARE_OP_ALWAYS;
+    info.depthBoundsTestEnable = VK_FALSE;  //@optional
+    info.minDepthBounds        = 0.0f;      //@optional
+    info.maxDepthBounds        = 1.0f;      //@optional
+    info.stencilTestEnable     = VK_FALSE;  //@todo
+
+    return info;
+}
+
 }  // namespace CreateInfo
 
 namespace AllocInfo
 {
 
-inline auto CommandBuffer(
-  VkCommandPool        pool,
-  uint32_t             count = 1,
-  VkCommandBufferLevel level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
-  void                *pNext = nullptr)
+inline auto
+  CommandBuffer(VkCommandPool pool, u32 count = 1, VkCommandBufferLevel level = VK_COMMAND_BUFFER_LEVEL_PRIMARY, void *pNext = nullptr)
 {
     VkCommandBufferAllocateInfo info {};
     info.sType              = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
@@ -201,7 +265,7 @@ inline VkShaderModule ShaderModule(VkDevice device, std::string const &name, VkS
     info.sType    = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
     info.pNext    = nullptr;
     info.codeSize = BTM_SIZEu32(code);
-    info.pCode    = BTM_DATA(const uint32_t *, code);
+    info.pCode    = BTM_DATA(const u32 *, code);
 
     VkShaderModule shaderModule;
     if (vkCreateShaderModule(device, &info, nullptr, &shaderModule) != VK_SUCCESS)
@@ -248,6 +312,7 @@ VkPipeline Pipeline(vk::PipelineBuilder pb, VkDevice device, VkRenderPass pass)
     info.layout              = pb.pipelineLayout;
     info.renderPass          = pass;
     info.subpass             = 0;
+    info.pDepthStencilState  = &pb.depthStencil;
     info.basePipelineHandle  = VK_NULL_HANDLE;
 
     // it's easy to error out on create graphics pipeline, so we handle it a bit better than the common VK_CHECK case

@@ -6,8 +6,8 @@
 namespace btm::vk
 {
 
-constexpr int BTM_VK_MAJOR_VERSION = 1;
-constexpr int BTM_VK_MINOR_VERSION = 2;
+constexpr i32 BTM_VK_MAJOR_VERSION = 1;
+constexpr i32 BTM_VK_MINOR_VERSION = 2;
 #define BTM_VK_VER BTM_VK_MAJOR_VERSION, BTM_VK_MINOR_VERSION
 
 //-----------------------------------------------------------------------------
@@ -42,7 +42,7 @@ void Renderer::draw()
     VK_CHECK(vkResetFences(mDevice, 1, &mRenderFence));
 
     // Request image from the swapchain (1 second timeout)
-    uint32_t swapchainImageIndex;
+    u32 swapchainImageIndex;
     VK_CHECK(vkAcquireNextImageKHR(mDevice, mSwapchain, sOneSec, mPresentSemaphore, nullptr, &swapchainImageIndex));
 
     // Reset command buffer
@@ -59,8 +59,10 @@ void Renderer::draw()
 
     // Make a clear-color from frame number.
     // This will flash with a 120*pi frame period.
-    VkClearValue clear;
-    clear.color = { { 0.0f, 0.0f, float(abs(sin(mFrameNumber / 120.f))), 1.0f } };
+    VkClearValue clearColor, clearDepth;
+    clearColor.color              = { { 0.0f, 0.0f, float(abs(sin(mFrameNumber / 120.f))), 1.0f } };
+    clearDepth.depthStencil.depth = 1.f;
+    auto const clears             = std::array { clearColor, clearDepth };
 
     // Start the main renderpass.
     // We will use the clear color from above, and the framebuffer of the index the swapchain gave us
@@ -72,8 +74,8 @@ void Renderer::draw()
     renderpassBI.renderArea.offset.y   = 0;
     renderpassBI.renderArea.extent     = extent();
     renderpassBI.framebuffer           = mFramebuffers[swapchainImageIndex];
-    renderpassBI.clearValueCount       = 1;
-    renderpassBI.pClearValues          = &clear;
+    renderpassBI.clearValueCount       = clears.size();
+    renderpassBI.pClearValues          = clears.data();
 
     vkCmdBeginRenderPass(cmd, &renderpassBI, VK_SUBPASS_CONTENTS_INLINE);
 
@@ -150,7 +152,7 @@ void Renderer::cleanup()
 
     vkWaitForFences(mDevice, 1, &mRenderFence, true, sOneSec);  // make sure the GPU has stopped doing its things
 
-    mMainDelQueue.flush();
+    mDestroyer.flush();
 
     vmaDestroyAllocator(mAllocator);
     vkDestroyDevice(mDevice, nullptr);
@@ -218,6 +220,8 @@ void Renderer::initSwapchain()
 {
     BTM_ASSERT_X(mViewportSize.x > 0 && mViewportSize.y > 0, "Invalid viewport size");
 
+    // === SWAP CHAIN ===
+
     // vkb : Create swapchain
     auto vkbSwapchainBuilder = vkb::SwapchainBuilder { mChosenGPU, mDevice, mSurface };
     auto vkbSwapchainResult  = vkbSwapchainBuilder.use_default_format_selection()
@@ -226,6 +230,7 @@ void Renderer::initSwapchain()
                                 .use_default_image_usage_flags()
                                 .set_desired_min_image_count(sInFlight)
                                 .build();
+
     VKB_CHECK(vkbSwapchainResult);
     auto vkbSwapchain = vkbSwapchainResult.value();
     mSwapchain        = vkbSwapchain.swapchain;
@@ -245,7 +250,33 @@ void Renderer::initSwapchain()
     mViewportSize         = { vkbSwapchain.extent.width, vkbSwapchain.extent.height };
 
     // Swapchain deletion-queue
-    mMainDelQueue.push_back([this]() { vkDestroySwapchainKHR(mDevice, mSwapchain, nullptr); });
+    mDestroyer.push_back([this]() { vkDestroySwapchainKHR(mDevice, mSwapchain, nullptr); });
+
+    // === DEPTH BUFFER ===
+
+    static auto const depthBit = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+    auto const        imgInfo  = vk::CreateInfo::Image(sDepthFormat, depthBit, extent3D());
+
+    // for the depth image, we want to allocate it from GPU local memory
+    VmaAllocationCreateInfo imgAllocInfo = {};
+    imgAllocInfo.usage                   = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
+    imgAllocInfo.requiredFlags           = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
+
+    // allocate and create the image
+    vmaCreateImage(mAllocator, &imgInfo, &imgAllocInfo, &mDepthImage.image, &mDepthImage.allocation, nullptr);
+
+    // build an image-view for the depth image to use for rendering
+    auto const viewInfo = vk::CreateInfo::ImageView(sDepthFormat, mDepthImage.image, VK_IMAGE_ASPECT_DEPTH_BIT);
+
+    VK_CHECK(vkCreateImageView(mDevice, &viewInfo, nullptr, &mDepthImageView));
+
+    // add to deletion queues
+    mDestroyer.push_back(
+      [this]()
+      {
+          vkDestroyImageView(mDevice, mDepthImageView, nullptr);
+          vmaDestroyImage(mAllocator, mDepthImage.image, mDepthImage.allocation);
+      });
 }
 
 void Renderer::initCommands()
@@ -259,43 +290,84 @@ void Renderer::initCommands()
     auto const cmdAllocInfo = vk::AllocInfo::CommandBuffer(mCommandPool);
     VK_CHECK(vkAllocateCommandBuffers(mDevice, &cmdAllocInfo, &mMainCommandBuffer));
 
-    mMainDelQueue.push_back([this]() { vkDestroyCommandPool(mDevice, mCommandPool, nullptr); });
+    mDestroyer.push_back([this]() { vkDestroyCommandPool(mDevice, mCommandPool, nullptr); });
 }
 
 void Renderer::initDefaultRenderPass()
 {
-    VkAttachmentDescription color0 = {};
-    color0.format                  = mSwapchainImageFormat;             // Copy swapchain format
-    color0.samples                 = VK_SAMPLE_COUNT_1_BIT;             // 1 sample, no MSAA right now
-    color0.loadOp                  = VK_ATTACHMENT_LOAD_OP_CLEAR;       // Clear on load
-    color0.storeOp                 = VK_ATTACHMENT_STORE_OP_STORE;      // Keep stored on renderpass end
-    color0.stencilLoadOp           = VK_ATTACHMENT_LOAD_OP_DONT_CARE;   // No stencil right now
-    color0.stencilStoreOp          = VK_ATTACHMENT_STORE_OP_DONT_CARE;  // No stencil right now
-    color0.initialLayout           = VK_IMAGE_LAYOUT_UNDEFINED;         // Let it as undefined on init
-    color0.finalLayout             = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;   // Ready to display on renderpass end
-
+    // == ATTACHMENT(s) ==
+    // att0 : Color
+    VkAttachmentDescription color0  = {};
+    color0.format                   = mSwapchainImageFormat;             // Copy swapchain format
+    color0.samples                  = VK_SAMPLE_COUNT_1_BIT;             // 1 sample, no MSAA right now
+    color0.loadOp                   = VK_ATTACHMENT_LOAD_OP_CLEAR;       // Clear on load
+    color0.storeOp                  = VK_ATTACHMENT_STORE_OP_STORE;      // Keep stored on renderpass end
+    color0.stencilLoadOp            = VK_ATTACHMENT_LOAD_OP_DONT_CARE;   // No stencil right now
+    color0.stencilStoreOp           = VK_ATTACHMENT_STORE_OP_DONT_CARE;  // No stencil right now
+    color0.initialLayout            = VK_IMAGE_LAYOUT_UNDEFINED;         // Let it as undefined on init
+    color0.finalLayout              = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;   // Ready to display on renderpass end
     VkAttachmentReference refColor0 = {};
     refColor0.attachment            = 0;  // Attachment idx in the renderpass
     refColor0.layout                = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+    // att1 : Depth (@notsure: could not be also on 0????)
+    VkAttachmentDescription depth0  = {};
+    depth0.flags                    = 0;
+    depth0.format                   = sDepthFormat;
+    depth0.samples                  = VK_SAMPLE_COUNT_1_BIT;
+    depth0.loadOp                   = VK_ATTACHMENT_LOAD_OP_CLEAR;
+    depth0.storeOp                  = VK_ATTACHMENT_STORE_OP_STORE;
+    depth0.stencilLoadOp            = VK_ATTACHMENT_LOAD_OP_CLEAR;
+    depth0.stencilStoreOp           = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+    depth0.initialLayout            = VK_IMAGE_LAYOUT_UNDEFINED;
+    depth0.finalLayout              = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+    VkAttachmentReference refDepth0 = {};
+    refDepth0.attachment            = 1;  // Attachment idx in the renderpass
+    refDepth0.layout                = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
-    VkSubpassDescription subpass = {};
-    subpass.pipelineBindPoint    = VK_PIPELINE_BIND_POINT_GRAPHICS;  // Create the renderpass for graphics
-    subpass.colorAttachmentCount = 1;
-    subpass.pColorAttachments    = &refColor0;
+    // == SUBPASS(es) ==
+    VkSubpassDescription subpass    = {};
+    subpass.pipelineBindPoint       = VK_PIPELINE_BIND_POINT_GRAPHICS;  // Create the renderpass for graphics
+    subpass.colorAttachmentCount    = 1;
+    subpass.pColorAttachments       = &refColor0;
+    subpass.pDepthStencilAttachment = &refDepth0;
 
+    // == DEPENDENCIES ==
+    // dep#1 : color0
+    VkSubpassDependency depColor0 = {};
+    depColor0.srcSubpass          = VK_SUBPASS_EXTERNAL;
+    depColor0.dstSubpass          = 0;
+    depColor0.srcStageMask        = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+    depColor0.srcAccessMask       = 0;
+    depColor0.dstStageMask        = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+    depColor0.dstAccessMask       = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+    // dep#2 : depth0
+    VkSubpassDependency depDepth0 = {};
+    depDepth0.srcSubpass          = VK_SUBPASS_EXTERNAL;
+    depDepth0.dstSubpass          = 0;
+    depDepth0.srcStageMask        = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
+    depDepth0.srcAccessMask       = 0;
+    depDepth0.dstStageMask        = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
+    depDepth0.dstAccessMask       = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+
+    // == RENDER PASS ==
     VkRenderPassCreateInfo renderpassCI = {};
     renderpassCI.sType                  = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-    // Connect the attachment to the info
-    renderpassCI.attachmentCount        = 1;
-    renderpassCI.pAttachments           = &color0;
-    // Connect the subpass to the info
+    // att(s)
+    auto const atts                     = std::array { color0, depth0 };
+    renderpassCI.attachmentCount        = atts.size();
+    renderpassCI.pAttachments           = atts.data();
+    // subpass(es)
     renderpassCI.subpassCount           = 1;
     renderpassCI.pSubpasses             = &subpass;
+    // dep(s)
+    auto const deps                     = std::array { depColor0, depDepth0 };
+    renderpassCI.dependencyCount        = deps.size();
+    renderpassCI.pDependencies          = deps.data();
 
     VK_CHECK(vkCreateRenderPass(mDevice, &renderpassCI, nullptr, &mDefaultRenderPass));
 
-    // RenderPass deletion-queue
-    mMainDelQueue.push_back([this]() { vkDestroyRenderPass(mDevice, mDefaultRenderPass, nullptr); });
+    // == DEL QUEUE ==
+    mDestroyer.push_back([this]() { vkDestroyRenderPass(mDevice, mDefaultRenderPass, nullptr); });
 }
 
 void Renderer::initFramebuffers()
@@ -319,11 +391,15 @@ void Renderer::initFramebuffers()
     // Create framebuffers for each of the swapchain image views
     for (size_t i = 0; i < mSwapchainImages.size(); i++)
     {
-        framebufferCI.pAttachments = &mSwapchainImageViews[i];
+        auto const atts = std::array { mSwapchainImageViews[i], mDepthImageView };
+
+        framebufferCI.attachmentCount = atts.size();
+        framebufferCI.pAttachments    = atts.data();
+
         VK_CHECK(vkCreateFramebuffer(mDevice, &framebufferCI, nullptr, &mFramebuffers[i]));
 
         // deletion-queue
-        mMainDelQueue.push_back(
+        mDestroyer.push_back(
           [this, i]()
           {
               // Framebuffer
@@ -344,7 +420,7 @@ void Renderer::initSyncStructures()
     VK_CHECK(vkCreateSemaphore(mDevice, &semaphoreCI, nullptr, &mRenderSemaphore));
 
     // deletion-queue
-    mMainDelQueue.push_back(
+    mDestroyer.push_back(
       [this]()
       {
           // Fence(s)
@@ -390,7 +466,7 @@ void Renderer::initPipelines()
     VK_CHECK(vkCreatePipelineLayout(mDevice, &infoMesh, nullptr, &mPipelineLayouts[1]));
 
     // deletion-queue :: @note might this be deleted after pipelines ??
-    mMainDelQueue.push_back(
+    mDestroyer.push_back(
       [this]()
       {
           for (auto layout : mPipelineLayouts)
@@ -420,6 +496,7 @@ void Renderer::initPipelines()
     pb.multisampling        = vk::CreateInfo::MultisamplingState();
     pb.colorBlendAttachment = vk::Blend::None;
     pb.pipelineLayout       = mPipelineLayouts[0];
+    pb.depthStencil         = vk::CreateInfo::DepthStencil(true, true, VK_COMPARE_OP_LESS_OR_EQUAL);
 
     mPipelines.push_back(vk::Create::Pipeline(pb, mDevice, mDefaultRenderPass));
 
@@ -437,7 +514,7 @@ void Renderer::initPipelines()
     mPipelines.push_back(vk::Create::Pipeline(pb, mDevice, mDefaultRenderPass));
 
     // deletion-queue
-    mMainDelQueue.push_back(
+    mDestroyer.push_back(
       [this]()
       {
           for (auto pipeline : mPipelines)
@@ -481,13 +558,13 @@ void Renderer::loadMeshes()
 
 Mesh Renderer::createMesh(btm::Vertices const &verts)
 {
-    VkBufferCreateInfo bufferInfo = {};
-    bufferInfo.sType              = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-    bufferInfo.size               = verts.size() * sizeof(btm::Mesh::Vertex);  // bytes
-    bufferInfo.usage              = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
+    VkBufferCreateInfo info = {};
+    info.sType              = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+    info.size               = verts.size() * sizeof(btm::Mesh::Vertex);  // bytes
+    info.usage              = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
 
-    VmaAllocationCreateInfo vmaallocInfo = {};
-    vmaallocInfo.usage                   = VMA_MEMORY_USAGE_CPU_TO_GPU;  //@deprecated ??
+    VmaAllocationCreateInfo allocInfo = {};
+    allocInfo.usage                   = VMA_MEMORY_USAGE_CPU_TO_GPU;  //@deprecated
 
     Mesh mesh;
     mesh.vertexCount = verts.size();
@@ -496,13 +573,7 @@ Mesh Renderer::createMesh(btm::Vertices const &verts)
     //...@todo
 
     // Vertices
-    VK_CHECK(vmaCreateBuffer(
-      mAllocator,
-      &bufferInfo,
-      &vmaallocInfo,
-      &mesh.vertices.buffer,
-      &mesh.vertices.allocation,
-      nullptr));
+    VK_CHECK(vmaCreateBuffer(mAllocator, &info, &allocInfo, &mesh.vertices.buffer, &mesh.vertices.allocation, nullptr));
 
     void *data;
     vmaMapMemory(mAllocator, mesh.vertices.allocation, &data);
@@ -510,8 +581,7 @@ Mesh Renderer::createMesh(btm::Vertices const &verts)
     vmaUnmapMemory(mAllocator, mesh.vertices.allocation);
 
     // deletion-queue
-    mMainDelQueue.push_back([=, this]()
-                            { vmaDestroyBuffer(mAllocator, mesh.vertices.buffer, mesh.vertices.allocation); });
+    mDestroyer.push_back([=, this]() { vmaDestroyBuffer(mAllocator, mesh.vertices.buffer, mesh.vertices.allocation); });
 
     return mesh;
 }

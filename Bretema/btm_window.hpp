@@ -23,7 +23,7 @@ class App;
 class Window
 {
 public:
-    Window(int32_t w, int32_t h, std::string const &title, App *app);
+    Window(i32 w, i32 h, std::string const &title, App *app);
 
     void *handle() const;
 
@@ -34,7 +34,7 @@ public:
     void               titleInfo(std::string info);
 
     glm::vec2 size() const;
-    void      size(int32_t w, int32_t h);
+    void      size(i32 w, i32 h);
 
     inline bool focus() { return mFocus; }
     inline void focus(bool f) { mFocus = f; }
@@ -53,8 +53,8 @@ private:
 
     GLFWwindow *mHandle = nullptr;
 
-    int32_t mW = 1280;
-    int32_t mH = 720;
+    i32 mW = 1280;
+    i32 mH = 720;
 
     std::string mTitle     = "";
     std::string mTitleInfo = "";

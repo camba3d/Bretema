@@ -42,21 +42,15 @@
     do                                                               \
     {                                                                \
         if (VkResult res = x; res != VK_SUCCESS)                     \
-        {                                                            \
             BTM_ABORTF("{} : {}", btm::vk::str::Result.at(res), #x); \
-        }                                                            \
     } while (0)
 
 #define VKB_CHECK(x)                                       \
     do                                                     \
     {                                                      \
         if (!x.has_value())                                \
-        {                                                  \
             if (auto err = x.error().message(); err != "") \
-            {                                              \
                 BTM_ABORTF("{} : {}", err, #x);            \
-            }                                              \
-        }                                                  \
     } while (0)
 
 // . Get instance functions
@@ -64,13 +58,9 @@
     do                                                                                \
     {                                                                                 \
         if (auto fn = ((PFN_##extName)vkGetInstanceProcAddr(instance, #extName)); fn) \
-        {                                                                             \
             fn(instance, __VA_ARGS__);                                                \
-        }                                                                             \
         else                                                                          \
-        {                                                                             \
             BTM_ERRF("Function {} is not available", #extName);                       \
-        }                                                                             \
     } while (0)
 
 namespace btm::vk

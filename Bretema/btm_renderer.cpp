@@ -28,7 +28,7 @@ BaseRenderer::BaseRenderer(Ref<btm::Window> window)
 //=========================================================
 
 template<typename T>
-auto gatherMeshData(tinygltf::Model const &model, int32_t accessorIdx)
+auto gatherMeshData(tinygltf::Model const &model, i32 accessorIdx)
 {
     if (accessorIdx < 0)
         return ds::view((T *)nullptr, 0);
@@ -55,10 +55,10 @@ std::vector<Mesh> parseGltf(tinygltf::Model const &model)
             if (primitive.mode != TINYGLTF_MODE_TRIANGLES)
                 continue;
 
-            auto const &p = primitive;
-            auto idx = [&p](const char *name) { return p.attributes.count(name) > 0 ? p.attributes.at(name) : -1; };
+            auto const &p   = primitive;
+            auto        idx = [&p](const char *name) { return p.attributes.count(name) > 0 ? p.attributes.at(name) : -1; };
 
-            // INDICES (must read as uint16_t)
+            // INDICES (must read as u16)
             {
                 auto const dataView = gatherMeshData<u16>(model, primitive.indices);
                 ds::merge(outMesh.indices, dataView);
@@ -105,8 +105,8 @@ std::vector<Mesh> parseGltf(bool isBin, std::string const &filepath, std::span<u
     tinygltf::Model    model;
     std::string        err, warn;
 
-    bool const ok = isBin ? ctx.LoadBinaryFromMemory(&model, &err, &warn, bin.data(), bin.size())
-                          : ctx.LoadASCIIFromFile(&model, &err, &warn, filepath);
+    bool const ok =
+      isBin ? ctx.LoadBinaryFromMemory(&model, &err, &warn, bin.data(), bin.size()) : ctx.LoadASCIIFromFile(&model, &err, &warn, filepath);
 
     if (!err.empty())
         BTM_ERRF("Loading GLTF {}: {}", filepath, err);
@@ -126,9 +126,9 @@ std::vector<Mesh> parseGltf(bool isBin, std::string const &filepath, std::span<u
 std::vector<Mesh> parseGltf(std::string const &filepath)
 {
     auto const bin   = btm::bin::read(filepath);
-    auto const isBin = btm::bin::checkMagic(ds::view(bin, 4), { 'g', 'l', 'T', 'F' });
+    bool const isBin = btm::bin::checkMagic(ds::view(bin, 4), { 'g', 'l', 'T', 'F' });
 
-    return parseGltf(isBin, filepath, bin);
+    return parseGltf(isBin, filepath, ds::view(bin, -1));
 }
 
 std::vector<Mesh> parseGltf(std::span<u8 const> bin, std::string name = "")

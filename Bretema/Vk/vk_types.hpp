@@ -12,8 +12,14 @@ namespace btm::vk
 
 struct AllocatedBuffer
 {
-    VkBuffer      buffer;
-    VmaAllocation allocation;
+    VkBuffer      buffer     = VK_NULL_HANDLE;
+    VmaAllocation allocation = VK_NULL_HANDLE;
+};
+
+struct AllocatedImage
+{
+    VkImage       image      = VK_NULL_HANDLE;
+    VmaAllocation allocation = VK_NULL_HANDLE;
 };
 
 struct VertexInputDescription
@@ -42,7 +48,7 @@ struct VertexInputDescription
 
 struct Mesh
 {
-    int32_t         vertexCount = 0;
+    u32             vertexCount = 0;
     // AllocatedBuffer indices;
     AllocatedBuffer vertices;
 };
@@ -65,9 +71,9 @@ struct Queue
         BTM_ASSERT(valid);
     }
 
-    VkQueue  queue  = {};
-    uint32_t family = {};
-    bool     valid  = false;
+    VkQueue queue  = {};
+    u32     family = {};
+    bool    valid  = false;
 };
 
 struct PipelineBuilder
@@ -81,10 +87,10 @@ struct PipelineBuilder
     VkPipelineColorBlendAttachmentState          colorBlendAttachment;
     VkPipelineMultisampleStateCreateInfo         multisampling;
     VkPipelineLayout                             pipelineLayout;
+    VkPipelineDepthStencilStateCreateInfo        depthStencil;
 };
 
-uint32_t constexpr RGBA_BIT =
-  VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
+u32 constexpr RGBA_BIT = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
 
 namespace Blend
 {
