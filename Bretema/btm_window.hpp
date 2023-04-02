@@ -23,44 +23,43 @@ class App;
 class Window
 {
 public:
+    // LIFETIME
     Window(i32 w, i32 h, std::string const &title, App *app);
 
-    void *handle() const;
-
-    std::vector<char const *> extensions() const;
-
-    inline std::string title() const { return mTitle; }
-    void               title(std::string title);
-    void               titleInfo(std::string info);
-
-    glm::vec2 size() const;
-    void      size(i32 w, i32 h);
-
-    inline bool focus() { return mFocus; }
-    inline void focus(bool f) { mFocus = f; }
-
-    void destroy();
-    bool isMarkedToClose() const;
-
+    // ACTIONS
+    void        destroy();
     static void pollEvents();
     static void waitEvents();
     static void terminate();
 
-private:
-    friend class App;
+    // PROPERTIES
+    // --- Read Only
+    void                     *handle() const;
+    std::vector<char const *> extensions() const;
+    bool                      isMarkedToClose() const;
+    // --- Write Only
+    void                      titleInfo(std::string info);
+    // --- Read / Write
+    inline std::string        title() const { return mTitle; }
+    void                      title(std::string title);
+    glm::vec2                 size() const;
+    void                      size(i32 w, i32 h);
+    inline bool               focus() { return mFocus; }
+    inline void               focus(bool f) { mFocus = f; }
 
+private:
+    // METHODS
     void refreshTitle();
 
-    GLFWwindow *mHandle = nullptr;
-
-    i32 mW = 1280;
-    i32 mH = 720;
-
+    // PROPERTIES VARS
+    GLFWwindow *mHandle    = nullptr;
+    i32         mW         = 1280;
+    i32         mH         = 720;
     std::string mTitle     = "";
     std::string mTitleInfo = "";
+    bool        mFocus     = false;
 
-    bool mFocus = false;
-
+    // STATIC VARIABLES
     static inline std::vector<char const *> sExtensions                 = {};
     static inline bool                      sIsWindowContextInitialized = false;
 };

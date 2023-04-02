@@ -19,41 +19,48 @@ enum RenderAPI
 
 class App
 {
-    static auto constexpr sDefaultState = Input::State::Release;
-
 public:
+    // LIFETIME
     App(std::string name, RenderAPI renderAPI);
 
+    // ACTIONS
     void run();
     void reset();
     void cleanup();
-
-    std::string name() const;
-
     void markToClose();
-    bool isMarkedToClose() const;
 
+    // PROPERTIES
+    // --- Read Only
+    std::string  name() const;
+    bool         isMarkedToClose() const;
     glm::vec2    cursor() const;
     Input::State key(Input::Key k) const;
     Input::State mouse(Input::Mouse m) const;
 
-    void cursor(glm::vec2 cursor);               // Should be private
-    void key(Input::Key k, Input::State s);      // Should be private
-    void mouse(Input::Mouse m, Input::State s);  // Should be private
-
 private:
-    std::string mName      = "";
-    RenderAPI   mRenderAPI = RenderAPI::Vulkan;
+    // FRIENDS
+    friend class Window;
 
-    bool mInit  = false;
-    bool mClose = false;
+    // PROPERTIES : Read-Only private Write(s)
+    void cursor(glm::vec2 cursor);
+    void key(Input::Key k, Input::State s);
+    void mouse(Input::Mouse m, Input::State s);
 
+    // PROPERTIES VARS
+    std::string                      mName   = "";
     glm::vec2                        mCursor = { 0, 0 };
     umap<Input::Key, Input::State>   mKeys   = {};
     umap<Input::Mouse, Input::State> mMouse  = {};
 
+    // INSTANCE VARS
+    bool               mInit       = false;
+    bool               mClose      = false;
+    RenderAPI          mRenderAPI  = RenderAPI::Vulkan;
     Ref<btm::Window>   mMainWindow = nullptr;
     btm::BaseRenderer *mRenderer   = nullptr;
+
+    // STATIC VARS
+    static auto constexpr sDefaultState = Input::State::Release;
 };
 
 }  // namespace btm
