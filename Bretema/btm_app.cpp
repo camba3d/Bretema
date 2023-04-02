@@ -4,17 +4,7 @@ namespace btm
 {
 
 // clang-format off
-#define RENDERER(call)                                                                    \
-    do                                                                                    \
-    {                                                                                     \
-        BTM_ASSERT(mRenderer);                                                            \
-        switch (mRenderAPI)                                                               \
-        {                                                                                 \
-            case Vulkan: static_cast<vk::Renderer *>(mRenderer)->call; break;             \
-            default: BTM_ABORT("Selected renderer is not implemented yet!"); break;       \
-        }                                                                                 \
-    } while (0);
-// clang-format on
+#define RENDERER(call) do { BTM_ASSERT(mRenderer); (mRenderer)->call; } while (0);
 
 App::App(std::string name, RenderAPI renderAPI) : mName(std::move(name)), mRenderAPI(renderAPI)
 {

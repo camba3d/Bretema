@@ -47,9 +47,9 @@ public:
     static void terminate();
 
 private:
-    void refreshTitle();
+    friend class App;
 
-    bool mDelete = true;
+    void refreshTitle();
 
     GLFWwindow *mHandle = nullptr;
 

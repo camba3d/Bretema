@@ -16,5 +16,5 @@ layout(push_constant) uniform constants
 void main()
 {
 	gl_Position = uConst.modelViewProj * vec4(vPosition, 1.0);
-	fColor = vNormal;
+	fColor = (inverse(uConst.modelViewProj) * vec4(vNormal, 1.0)).xyz;
 }

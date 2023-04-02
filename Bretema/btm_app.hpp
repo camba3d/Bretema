@@ -23,24 +23,23 @@ class App
 
 public:
     App(std::string name, RenderAPI renderAPI);
-    void run();
-    void cleanup();
 
+    void run();
     void reset();
+    void cleanup();
 
     std::string name() const;
 
     void markToClose();
     bool isMarkedToClose() const;
 
-    glm::vec2 cursor() const;
-    void      cursor(glm::vec2 cursor);
-
+    glm::vec2    cursor() const;
     Input::State key(Input::Key k) const;
-    void         key(Input::Key k, Input::State s);
-
     Input::State mouse(Input::Mouse m) const;
-    void         mouse(Input::Mouse m, Input::State s);
+
+    void cursor(glm::vec2 cursor);               // Should be private
+    void key(Input::Key k, Input::State s);      // Should be private
+    void mouse(Input::Mouse m, Input::State s);  // Should be private
 
 private:
     std::string mName      = "";
