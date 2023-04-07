@@ -14,7 +14,7 @@ namespace btm
 // Base Renderer
 //=========================================================
 
-BaseRenderer::BaseRenderer(Ref<btm::Window> window)
+BaseRenderer::BaseRenderer(sPtr<btm::Window> window)
 {
     mWindowHandle = window->handle();
     mViewportSize = window->size();

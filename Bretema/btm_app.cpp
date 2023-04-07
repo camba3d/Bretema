@@ -15,7 +15,7 @@ App::App(std::string name, RenderAPI renderAPI) : mName(std::move(name)), mRende
       BTM_PTRSTR(mRenderer));
 
     // Init window
-    mMainWindow = MakeRef<Window>(1920, 1080, "Default Window", this);
+    mMainWindow = sNew<Window>(1920, 1080, "Default Window", this);
 
     // Init renderer
     switch (mRenderAPI)

@@ -63,20 +63,20 @@ Window::Window(i32 w, i32 h, std::string const &title, App *app) : mW(w), mH(h),
 
     // clang-format off
 
-    // Window Dependent Events
-    // . Resize
+    // Window Events
+    // -- Resize
     glfwSetFramebufferSizeCallback(mHandle, [](GLFWwindow *p, i32 w, i32 h) { WIN_SELF(p).size(w, h); });
-    // . Focus
+    // -- Focus
     glfwSetCursorEnterCallback(mHandle, [](GLFWwindow *p, i32 focus) { WIN_SELF(p).focus((bool)focus); });
-    // . On Close
+    // -- On Close
     glfwSetWindowCloseCallback(mHandle, [](GLFWwindow *p) { if (p == sMainWindow) BTM_APP(p).markToClose(); });
     
-    // Window Independent Events
-    // . Cursor
+    // User-Input Events
+    // -- Cursor
     glfwSetCursorPosCallback(mHandle, [](GLFWwindow *p, double x, double y) { BTM_APP(p).cursor({x, y}); });
-    // . Keyboard
+    // -- Keyboard
     glfwSetKeyCallback(mHandle, [](GLFWwindow *p, i32 k, i32, i32 s, i32) { BTM_APP(p).key((IK)k, (IS)s); });
-    // . Mouse
+    // -- Mouse
     glfwSetMouseButtonCallback(mHandle, [](GLFWwindow *p, i32 m, i32 s, i32) { BTM_APP(p).mouse((IM)m, (IS)s); });
 
     // clang-format on

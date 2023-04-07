@@ -56,7 +56,7 @@ private:
     bool               mInit       = false;
     bool               mClose      = false;
     RenderAPI          mRenderAPI  = RenderAPI::Vulkan;
-    Ref<btm::Window>   mMainWindow = nullptr;
+    sPtr<btm::Window>  mMainWindow = nullptr;
     btm::BaseRenderer *mRenderer   = nullptr;
 
     // STATIC VARS

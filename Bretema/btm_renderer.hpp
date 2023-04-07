@@ -63,19 +63,29 @@ enum struct Samples
 };
 
 //===========================
-//= HELPER STRUCTS
+//= AUX STRUCTS
 //===========================
 
 struct Area2D
 {
-    glm::vec2 off = {};  // Rect's init-point
-    glm::vec2 ext = {};  // Rect's end-point
+    glm::vec2     off = {};  // Rect's init-point
+    glm::vec2     ext = {};  // Rect's end-point
+    float         w() { return (ext - off).x; }
+    float         h() { return (ext - off).y; }
+    glm::vec4     asRect() { return { off, ext - off }; }
+    static Area2D fromInitEnd(glm::vec2 const &init, glm::vec2 const &end) { return { init, end }; }
+    static Area2D fromInitSize(glm::vec2 const &init, glm::vec2 const &size) { return { init, init + size }; }
 };
 
 struct Area3D
 {
-    glm::vec3 off = {};  // Cube's init-point
-    glm::vec3 ext = {};  // Cube's end-point
+    glm::vec3     off = {};  // Cube's init-point
+    glm::vec3     ext = {};  // Cube's end-point
+    float         w() { return (ext - off).x; }
+    float         h() { return (ext - off).y; }
+    float         d() { return (ext - off).z; }
+    static Area3D fromInitEnd(glm::vec3 const &init, glm::vec3 const &end) { return { init, end }; }
+    static Area3D fromInitSize(glm::vec3 const &init, glm::vec3 const &size) { return { init, init + size }; }
 };
 
 //===========================
@@ -108,6 +118,10 @@ using Vertices  = std::vector<Mesh::Vertex>;
 using Instances = std::vector<Mesh::Instance>;
 using MeshGroup = std::vector<Mesh>;
 
+struct Material
+{
+};
+
 //===========================
 //= BASE RENDERER
 //===========================
@@ -117,14 +131,17 @@ class BaseRenderer
 public:
     inline static constexpr i32 sInFlight = 3;
 
-    BaseRenderer(Ref<btm::Window> window);
+    // LIFETIME
+    BaseRenderer(sPtr<btm::Window> window);
     virtual ~BaseRenderer() = default;
 
-    virtual void update() { BTM_ASSERT_X(0, "Cast-back to non-base renderer!"); }
-    virtual void draw() { BTM_ASSERT_X(0, "Cast-back to non-base renderer!"); }
-    virtual void cleanup() { BTM_ASSERT_X(0, "Cast-back to non-base renderer!"); }
-
+    // PROPS
     inline bool isInitialized() { return mInit; }
+
+    // ACTIONS
+    virtual void update()  = 0;
+    virtual void draw()    = 0;
+    virtual void cleanup() = 0;
 
 protected:
     inline void markAsInit() { mInit = true; }
@@ -140,8 +157,8 @@ protected:
 //= TOOLS
 //===========================
 
-std::vector<Mesh> parseGltf(std::string const &filepath);
-std::vector<Mesh> parseGltf(std::span<u8 const> bin);
+MeshGroup parseGltf(std::string const &filepath);
+MeshGroup parseGltf(std::span<u8 const> bin);
 
 }  // namespace btm
 

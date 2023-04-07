@@ -96,7 +96,7 @@ inline auto InputAssembly(void *pNext = nullptr)
     return info;
 }
 
-inline auto RasterizationState(btm::Cull cullMode = btm::Cull::CCW, void *pNext = nullptr)
+inline auto RasterizationState(Cull cullMode = Cull::CCW, void *pNext = nullptr)
 {
     VkPipelineRasterizationStateCreateInfo info {};
 
@@ -106,9 +106,11 @@ inline auto RasterizationState(btm::Cull cullMode = btm::Cull::CCW, void *pNext 
     info.rasterizerDiscardEnable = VK_FALSE;
     info.polygonMode             = VK_POLYGON_MODE_FILL;
     info.lineWidth               = 1.0f;
-    // no backface cull
-    info.cullMode                = static_cast<VkCullModeFlagBits>(cullMode);
-    info.frontFace               = VK_FRONT_FACE_CLOCKWISE;
+
+    // culling
+    info.cullMode  = static_cast<VkCullModeFlagBits>(cullMode);
+    info.frontFace = VK_FRONT_FACE_CLOCKWISE;
+
     // no depth bias
     info.depthBiasEnable         = VK_FALSE;
     info.depthBiasConstantFactor = 0.0f;

@@ -9,12 +9,12 @@ layout (location = 0) out vec3 fColor;
 
 layout(push_constant) uniform constants
 {
-	vec4 data;
-	mat4 modelViewProj;
-} uConst;
+	mat4 N;
+	mat4 MVP;
+} uCam;
 
 void main()
 {
-	gl_Position = uConst.modelViewProj * vec4(vPosition, 1.0);
-	fColor = (inverse(uConst.modelViewProj) * vec4(vNormal, 1.0)).xyz;
+	gl_Position = uCam.MVP * vec4(vPosition, 1.0);
+	fColor = vNormal;
 }

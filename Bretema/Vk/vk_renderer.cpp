@@ -12,16 +12,19 @@ constexpr i32 BTM_VK_MINOR_VERSION = 2;
 
 //-----------------------------------------------------------------------------
 
-Renderer::Renderer(Ref<btm::Window> window) : btm::BaseRenderer(window)
+Renderer::Renderer(sPtr<btm::Window> window) : btm::BaseRenderer(window)
 {
     // * https://github.com/charles-lunarg/vk-bootstrap/blob/master/docs/getting_started.md
 
     initVulkan();
     initSwapchain();
+
     initDefaultRenderPass();
     initFramebuffers();
+
     initCommands();
     initSyncStructures();
+
     initPipelines();
 
     // init_descriptors();
@@ -72,7 +75,7 @@ void Renderer::draw()
     renderpassBI.renderPass            = mDefaultRenderPass;
     renderpassBI.renderArea.offset.x   = 0;
     renderpassBI.renderArea.offset.y   = 0;
-    renderpassBI.renderArea.extent     = extent();
+    renderpassBI.renderArea.extent     = extent2D();
     renderpassBI.framebuffer           = mFramebuffers[swapchainImageIndex];
     renderpassBI.clearValueCount       = clears.size();
     renderpassBI.pClearValues          = clears.data();
@@ -94,7 +97,8 @@ void Renderer::draw()
     glm::mat4 model      = glm::rotate(glm::mat4(1.f), glm::radians(mFrameNumber * 0.4f), glm::vec3(0, 1, 0));
     projection[1][1] *= -1;  // ??
     MeshPushConstants constants;
-    constants.modelViewProj = projection * view * model;
+    constants.N   = glm::transpose(glm::inverse(model));
+    constants.MVP = projection * view * model;
     // upload the matrix to the GPU via push constants
     vkCmdPushConstants(cmd, mPipelineLayouts[1], VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(MeshPushConstants), &constants);
 
@@ -372,8 +376,6 @@ void Renderer::initDefaultRenderPass()
 
 void Renderer::initFramebuffers()
 {
-    auto const lExtent = extent();
-
     // Create the framebuffers for the swapchain images.
     // This will connect the render-pass to the images for rendering
     VkFramebufferCreateInfo framebufferCI = {};
@@ -381,8 +383,8 @@ void Renderer::initFramebuffers()
     framebufferCI.pNext                   = nullptr;
     framebufferCI.renderPass              = mDefaultRenderPass;
     framebufferCI.attachmentCount         = 1;
-    framebufferCI.width                   = lExtent.width;
-    framebufferCI.height                  = lExtent.height;
+    framebufferCI.width                   = extent_w();
+    framebufferCI.height                  = extent_h();
     framebufferCI.layers                  = 1;
 
     // Grab how many images we have in the swapchain
@@ -491,7 +493,7 @@ void Renderer::initPipelines()
     pb.viewport.minDepth    = 0.0f;
     pb.viewport.maxDepth    = 1.0f;
     pb.scissor.offset       = { 0, 0 };
-    pb.scissor.extent       = extent();
+    pb.scissor.extent       = extent2D();
     pb.rasterizer           = vk::CreateInfo::RasterizationState();
     pb.multisampling        = vk::CreateInfo::MultisamplingState();
     pb.colorBlendAttachment = vk::Blend::None;
@@ -507,8 +509,8 @@ void Renderer::initPipelines()
     pb.shaderStages.push_back(vk::CreateInfo::PipelineShaderStage(VK_SHADER_STAGE_VERTEX_BIT, vs_mesh));
     pb.shaderStages.push_back(vk::CreateInfo::PipelineShaderStage(VK_SHADER_STAGE_FRAGMENT_BIT, fs_mesh));
     pb.vertexInputInfo = vk::CreateInfo::VertexInputState(VertexInputDescription::get());
-    pb.rasterizer      = vk::CreateInfo::RasterizationState(btm::Cull::NONE);
-    pb.multisampling   = vk::CreateInfo::MultisamplingState(btm::Samples::_1);  // Must match with renderpass ...
+    pb.rasterizer      = vk::CreateInfo::RasterizationState(Cull::NONE);
+    pb.multisampling   = vk::CreateInfo::MultisamplingState(Samples::_1);  // Must match with renderpass ...
     pb.pipelineLayout  = mPipelineLayouts[1];
 
     mPipelines.push_back(vk::Create::Pipeline(pb, mDevice, mDefaultRenderPass));

@@ -60,12 +60,11 @@ using f32 = float;
 using f64 = double;
 
 template<typename T>
-using Ref = std::shared_ptr<T>;
-#define MakeRef std::make_shared
-
+using sPtr = std::shared_ptr<T>;
+#define sNew std::make_shared
 template<typename T>
-using Scope = std::unique_ptr<T>;
-#define MakeScope std::make_unique
+using uPtr = std::unique_ptr<T>;
+#define uNew std::make_unique
 
 template<typename K, typename V>
 using umap = std::unordered_map<K, V>;

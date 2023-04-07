@@ -15,7 +15,7 @@
 // TODO: Get specific platform based on server
 #    define VK_USE_PLATFORM_XLIB_KHR
 // #define VK_USE_PLATFORM_XCB_KHR
-// #define VK_USE_PLATFORM_WAYLAND_KHR
+// #define VK_USE_PLATFORM_WAYLAND_KHRM
 // #define VK_USE_PLATFORM_MIR_KHR
 // #define VK_USE_PLATFORM_XLIB_XRANDR_EXT
 #elif __ANDROID__

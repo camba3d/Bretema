@@ -21,12 +21,12 @@ class Renderer : public btm::BaseRenderer
 
     struct MeshPushConstants
     {
-        glm::vec4 data;
-        glm::mat4 modelViewProj;
+        glm::mat4 N;
+        glm::mat4 MVP;
     };
 
 public:
-    Renderer(Ref<btm::Window> window);
+    Renderer(sPtr<btm::Window> window);
     virtual void update() override { BTM_WARN("NOT IMPLEMENTED"); }
     virtual void draw() override;
     virtual void cleanup() override;
@@ -43,8 +43,11 @@ private:
     void loadMeshes();
     Mesh createMesh(btm::Vertices const &verts);
 
-    inline VkExtent2D extent() { return VkExtent2D(mViewportSize.x, mViewportSize.y); }
+    inline VkExtent2D extent2D() { return VkExtent2D(mViewportSize.x, mViewportSize.y); }
     inline VkExtent3D extent3D() { return VkExtent3D(mViewportSize.x, mViewportSize.y, 1); }
+    inline u32        extent_w() { return static_cast<u32>(mViewportSize.x); }
+    inline u32        extent_h() { return static_cast<u32>(mViewportSize.y); }
+    inline u32        extent_d() { return 1; }
 
     btm::ds::DeletionQueue mDestroyer {};  // add deletion funcs after create an vk-object, using:
                                            // mMainDelQueue.push_back([this]() {  });
