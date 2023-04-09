@@ -40,8 +40,6 @@ Renderer::Renderer(sPtr<btm::Window> window) : btm::BaseRenderer(window)
 
 void Renderer::draw()
 {
-    auto cmd = mMainCommandBuffer;
-
     // Wait for GPU (1 second timeout)
     VK_CHECK(vkWaitForFences(mDevice, 1, &mRenderFence, true, sOneSec));
     VK_CHECK(vkResetFences(mDevice, 1, &mRenderFence));
@@ -51,16 +49,14 @@ void Renderer::draw()
     VK_CHECK(vkAcquireNextImageKHR(mDevice, mSwapchain, sOneSec, mPresentSemaphore, nullptr, &swapchainImageIndex));
 
     // Reset command buffer
-    VK_CHECK(vkResetCommandBuffer(cmd, 0));
+    VK_CHECK(vkResetCommandBuffer(mGraphicsCB, 0));
 
     // Begin the command buffer recording.
     // We will use this command buffer exactly once, so we want to let Vulkan know that
-    VkCommandBufferBeginInfo cmdBI = {};
-    cmdBI.sType                    = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-    cmdBI.pNext                    = nullptr;
-    cmdBI.pInheritanceInfo         = nullptr;
-    cmdBI.flags                    = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-    VK_CHECK(vkBeginCommandBuffer(cmd, &cmdBI));
+    VkCommandBufferBeginInfo cbBeginInfo {};
+    cbBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+    cbBeginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+    VK_CHECK(vkBeginCommandBuffer(mGraphicsCB, &cbBeginInfo));
 
     // Make a clear-color from frame number.
     // This will flash with a 120*pi frame period.
@@ -82,17 +78,13 @@ void Renderer::draw()
     renderpassBI.clearValueCount       = clears.size();
     renderpassBI.pClearValues          = clears.data();
 
-    vkCmdBeginRenderPass(cmd, &renderpassBI, VK_SUBPASS_CONTENTS_INLINE);
+    vkCmdBeginRenderPass(mGraphicsCB, &renderpassBI, VK_SUBPASS_CONTENTS_INLINE);
 
     //===========
 
-    vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, mPipelines[1]);
+    vkCmdBindPipeline(mGraphicsCB, VK_PIPELINE_BIND_POINT_GRAPHICS, mPipelines[1]);
 
-    // bind the mesh vertex buffer with offset 0
-    VkDeviceSize offset = 0;
-    vkCmdBindVertexBuffers(cmd, 0, 1, &mMeshes[0].vertices.buffer, &offset);
-
-    // set push constant MVP
+    // CAMERA as PushConstant
     glm::vec3 camPos     = { 0.f, 0.f, -4.f };
     glm::mat4 view       = glm::translate(glm::mat4(1.f), camPos);
     glm::mat4 projection = glm::perspective(glm::radians(70.f), mViewportSize.x / mViewportSize.y, 0.1f, 200.0f);
@@ -102,21 +94,18 @@ void Renderer::draw()
     constants.N   = glm::transpose(glm::inverse(model));
     constants.MVP = projection * view * model;
     // upload the matrix to the GPU via push constants
-    vkCmdPushConstants(cmd, mPipelineLayouts[1], VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(MeshPushConstants), &constants);
+    vkCmdPushConstants(mGraphicsCB, mPipelineLayouts[1], VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(MeshPushConstants), &constants);
 
-    // we can now draw the mesh
+    // MESHes Drawing
     for (auto const &mesh : mMeshes)
     {
-        mesh.draw(cmd);
+        mesh.draw(mGraphicsCB);
     }
 
     //===========
 
-    // Finalize the render pass
-    vkCmdEndRenderPass(cmd);
-
-    // Finalize the command buffer (we can no longer add commands, but it can now be executed)
-    VK_CHECK(vkEndCommandBuffer(cmd));
+    vkCmdEndRenderPass(mGraphicsCB);
+    VK_CHECK(vkEndCommandBuffer(mGraphicsCB));
 
     // Prepare the submission to the queue.
     // We want to wait on the mPresentSemaphore, as that semaphore is signaled when the swapchain is ready
@@ -132,7 +121,7 @@ void Renderer::draw()
     submitInfo.signalSemaphoreCount = 1;
     submitInfo.pSignalSemaphores    = &mRenderSemaphore;
     submitInfo.commandBufferCount   = 1;
-    submitInfo.pCommandBuffers      = &cmd;
+    submitInfo.pCommandBuffers      = &mGraphicsCB;
 
     VK_CHECK(vkQueueSubmit(mGraphicsQ.queue, 1, &submitInfo, mRenderFence));  // Submit and execute
     // --> mRenderFence will now block until the graphic commands finish execution
@@ -289,15 +278,22 @@ void Renderer::initSwapchain()
 
 void Renderer::initCommands()
 {
-    // Create a command pool for commands submitted to the graphics queue
-    auto const cmdPoolFlags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
-    auto const cmdPoolCI    = vk::CreateInfo::CommandPool(mGraphicsQ.family, cmdPoolFlags);
-    VK_CHECK(vkCreateCommandPool(mDevice, &cmdPoolCI, nullptr, &mCommandPool));
-    TO_DESTROY(vkDestroyCommandPool(mDevice, mCommandPool, nullptr));
+    auto const initCommandsByFamily = [this](auto family, auto &pool, auto &cb)
+    {
+        auto const flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
 
-    // Allocate the default command buffer that we will use for rendering
-    auto const cmdAllocInfo = vk::AllocInfo::CommandBuffer(mCommandPool);
-    VK_CHECK(vkAllocateCommandBuffers(mDevice, &cmdAllocInfo, &mMainCommandBuffer));
+        auto const cpInfo = vk::CreateInfo::CommandPool(family, flags);
+        VK_CHECK(vkCreateCommandPool(mDevice, &cpInfo, nullptr, &pool));
+        TO_DESTROY(vkDestroyCommandPool(mDevice, pool, nullptr));
+
+        auto const cbAllocInfo = vk::AllocInfo::CommandBuffer(pool);
+        VK_CHECK(vkAllocateCommandBuffers(mDevice, &cbAllocInfo, &cb));
+    };
+
+    initCommandsByFamily(mGraphicsQ.family, mGraphicsCP, mGraphicsCB);
+    initCommandsByFamily(mPresentQ.family, mPresentCP, mPresentCB);
+    initCommandsByFamily(mComputeQ.family, mComputeCP, mComputeCB);
+    initCommandsByFamily(mTransferQ.family, mTransferCP, mTransferCB);
 }
 
 void Renderer::initDefaultRenderPass()
@@ -497,26 +493,42 @@ void Renderer::initPipelines()
 }
 
 //-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
 
-void Renderer::loadMeshes()
+void Renderer::executeImmediately(VkCommandPool pool, VkQueue queue, const std::function<void(VkCommandBuffer cb)> &fn)
 {
-    btm::Mesh mesh;
+    // Allocate
+    VkCommandBuffer cb;
+    auto const      cbAllocInfo = AllocInfo::CommandBuffer(pool);
+    vkAllocateCommandBuffers(mDevice, &cbAllocInfo, &cb);
 
-    mesh.vertices.resize(3);
+    // Record
+    VkCommandBufferBeginInfo cbBeginInfo {};
+    cbBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+    cbBeginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+    vkBeginCommandBuffer(cb, &cbBeginInfo);
+    fn(cb);
+    vkEndCommandBuffer(cb);
 
-    mesh.vertices[0].pos = { 1.f, 1.f, 0.f };
-    mesh.vertices[1].pos = { -1.f, 1.f, 0.f };
-    mesh.vertices[2].pos = { 0.f, -1.f, 0.f };
+    // Submit
+    VkSubmitInfo submitInfo {};
+    submitInfo.sType              = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+    submitInfo.commandBufferCount = 1;
+    submitInfo.pCommandBuffers    = &cb;
+    vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE);
+    vkQueueWaitIdle(queue);  // There is some room to improve using 'vkWaitForFences'-logic
 
-    // verts[0].color = Color::Orange;
-    // verts[1].color = Color::StrongYellow;
-    // verts[2].color = Color::Yellow;
+    // . Free
+    vkFreeCommandBuffers(mDevice, pool, 1, &cb);
+}
 
-    // auto const gltf = btm::parseGltf("./Assets/Geometry/default_scene_A.gltf");  // @HERE!
+//-----------------------------------------------------------------------------
 
-    // mMeshes.push_back(createMesh(mesh.vertices));
-
-    // auto const meshes = btm::parseGltf("./Assets/Geometry/suzanne.glb");
+void Renderer::loadMeshes()  // todo : this have to come from user-land
+{
     auto const meshes = btm::parseGltf("./Assets/Geometry/suzanne_donut.glb");
 
     auto const mg = createMesh(meshes);
@@ -554,26 +566,34 @@ AllocatedBuffer Renderer::createBufferStaging(void const *data, u64 bytes, VkBuf
     // Create host
     auto const hostUsage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
     auto const hostProps = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
-    auto       h         = createBuffer(bytes, hostUsage, hostProps);
+    auto       hostBuff  = createBuffer(bytes, hostUsage, hostProps);
 
     // Create dev
     auto const devUsage = VK_BUFFER_USAGE_TRANSFER_DST_BIT | usage;
     auto const devProps = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
-    auto       d        = createBuffer(bytes, devUsage, devProps);
+    auto       devBuff  = createBuffer(bytes, devUsage, devProps);
 
     // Populate host
     void *aux;
-    vmaMapMemory(mAllocator, h.allocation, &aux);
+    vmaMapMemory(mAllocator, hostBuff.allocation, &aux);
     memcpy(aux, data, bytes);
-    vmaUnmapMemory(mAllocator, h.allocation);
+    vmaUnmapMemory(mAllocator, hostBuff.allocation);
 
     // Populate dev from host
     // copyBuffer(mDevice, h, d);  // todo :  implement
+    executeImmediately(
+      mTransferCP,
+      mTransferQ.queue,
+      [&](VkCommandBuffer cb)
+      {
+          VkBufferCopy const copyRegion { 0, 0, bytes };
+          vkCmdCopyBuffer(cb, hostBuff.buffer, devBuff.buffer, 1, &copyRegion);
+      });
 
     // Host is no longer needed
-    vmaDestroyBuffer(mAllocator, h.buffer, h.allocation);
+    vmaDestroyBuffer(mAllocator, hostBuff.buffer, hostBuff.allocation);
 
-    return d;
+    return devBuff;
 }
 
 //-----------------------------------------------------------------------------

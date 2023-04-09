@@ -40,6 +40,9 @@ private:
     void initSyncStructures();
     void initPipelines();
 
+    /// Execute commands immediately and wait for the device to finish.
+    void executeImmediately(VkCommandPool pool, VkQueue queue, const std::function<void(VkCommandBuffer cb)> &fn);
+
     void loadMeshes();
 
     AllocatedBuffer createBuffer(u64 byteSize, VkBufferUsageFlags usage, VkMemoryPropertyFlags memProps);
@@ -53,8 +56,7 @@ private:
     inline u32        extent_h() { return static_cast<u32>(mViewportSize.y); }
     inline u32        extent_d() { return 1; }
 
-    btm::ds::DeletionQueue mDeletionQueue {};  // add deletion funcs after create an vk-object, using:
-                                               // mMainDelQueue.push_back([this]() {  });
+    btm::ds::DeletionQueue mDeletionQueue {};
 
     VmaAllocator mAllocator = VK_NULL_HANDLE;  // Memory Allocator - AMD lib
 
@@ -69,13 +71,21 @@ private:
     std::vector<VkImage>     mSwapchainImages      = {};                       // List of images from the swapchain
     std::vector<VkImageView> mSwapchainImageViews  = {};                       // List of image-views from the swapchain
 
-    vk::Queue mGraphicsQ = {};  // Queue/Family for Graphics
-    vk::Queue mComputeQ  = {};  // Queue/Family for Compute
-    vk::Queue mPresentQ  = {};  // Queue/Family for Present
-    vk::Queue mTransferQ = {};  // Queue/Family for Transfer
+    vk::Queue       mGraphicsQ  = {};  // Queue/Family for Graphics
+    VkCommandPool   mGraphicsCP = {};  // Command-Pool for Graphics-commands
+    VkCommandBuffer mGraphicsCB = {};  // Command-Buffer for Graphics-commands
 
-    VkCommandPool   mCommandPool;        // Command pool for graphic-commands right now
-    VkCommandBuffer mMainCommandBuffer;  // Main command buffer
+    vk::Queue       mPresentQ  = {};  // Queue/Family for Present
+    VkCommandPool   mPresentCP = {};  // Command-Pool for Present-commands
+    VkCommandBuffer mPresentCB = {};  // Command-Buffer for Present-commands
+
+    vk::Queue       mComputeQ  = {};  // Queue/Family for Compute
+    VkCommandPool   mComputeCP = {};  // Command-Pool for Compute-commands
+    VkCommandBuffer mComputeCB = {};  // Command-Buffer for Compute-commands
+
+    vk::Queue       mTransferQ  = {};  // Queue/Family for Transfer
+    VkCommandPool   mTransferCP = {};  // Command-Pool for Transfer-commands
+    VkCommandBuffer mTransferCB = {};  // Command-Buffer for Transfer-commands
 
     VkImageView    mDepthImageView         = VK_NULL_HANDLE;
     AllocatedImage mDepthImage             = {};
