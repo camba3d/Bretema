@@ -41,7 +41,11 @@ private:
     void initPipelines();
 
     void loadMeshes();
-    Mesh createMesh(btm::Vertices const &verts);
+
+    AllocatedBuffer createBuffer(u64 byteSize, VkBufferUsageFlags usage, VkMemoryPropertyFlags memProps);
+    AllocatedBuffer createBufferStaging(void const *data, u64 bytes, VkBufferUsageFlags usage);
+
+    MeshGroup createMesh(btm::MeshGroup const &meshes);
 
     inline VkExtent2D extent2D() { return VkExtent2D(mViewportSize.x, mViewportSize.y); }
     inline VkExtent3D extent3D() { return VkExtent3D(mViewportSize.x, mViewportSize.y, 1); }
@@ -49,14 +53,15 @@ private:
     inline u32        extent_h() { return static_cast<u32>(mViewportSize.y); }
     inline u32        extent_d() { return 1; }
 
-    btm::ds::DeletionQueue mDestroyer {};  // add deletion funcs after create an vk-object, using:
-                                           // mMainDelQueue.push_back([this]() {  });
+    btm::ds::DeletionQueue mDeletionQueue {};  // add deletion funcs after create an vk-object, using:
+                                               // mMainDelQueue.push_back([this]() {  });
+
+    VmaAllocator mAllocator = VK_NULL_HANDLE;  // Memory Allocator - AMD lib
 
     VkInstance               mInstance       = VK_NULL_HANDLE;  // Vulkan library handle
     VkDebugUtilsMessengerEXT mDebugMessenger = VK_NULL_HANDLE;  // Vulkan debug output handle
     VkPhysicalDevice         mChosenGPU      = VK_NULL_HANDLE;  // GPU chosen as the default device
     VkDevice                 mDevice         = VK_NULL_HANDLE;  // Vulkan device for commands
-    VmaAllocator             mAllocator      = VK_NULL_HANDLE;  // Memory Allocator - AMD lib
     VkSurfaceKHR             mSurface        = VK_NULL_HANDLE;  // Vulkan window surface (in a future could be an array)
 
     VkSwapchainKHR           mSwapchain            = VK_NULL_HANDLE;           // Vulkan swapchain

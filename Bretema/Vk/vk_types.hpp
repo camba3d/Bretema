@@ -6,6 +6,7 @@
 #include <vma/vk_mem_alloc.h>
 
 #include <vector>
+#include <array>
 
 namespace btm::vk
 {
@@ -48,10 +49,30 @@ struct VertexInputDescription
 
 struct Mesh
 {
-    u32             vertexCount = 0;
-    // AllocatedBuffer indices;
-    AllocatedBuffer vertices;
+    u32             indexCount = 0;
+    AllocatedBuffer indices    = {};
+    AllocatedBuffer vertices   = {};
+
+    inline void draw(VkCommandBuffer cmd) const
+    {
+        // ROOM TO IMPROVEMENT : https://developer.nvidia.com/vulkan-memory-management
+
+        /* @DANI
+         You should store multiple buffers, like the vertex and index buffer, into a single VkBuffer and use offsets in
+         commands like vkCmdBindVertexBuffers. The advantage is that your data is more cache friendly in that case, because
+         it's closer together. It is even possible to reuse the same chunk of memory for multiple resources if they are not
+         used during the same render operations, provided that their data is refreshed, of course. This is known as aliasing
+         and some Vulkan functions have explicit flags to specify that you want to do this.
+        */
+
+        VkBuffer const     v[]       = { vertices.buffer };
+        VkDeviceSize const offsets[] = { 0 };
+        vkCmdBindVertexBuffers(cmd, 0, 1, v, offsets);
+        vkCmdBindIndexBuffer(cmd, indices.buffer, 0, VK_INDEX_TYPE_UINT16);
+        vkCmdDrawIndexed(cmd, indexCount, 1, 0, 0, 0);
+    }
 };
+using MeshGroup = std::vector<Mesh>;
 
 struct Queue
 {
@@ -59,15 +80,13 @@ struct Queue
 
     Queue(vkb::Device vkbDevice, vkb::QueueType queueType)
     {
-        auto q = vkbDevice.get_queue(queueType);
-        auto f = vkbDevice.get_queue_index(queueType);
-
+        auto const q = vkbDevice.get_queue(queueType);
+        auto const f = vkbDevice.get_queue_index(queueType);
         if (valid = q.has_value() && f.has_value(); valid)
         {
             queue  = q.value();
             family = f.value();
         }
-
         BTM_ASSERT(valid);
     }
 
@@ -137,3 +156,16 @@ VkPipelineColorBlendAttachmentState const StraightColor = {
 }  // namespace Blend
 
 }  // namespace btm::vk
+
+template<>
+struct fmt::formatter<btm::vk::Queue>
+{
+    constexpr auto parse(format_parse_context &ctx) -> decltype(ctx.begin()) { return ctx.begin(); }
+
+    template<typename FormatContext>
+    auto format(btm::vk::Queue const &q, FormatContext &ctx) const -> decltype(ctx.out())
+    {
+        auto const s = q.valid ? fmt::to_string(q.family) : "x";
+        return fmt::format_to(ctx.out(), "{}", s);
+    }
+};

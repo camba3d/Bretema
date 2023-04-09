@@ -92,6 +92,7 @@ struct Area3D
 //= TYPES
 //===========================
 
+using MeshIndices = std::vector<u16>;
 struct Mesh
 {
     std::string name = "";
@@ -110,13 +111,15 @@ struct Mesh
         glm::vec4 color;
     };
 
-    std::vector<u16>      indices;
+    MeshIndices           indices;
     std::vector<Vertex>   vertices;
     std::vector<Instance> instances;
 };
-using Vertices  = std::vector<Mesh::Vertex>;
-using Instances = std::vector<Mesh::Instance>;
-using MeshGroup = std::vector<Mesh>;
+using Vertices      = std::vector<Mesh::Vertex>;
+using Instances     = std::vector<Mesh::Instance>;
+using MeshVertices  = Vertices;
+using MeshInstances = Instances;
+using MeshGroup     = std::vector<Mesh>;
 
 struct Material
 {

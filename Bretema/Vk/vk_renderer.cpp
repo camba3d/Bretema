@@ -10,6 +10,8 @@ constexpr i32 BTM_VK_MAJOR_VERSION = 1;
 constexpr i32 BTM_VK_MINOR_VERSION = 2;
 #define BTM_VK_VER BTM_VK_MAJOR_VERSION, BTM_VK_MINOR_VERSION
 
+#define TO_DESTROY(code__) mDeletionQueue.add([=, this]() { code__; })
+
 //-----------------------------------------------------------------------------
 
 Renderer::Renderer(sPtr<btm::Window> window) : btm::BaseRenderer(window)
@@ -103,7 +105,10 @@ void Renderer::draw()
     vkCmdPushConstants(cmd, mPipelineLayouts[1], VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(MeshPushConstants), &constants);
 
     // we can now draw the mesh
-    vkCmdDraw(cmd, mMeshes[0].vertexCount, 1, 0, 0);
+    for (auto const &mesh : mMeshes)
+    {
+        mesh.draw(cmd);
+    }
 
     //===========
 
@@ -156,7 +161,7 @@ void Renderer::cleanup()
 
     vkWaitForFences(mDevice, 1, &mRenderFence, true, sOneSec);  // make sure the GPU has stopped doing its things
 
-    mDestroyer.flush();
+    mDeletionQueue.flush();
 
     vmaDestroyAllocator(mAllocator);
     vkDestroyDevice(mDevice, nullptr);
@@ -171,7 +176,11 @@ void Renderer::initVulkan()
 {
     // vkb : Create a instance with some setup
     auto vkbInstanceBuilder = vkb::InstanceBuilder {};
-    auto vkbInstanceResult  = vkbInstanceBuilder.set_app_name("Bretema Default Engine")
+
+    for (auto &&ext : btm::Window::extensions())
+        vkbInstanceBuilder.enable_extension(ext);
+
+    auto vkbInstanceResult = vkbInstanceBuilder.set_app_name("Bretema Default Engine")
                                .request_validation_layers(true)
                                .require_api_version(BTM_VK_VER, 0)
                                .use_default_debug_messenger()
@@ -215,9 +224,10 @@ void Renderer::initVulkan()
 
     // Queues
     mGraphicsQ = { vkbDevice, vkb::QueueType::graphics };
-    mComputeQ  = { vkbDevice, vkb::QueueType::compute };
     mPresentQ  = { vkbDevice, vkb::QueueType::present };
+    mComputeQ  = { vkbDevice, vkb::QueueType::compute };
     mTransferQ = { vkbDevice, vkb::QueueType::transfer };
+    BTM_INFOF("G:{} | P:{} | C:{} | T:{}", mGraphicsQ, mPresentQ, mComputeQ, mTransferQ);
 }
 
 void Renderer::initSwapchain()
@@ -254,7 +264,7 @@ void Renderer::initSwapchain()
     mViewportSize         = { vkbSwapchain.extent.width, vkbSwapchain.extent.height };
 
     // Swapchain deletion-queue
-    mDestroyer.push_back([this]() { vkDestroySwapchainKHR(mDevice, mSwapchain, nullptr); });
+    mDeletionQueue.add([this]() { vkDestroySwapchainKHR(mDevice, mSwapchain, nullptr); });
 
     // === DEPTH BUFFER ===
 
@@ -268,19 +278,13 @@ void Renderer::initSwapchain()
 
     // allocate and create the image
     vmaCreateImage(mAllocator, &imgInfo, &imgAllocInfo, &mDepthImage.image, &mDepthImage.allocation, nullptr);
+    TO_DESTROY(vmaDestroyImage(mAllocator, mDepthImage.image, mDepthImage.allocation));
 
     // build an image-view for the depth image to use for rendering
     auto const viewInfo = vk::CreateInfo::ImageView(sDepthFormat, mDepthImage.image, VK_IMAGE_ASPECT_DEPTH_BIT);
 
     VK_CHECK(vkCreateImageView(mDevice, &viewInfo, nullptr, &mDepthImageView));
-
-    // add to deletion queues
-    mDestroyer.push_back(
-      [this]()
-      {
-          vkDestroyImageView(mDevice, mDepthImageView, nullptr);
-          vmaDestroyImage(mAllocator, mDepthImage.image, mDepthImage.allocation);
-      });
+    TO_DESTROY(vkDestroyImageView(mDevice, mDepthImageView, nullptr));
 }
 
 void Renderer::initCommands()
@@ -289,12 +293,11 @@ void Renderer::initCommands()
     auto const cmdPoolFlags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
     auto const cmdPoolCI    = vk::CreateInfo::CommandPool(mGraphicsQ.family, cmdPoolFlags);
     VK_CHECK(vkCreateCommandPool(mDevice, &cmdPoolCI, nullptr, &mCommandPool));
+    TO_DESTROY(vkDestroyCommandPool(mDevice, mCommandPool, nullptr));
 
     // Allocate the default command buffer that we will use for rendering
     auto const cmdAllocInfo = vk::AllocInfo::CommandBuffer(mCommandPool);
     VK_CHECK(vkAllocateCommandBuffers(mDevice, &cmdAllocInfo, &mMainCommandBuffer));
-
-    mDestroyer.push_back([this]() { vkDestroyCommandPool(mDevice, mCommandPool, nullptr); });
 }
 
 void Renderer::initDefaultRenderPass()
@@ -369,9 +372,7 @@ void Renderer::initDefaultRenderPass()
     renderpassCI.pDependencies          = deps.data();
 
     VK_CHECK(vkCreateRenderPass(mDevice, &renderpassCI, nullptr, &mDefaultRenderPass));
-
-    // == DEL QUEUE ==
-    mDestroyer.push_back([this]() { vkDestroyRenderPass(mDevice, mDefaultRenderPass, nullptr); });
+    TO_DESTROY(vkDestroyRenderPass(mDevice, mDefaultRenderPass, nullptr));
 }
 
 void Renderer::initFramebuffers()
@@ -399,39 +400,24 @@ void Renderer::initFramebuffers()
         framebufferCI.pAttachments    = atts.data();
 
         VK_CHECK(vkCreateFramebuffer(mDevice, &framebufferCI, nullptr, &mFramebuffers[i]));
-
-        // deletion-queue
-        mDestroyer.push_back(
-          [this, i]()
-          {
-              // Framebuffer
-              vkDestroyFramebuffer(mDevice, mFramebuffers[i], nullptr);
-              // SwapchainIamgeView
-              vkDestroyImageView(mDevice, mSwapchainImageViews[i], nullptr);
-          });
+        TO_DESTROY(vkDestroyFramebuffer(mDevice, mFramebuffers[i], nullptr));
+        TO_DESTROY(vkDestroyImageView(mDevice, mSwapchainImageViews[i], nullptr));
     }
 }
 
 void Renderer::initSyncStructures()
 {
-    auto const fenceCI = vk::CreateInfo::Fence();
-    VK_CHECK(vkCreateFence(mDevice, &fenceCI, nullptr, &mRenderFence));
-
+    auto const fenceCI     = vk::CreateInfo::Fence();
     auto const semaphoreCI = vk::CreateInfo::Semaphore();
+
+    VK_CHECK(vkCreateFence(mDevice, &fenceCI, nullptr, &mRenderFence));
+    TO_DESTROY(vkDestroyFence(mDevice, mRenderFence, nullptr));
+
     VK_CHECK(vkCreateSemaphore(mDevice, &semaphoreCI, nullptr, &mPresentSemaphore));
+    TO_DESTROY(vkDestroySemaphore(mDevice, mPresentSemaphore, nullptr));
+
     VK_CHECK(vkCreateSemaphore(mDevice, &semaphoreCI, nullptr, &mRenderSemaphore));
-
-    // deletion-queue
-    mDestroyer.push_back(
-      [this]()
-      {
-          // Fence(s)
-          vkDestroyFence(mDevice, mRenderFence, nullptr);
-
-          // Semaphore(s)
-          vkDestroySemaphore(mDevice, mPresentSemaphore, nullptr);
-          vkDestroySemaphore(mDevice, mRenderSemaphore, nullptr);
-      });
+    TO_DESTROY(vkDestroySemaphore(mDevice, mRenderSemaphore, nullptr));
 }
 
 #define BTM_CREATE_VS(name)                                                                \
@@ -459,22 +445,14 @@ void Renderer::initPipelines()
     auto const infoTri = vk::CreateInfo::PipelineLayout();
     VK_CHECK(vkCreatePipelineLayout(mDevice, &infoTri, nullptr, &mPipelineLayouts[0]));
 
-    auto infoMesh = vk::CreateInfo::PipelineLayout();
-
     VkPushConstantRange push_constant = { VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(MeshPushConstants) };
+    auto                infoMesh      = vk::CreateInfo::PipelineLayout();
     infoMesh.pPushConstantRanges      = &push_constant;
     infoMesh.pushConstantRangeCount   = 1;
 
     VK_CHECK(vkCreatePipelineLayout(mDevice, &infoMesh, nullptr, &mPipelineLayouts[1]));
 
-    // deletion-queue :: @note might this be deleted after pipelines ??
-    mDestroyer.push_back(
-      [this]()
-      {
-          for (auto layout : mPipelineLayouts)
-              if (layout != VK_NULL_HANDLE)
-                  vkDestroyPipelineLayout(mDevice, layout, nullptr);
-      });
+    TO_DESTROY(for (auto L : mPipelineLayouts) if (L) vkDestroyPipelineLayout(mDevice, L, nullptr));
 
     //=====
 
@@ -515,13 +493,7 @@ void Renderer::initPipelines()
 
     mPipelines.push_back(vk::Create::Pipeline(pb, mDevice, mDefaultRenderPass));
 
-    // deletion-queue
-    mDestroyer.push_back(
-      [this]()
-      {
-          for (auto pipeline : mPipelines)
-              vkDestroyPipeline(mDevice, pipeline, nullptr);
-      });
+    TO_DESTROY(for (auto P : mPipelines) if (P) vkDestroyPipeline(mDevice, P, nullptr));
 }
 
 //-----------------------------------------------------------------------------
@@ -544,48 +516,98 @@ void Renderer::loadMeshes()
 
     // mMeshes.push_back(createMesh(mesh.vertices));
 
-    auto const meshes = btm::parseGltf("./Assets/Geometry/suzanne.glb");
-    // mMeshes.push_back(createMesh(meshes.at(0).vertices));
+    // auto const meshes = btm::parseGltf("./Assets/Geometry/suzanne.glb");
+    auto const meshes = btm::parseGltf("./Assets/Geometry/suzanne_donut.glb");
 
-    // Unwrap indices (temporal) @dani
-    btm::Vertices verts;
-    for (auto const i : meshes[0].indices)
-    {
-        verts.push_back(meshes[0].vertices[i]);
-    }
-    mMeshes.push_back(createMesh(verts));
+    auto const mg = createMesh(meshes);
+    mMeshes.insert(mMeshes.end(), mg.begin(), mg.end());
 }
 
 //-----------------------------------------------------------------------------
 
-Mesh Renderer::createMesh(btm::Vertices const &verts)
+AllocatedBuffer Renderer::createBuffer(u64 bytes, VkBufferUsageFlags usage, VkMemoryPropertyFlags memProps)
 {
+    AllocatedBuffer b;
+
     VkBufferCreateInfo info = {};
     info.sType              = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-    info.size               = verts.size() * sizeof(btm::Mesh::Vertex);  // bytes
-    info.usage              = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
+    info.size               = bytes;
+    info.usage              = usage;
+    info.sharingMode        = VK_SHARING_MODE_EXCLUSIVE;  // only one queue at time
 
     VmaAllocationCreateInfo allocInfo = {};
-    allocInfo.usage                   = VMA_MEMORY_USAGE_CPU_TO_GPU;  //@deprecated
+    allocInfo.usage                   = VMA_MEMORY_USAGE_UNKNOWN;
+    allocInfo.requiredFlags           = memProps;
 
-    Mesh mesh;
-    mesh.vertexCount = verts.size();
+    VK_CHECK(vmaCreateBuffer(mAllocator, &info, &allocInfo, &b.buffer, &b.allocation, nullptr));
+    TO_DESTROY(vmaDestroyBuffer(mAllocator, b.buffer, b.allocation));
 
-    // Indices
-    //...@todo
+    return b;
+}
 
-    // Vertices
-    VK_CHECK(vmaCreateBuffer(mAllocator, &info, &allocInfo, &mesh.vertices.buffer, &mesh.vertices.allocation, nullptr));
+//-----------------------------------------------------------------------------
 
-    void *data;
-    vmaMapMemory(mAllocator, mesh.vertices.allocation, &data);
-    memcpy(data, verts.data(), verts.size() * sizeof(btm::Mesh::Vertex));
-    vmaUnmapMemory(mAllocator, mesh.vertices.allocation);
+AllocatedBuffer Renderer::createBufferStaging(void const *data, u64 bytes, VkBufferUsageFlags usage)
+{
+    AllocatedBuffer b;
 
-    // deletion-queue
-    mDestroyer.push_back([=, this]() { vmaDestroyBuffer(mAllocator, mesh.vertices.buffer, mesh.vertices.allocation); });
+    // Create host
+    auto const hostUsage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+    auto const hostProps = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+    auto       h         = createBuffer(bytes, hostUsage, hostProps);
 
-    return mesh;
+    // Create dev
+    auto const devUsage = VK_BUFFER_USAGE_TRANSFER_DST_BIT | usage;
+    auto const devProps = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
+    auto       d        = createBuffer(bytes, devUsage, devProps);
+
+    // Populate host
+    void *aux;
+    vmaMapMemory(mAllocator, h.allocation, &aux);
+    memcpy(aux, data, bytes);
+    vmaUnmapMemory(mAllocator, h.allocation);
+
+    // Populate dev from host
+    // copyBuffer(mDevice, h, d);  // todo :  implement
+
+    // Host is no longer needed
+    vmaDestroyBuffer(mAllocator, h.buffer, h.allocation);
+
+    return d;
+}
+
+//-----------------------------------------------------------------------------
+
+MeshGroup Renderer::createMesh(btm::MeshGroup const &meshes)
+{
+    MeshGroup mg;
+
+    for (auto const &mesh : meshes)
+    {
+        // not staging yet... (VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT vs VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)
+
+        auto const iCP = asCoolPtr(mesh.indices);
+        auto const bI  = createBuffer(iCP.bytes, VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT);
+        {
+            void *data;
+            vmaMapMemory(mAllocator, bI.allocation, &data);
+            memcpy(data, iCP.data, iCP.bytes);
+            vmaUnmapMemory(mAllocator, bI.allocation);
+        }
+
+        auto const vCP = asCoolPtr(mesh.vertices);
+        auto const bV  = createBuffer(vCP.bytes, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT);
+        {
+            void *data;
+            vmaMapMemory(mAllocator, bV.allocation, &data);
+            memcpy(data, vCP.data, vCP.bytes);
+            vmaUnmapMemory(mAllocator, bV.allocation);
+        }
+
+        mg.push_back({ iCP.count, bI, bV });
+    }
+
+    return mg;
 }
 
 //-----------------------------------------------------------------------------

@@ -152,7 +152,7 @@ auto const TrimStr = [](auto const &s, i32 nChars) -> std::string_view
     } while (0)
 
 // C++ Contiguous container to C raw data
-#define BTM_SIZEOF(type, v) (v.size() < 1 ? static_cast<type>(v.size()) : v.size() * sizeof(type))
+#define BTM_SIZEOF(type, v) static_cast<type>((v.empty() ? 0u : v.size() * sizeof(v[0])))
 #define BTM_SIZEOFu32(v)    BTM_SIZEOF(u32, v)
 #define BTM_SIZE(type, v)   static_cast<type>(v.size())
 #define BTM_SIZEu32(v)      BTM_SIZE(u32, v)
@@ -179,6 +179,20 @@ namespace btm
 
 // GLOBAL CONSTS
 i32 constexpr sMaxFloatPrint = 3;  // fmt:glm float precission
+
+// VOID PTR WITH DATA  // check if use std::any ??
+struct CoolPtr
+{
+    uint32_t    bytes = 0;
+    uint32_t    count = 0;
+    void const *data  = nullptr;
+};
+
+template<typename T>
+inline CoolPtr asCoolPtr(std::vector<T> const &v)
+{
+    return { BTM_SIZEOFu32(v), BTM_SIZEu32(v), BTM_DATA(void const *, v) };
+}
 
 // INPUT
 namespace Input

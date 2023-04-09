@@ -14,7 +14,7 @@ namespace btm::ds
 class DeletionQueue
 {
 public:
-    void push_back(std::function<void()> &&function) { deleteFuncs.push_back(function); }
+    void add(std::function<void()> &&function) { deleteFuncs.push_back(function); }
 
     void flush()
     {
@@ -28,11 +28,11 @@ private:
     std::vector<std::function<void()>> deleteFuncs;
 };
 
-template<typename T>
+template<typename T>  // pass len=-1 to use the vector size as len
 auto view(std::vector<T> const &src, size_t len, size_t offset = 0) -> std::span<T const>
 {
     size_t const fixedLen    = std::min(src.size(), len);
-    size_t const fixedOffset = offset > fixedLen ? 0 : offset;
+    size_t const fixedOffset = offset >= fixedLen ? 0 : offset;
     return { src.data() + fixedOffset, fixedLen };
 };
 

@@ -34,18 +34,20 @@ public:
 
     // PROPERTIES
     // --- Read Only
-    void                     *handle() const;
-    std::vector<char const *> extensions() const;
-    bool                      isMarkedToClose() const;
+    void              *handle() const;
+    bool               isMarkedToClose() const;
     // --- Write Only
-    void                      titleInfo(std::string info);
+    void               titleInfo(std::string info);
     // --- Read / Write
-    inline std::string        title() const { return mTitle; }
-    void                      title(std::string title);
-    glm::vec2                 size() const;
-    void                      size(i32 w, i32 h);
-    inline bool               focus() { return mFocus; }
-    inline void               focus(bool f) { mFocus = f; }
+    inline std::string title() const { return mTitle; }
+    void               title(std::string title);
+    glm::vec2          size() const;
+    void               size(i32 w, i32 h);
+    inline bool        focus() { return mFocus; }
+    inline void        focus(bool f) { mFocus = f; }
+
+    // --- Static
+    static inline std::vector<char const *> extensions() { return sExtensions; }
 
 private:
     // METHODS

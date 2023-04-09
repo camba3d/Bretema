@@ -125,11 +125,6 @@ void *Window::handle() const
     return mHandle;
 }
 
-std::vector<char const *> Window::extensions() const
-{
-    return sExtensions;
-}
-
 void Window::refreshTitle()
 {
     if (mHandle)
