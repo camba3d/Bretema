@@ -475,6 +475,7 @@ void Renderer::initPipelines()
     pb.depthStencil         = vk::CreateInfo::DepthStencil(true, true, VK_COMPARE_OP_LESS_OR_EQUAL);
 
     mPipelines.push_back(vk::Create::Pipeline(pb, mDevice, mDefaultRenderPass));
+    createMaterial(mPipelines.back(), mPipelineLayouts[0], "flat");
 
     // Pipeline 2
 
@@ -488,6 +489,7 @@ void Renderer::initPipelines()
     pb.pipelineLayout  = mPipelineLayouts[1];
 
     mPipelines.push_back(vk::Create::Pipeline(pb, mDevice, mDefaultRenderPass));
+    createMaterial(mPipelines.back(), mPipelineLayouts[1], "default");
 
     TO_DESTROY(for (auto P : mPipelines) if (P) vkDestroyPipeline(mDevice, P, nullptr));
 }
@@ -529,15 +531,28 @@ void Renderer::executeImmediately(VkCommandPool pool, VkQueue queue, const std::
 
 void Renderer::loadMeshes()  // todo : this have to come from user-land
 {
-    auto const meshes = btm::parseGltf("./Assets/Geometry/suzanne_donut.glb");
+#if 0
+    auto const addMesh = [this](auto const &name, auto const &path) { mMeshMap[name] = createMesh(btm::parseGltf(path)); };
 
-    auto const mg = createMesh(meshes);
-    mMeshes.insert(mMeshes.end(), mg.begin(), mg.end());
+    addMesh("monkey", "./Assets/Geometry/suzanne_donut.glb");
+    addMesh("cube", "./Assets/Geometry/cube2.glb");
+#else
+    auto const scenes = {
+        "./Assets/Geometry/suzanne_donut.glb",  //
+        // "./Assets/Geometry/cube2.glb",          //
+    };
+
+    for (auto const &path : scenes)
+    {
+        auto const mg = createMesh(btm::parseGltf(path));
+        mMeshes.insert(mMeshes.end(), mg.begin(), mg.end());
+    }
+#endif
 }
 
 //-----------------------------------------------------------------------------
 
-AllocatedBuffer Renderer::createBuffer(u64 bytes, VkBufferUsageFlags usage, VkMemoryPropertyFlags memProps)
+AllocatedBuffer Renderer::createBuffer(u64 bytes, VkBufferUsageFlags usage, VkMemoryPropertyFlags memProps, bool addToDelQueue)
 {
     AllocatedBuffer b;
 
@@ -552,7 +567,9 @@ AllocatedBuffer Renderer::createBuffer(u64 bytes, VkBufferUsageFlags usage, VkMe
     allocInfo.requiredFlags           = memProps;
 
     VK_CHECK(vmaCreateBuffer(mAllocator, &info, &allocInfo, &b.buffer, &b.allocation, nullptr));
-    TO_DESTROY(vmaDestroyBuffer(mAllocator, b.buffer, b.allocation));
+
+    if (addToDelQueue)
+        TO_DESTROY(vmaDestroyBuffer(mAllocator, b.buffer, b.allocation));
 
     return b;
 }
@@ -566,7 +583,7 @@ AllocatedBuffer Renderer::createBufferStaging(void const *data, u64 bytes, VkBuf
     // Create host
     auto const hostUsage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
     auto const hostProps = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
-    auto       hostBuff  = createBuffer(bytes, hostUsage, hostProps);
+    auto       hostBuff  = createBuffer(bytes, hostUsage, hostProps, false);
 
     // Create dev
     auto const devUsage = VK_BUFFER_USAGE_TRANSFER_DST_BIT | usage;
@@ -574,13 +591,12 @@ AllocatedBuffer Renderer::createBufferStaging(void const *data, u64 bytes, VkBuf
     auto       devBuff  = createBuffer(bytes, devUsage, devProps);
 
     // Populate host
-    void *aux;
-    vmaMapMemory(mAllocator, hostBuff.allocation, &aux);
-    memcpy(aux, data, bytes);
+    void *hostMap;
+    vmaMapMemory(mAllocator, hostBuff.allocation, &hostMap);
+    memcpy(hostMap, data, bytes);
     vmaUnmapMemory(mAllocator, hostBuff.allocation);
 
     // Populate dev from host
-    // copyBuffer(mDevice, h, d);  // todo :  implement
     executeImmediately(
       mTransferCP,
       mTransferQ.queue,
@@ -604,30 +620,23 @@ MeshGroup Renderer::createMesh(btm::MeshGroup const &meshes)
 
     for (auto const &mesh : meshes)
     {
-        // not staging yet... (VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT vs VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)
-
         auto const iCP = asCoolPtr(mesh.indices);
-        auto const bI  = createBuffer(iCP.bytes, VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT);
-        {
-            void *data;
-            vmaMapMemory(mAllocator, bI.allocation, &data);
-            memcpy(data, iCP.data, iCP.bytes);
-            vmaUnmapMemory(mAllocator, bI.allocation);
-        }
-
         auto const vCP = asCoolPtr(mesh.vertices);
-        auto const bV  = createBuffer(vCP.bytes, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT);
-        {
-            void *data;
-            vmaMapMemory(mAllocator, bV.allocation, &data);
-            memcpy(data, vCP.data, vCP.bytes);
-            vmaUnmapMemory(mAllocator, bV.allocation);
-        }
+
+        auto const bI = createBufferStaging(iCP.data, iCP.bytes, VK_BUFFER_USAGE_INDEX_BUFFER_BIT);
+        auto const bV = createBufferStaging(vCP.data, vCP.bytes, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT);
 
         mg.push_back({ iCP.count, bI, bV });
     }
 
     return mg;
+}
+
+//-----------------------------------------------------------------------------
+
+Material *Renderer::createMaterial(VkPipeline pipeline, VkPipelineLayout layout, std::string const &name)
+{
+    return &(mMatMap.insert({ name, Material { pipeline, layout } })).first->second;
 }
 
 //-----------------------------------------------------------------------------

@@ -45,16 +45,25 @@ private:
 
     void loadMeshes();
 
-    AllocatedBuffer createBuffer(u64 byteSize, VkBufferUsageFlags usage, VkMemoryPropertyFlags memProps);
+    AllocatedBuffer createBuffer(u64 byteSize, VkBufferUsageFlags usage, VkMemoryPropertyFlags memProps, bool addToDelQueue = true);
     AllocatedBuffer createBufferStaging(void const *data, u64 bytes, VkBufferUsageFlags usage);
 
     MeshGroup createMesh(btm::MeshGroup const &meshes);
+    Material *createMaterial(VkPipeline pipeline, VkPipelineLayout layout, std::string const &name);
+
+    inline Material  *getMaterial(const std::string &name) { return mMatMap.count(name) > 0 ? &mMatMap[name] : nullptr; }
+    inline MeshGroup *getMesh(const std::string &name) { return mMeshMap.count(name) > 0 ? &mMeshMap[name] : nullptr; }
 
     inline VkExtent2D extent2D() { return VkExtent2D(mViewportSize.x, mViewportSize.y); }
     inline VkExtent3D extent3D() { return VkExtent3D(mViewportSize.x, mViewportSize.y, 1); }
     inline u32        extent_w() { return static_cast<u32>(mViewportSize.x); }
     inline u32        extent_h() { return static_cast<u32>(mViewportSize.y); }
     inline u32        extent_d() { return 1; }
+
+    std::vector<RenderObject> mRenderables;
+
+    std::unordered_map<std::string, Material>  mMatMap;
+    std::unordered_map<std::string, MeshGroup> mMeshMap;
 
     btm::ds::DeletionQueue mDeletionQueue {};
 
