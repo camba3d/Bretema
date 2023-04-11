@@ -4,6 +4,7 @@
 
 #include "btm_base.hpp"
 #include "btm_renderer.hpp"
+#include "btm_camera.hpp"
 
 namespace btm
 {
@@ -58,6 +59,8 @@ private:
     RenderAPI          mRenderAPI  = RenderAPI::Vulkan;
     sPtr<btm::Window>  mMainWindow = nullptr;
     btm::BaseRenderer *mRenderer   = nullptr;
+
+    uset<Camera> mCameras = {};
 
     // STATIC VARS
     static auto constexpr sDefaultState = Input::State::Release;

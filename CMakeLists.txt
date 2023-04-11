@@ -166,6 +166,8 @@ list(APPEND EXTRA_HEADERS
     ${SRC}/btm_renderer.hpp
     ${SRC}/btm_tools.hpp
     ${SRC}/btm_window.hpp
+    ${SRC}/btm_transform.hpp
+    ${SRC}/btm_camera.hpp
 
     ${SRC}/Vk/vk_base.hpp
     ${SRC}/Vk/vk_renderer.hpp

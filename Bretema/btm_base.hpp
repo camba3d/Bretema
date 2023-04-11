@@ -178,20 +178,32 @@ namespace btm
 {
 
 // GLOBAL CONSTS
-i32 constexpr sMaxFloatPrint = 3;  // fmt:glm float precission
+inline glm::vec3 constexpr RIGHT = { 1, 0, 0 };
+inline glm::vec3 constexpr UP    = { 0, 1, 0 };
+inline glm::vec3 constexpr FRONT = { 0, 0, 1 };
+inline float constexpr INF       = std::numeric_limits<float>::infinity();
+inline glm::vec3 constexpr INF3  = { INF, INF, INF };
+
+inline i32 constexpr sMaxFloatPrint = 3;  // fmt:glm float precission
 
 // VOID PTR WITH DATA  // check if use std::any ??
 struct CoolPtr
 {
-    uint32_t    bytes = 0;
-    uint32_t    count = 0;
+    u32         bytes = 0;
+    u32         count = 0;
     void const *data  = nullptr;
 };
-
 template<typename T>
 inline CoolPtr asCoolPtr(std::vector<T> const &v)
 {
     return { BTM_SIZEOFu32(v), BTM_SIZEu32(v), BTM_DATA(void const *, v) };
+}
+
+// MATHS
+float clampRot(float angle)
+{
+    auto turns = floorf(angle / 360.f);
+    return angle - 360.f * turns;
 }
 
 // INPUT
@@ -366,7 +378,7 @@ namespace Color
 {
 glm::vec3 constexpr Red          = { 1.f, 0.f, 0.f };
 glm::vec3 constexpr Green        = { 0.f, 1.f, 0.f };
-glm::vec3 constexpr Blue         = { 1.f, 0.f, 0.f };
+glm::vec3 constexpr Blue         = { 0.f, 0.f, 1.f };
 glm::vec3 constexpr Magenta      = { 1.f, 0.f, 1.f };
 glm::vec3 constexpr Yellow       = { 1.f, 1.f, 0.f };
 glm::vec3 constexpr Cyan         = { 0.f, 1.f, 1.f };
@@ -374,33 +386,6 @@ glm::vec3 constexpr Lime         = { .5f, 1.f, 0.f };
 glm::vec3 constexpr Orange       = { 1.f, .3f, 0.f };
 glm::vec3 constexpr StrongYellow = { 1.f, .5f, 0.f };
 }  // namespace Color
-
-// UTILS
-// namespace Utils
-// {
-// inline std::vector<char> read(std::string const &filepath)
-// {
-//     // . Open file (and defer close) from the end or return empty
-//     auto file = std::ifstream { filepath, std::ios::ate | std::ios::binary };
-//     BTM_DEFER(file.close());
-
-//     if (!file.is_open())
-//     {
-//         BTM_ASSERT_X("Issues opening file: {}", filepath);
-//         return {};
-//     }
-
-//     // . Create a buffer with the size of the file
-//     size_t const      fileSize = (size_t)file.tellg();
-//     std::vector<char> buffer(fileSize);
-
-//     // . Move back to file begins, read and close
-//     file.seekg(0);
-//     file.read(buffer.data(), fileSize);
-
-//     return buffer;
-// }
-// }  // namespace Utils
 
 }  // namespace btm
 

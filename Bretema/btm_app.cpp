@@ -84,7 +84,11 @@ glm::vec2 App::cursor() const
 }
 void App::cursor(glm::vec2 cursor)
 {
+    glm::vec2 const displ = cursor - mCursor;
     mCursor = std::move(cursor);
+
+    for (auto & camera : mCameras)
+        camera.onInputUpdate(displ, mCursor, mMouse, mKeys);
 }
 
 Input::State App::key(Input::Key k) const
@@ -94,6 +98,9 @@ Input::State App::key(Input::Key k) const
 void App::key(Input::Key k, Input::State s)
 {
     mKeys[k] = s;
+
+    for (auto & camera : mCameras)
+        camera.onInputUpdate(displ, mCursor, mMouse, mKeys);
 }
 
 Input::State App::mouse(Input::Mouse m) const

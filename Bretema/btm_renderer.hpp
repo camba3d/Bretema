@@ -1,15 +1,5 @@
 #pragma once
 
-/* NOTE:
- *
- *  Include the <vk/dx/gl/mt/wg>-Renderer files before
- *  the BaseRenderer like :
- *
- *    #include "vk_renderer.hpp"
- *    #include "../btm_renderer.hpp"
- *
- */
-
 #include "btm_base.hpp"
 #include "btm_window.hpp"
 
@@ -21,14 +11,6 @@ namespace btm
 //===========================
 
 using UUID = std::string;
-
-//===========================
-//= CONTANTS
-//===========================
-
-glm::vec3 constexpr RIGHT = { 1, 0, 0 };
-glm::vec3 constexpr UP    = { 0, 1, 0 };
-glm::vec3 constexpr FRONT = { 0, 0, 1 };
 
 //===========================
 //= ENUMS

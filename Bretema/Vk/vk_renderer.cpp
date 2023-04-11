@@ -153,6 +153,7 @@ void Renderer::cleanup()
     mDeletionQueue.flush();
 
     vmaDestroyAllocator(mAllocator);
+
     vkDestroyDevice(mDevice, nullptr);
     vkDestroySurfaceKHR(mInstance, mSurface, nullptr);
     vkb::destroy_debug_utils_messenger(mInstance, mDebugMessenger);
@@ -523,7 +524,7 @@ void Renderer::executeImmediately(VkCommandPool pool, VkQueue queue, const std::
     vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE);
     vkQueueWaitIdle(queue);  // There is some room to improve using 'vkWaitForFences'-logic
 
-    // . Free
+    // Free
     vkFreeCommandBuffers(mDevice, pool, 1, &cb);
 }
 
