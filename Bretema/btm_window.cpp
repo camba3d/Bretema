@@ -7,9 +7,9 @@
 namespace btm
 {
 
-using IS = Input::State;
-using IK = Input::Key;
-using IM = Input::Mouse;
+using IS = UI::State;
+using IK = UI::Key;
+using IM = UI::Mouse;
 
 static void *sMainWindow = nullptr;
 
@@ -72,12 +72,12 @@ Window::Window(i32 w, i32 h, std::string const &title, App *app) : mW(w), mH(h),
     glfwSetWindowCloseCallback(mHandle, [](GLFWwindow *p) { if (p == sMainWindow) BTM_APP(p).markToClose(); });
     
     // User-Input Events
-    // -- Cursor
-    glfwSetCursorPosCallback(mHandle, [](GLFWwindow *p, double x, double y) { BTM_APP(p).cursor({x, y}); });
-    // -- Keyboard
-    glfwSetKeyCallback(mHandle, [](GLFWwindow *p, i32 k, i32, i32 s, i32) { BTM_APP(p).key((IK)k, (IS)s); });
     // -- Mouse
     glfwSetMouseButtonCallback(mHandle, [](GLFWwindow *p, i32 m, i32 s, i32) { BTM_APP(p).mouse((IM)m, (IS)s); });
+    glfwSetCursorPosCallback(mHandle, [](GLFWwindow *p, double x, double y) { BTM_APP(p).cursor({x, y}); });
+    glfwSetScrollCallback(mHandle, [](GLFWwindow *p, double x, double y) { BTM_APP(p).wheel({x, y}); });
+    // -- Keyboard
+    glfwSetKeyCallback(mHandle, [](GLFWwindow *p, i32 k, i32, i32 s, i32) { BTM_APP(p).key((IK)k, (IS)s); });
 
     // clang-format on
 

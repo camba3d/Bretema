@@ -32,26 +32,27 @@ public:
 
     // PROPERTIES
     // --- Read Only
-    std::string  name() const;
-    bool         isMarkedToClose() const;
-    glm::vec2    cursor() const;
-    Input::State key(Input::Key k) const;
-    Input::State mouse(Input::Mouse m) const;
+    std::string name() const;
+    bool        isMarkedToClose() const;
 
 private:
     // FRIENDS
     friend class Window;
 
-    // PROPERTIES : Read-Only private Write(s)
+    // PROPERTIES : Read-Only setters
     void cursor(glm::vec2 cursor);
-    void key(Input::Key k, Input::State s);
-    void mouse(Input::Mouse m, Input::State s);
+    void key(UI::Key k, UI::State s);
+    void mouse(UI::Mouse m, UI::State s);
+    void wheel(glm::vec2 wheel);
+
+    // METHODS
+    void onInputChange(glm::vec2 displ = ZERO2, glm::vec2 wheel = ZERO2);
 
     // PROPERTIES VARS
-    std::string                      mName   = "";
-    glm::vec2                        mCursor = { 0, 0 };
-    umap<Input::Key, Input::State>   mKeys   = {};
-    umap<Input::Mouse, Input::State> mMouse  = {};
+    std::string    mName   = "";
+    glm::vec2      mCursor = { 0, 0 };
+    UI::KeyState   mKeys   = {};
+    UI::MouseState mMouse  = {};
 
     // INSTANCE VARS
     bool               mInit       = false;
@@ -60,10 +61,7 @@ private:
     sPtr<btm::Window>  mMainWindow = nullptr;
     btm::BaseRenderer *mRenderer   = nullptr;
 
-    uset<Camera> mCameras = {};
-
-    // STATIC VARS
-    static auto constexpr sDefaultState = Input::State::Release;
+    std::vector<Camera> mCameras = { {} };
 };
 
 }  // namespace btm

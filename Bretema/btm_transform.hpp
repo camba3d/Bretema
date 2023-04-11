@@ -17,15 +17,14 @@ public:
         R = glm::rotate(R, glm::radians(safeRot().y), UP);
         R = glm::rotate(R, glm::radians(safeRot().x), RIGHT);
 
-        glm::mat4 S = glm::scale(glm::mat4 { 1.f }, mScl);
+        glm::mat4 S = glm::scale(glm::mat4 { 1.f }, mScl * -FRONT);
 
         return T * R * S;
     }
 
-    std::tuple<glm::vec3, glm::vec3, glm::vec3> Transform::getVectors() const
+    std::tuple<glm::vec3, glm::vec3, glm::vec3> getVectors() const
     {
         glm::vec3 F = normalize(matrix()[2]).xyz();
-        F.z *= -1.f;  // Just for OpenGL, disable for other APIs
         glm::vec3 R = normalize(cross(F, UP));
         glm::vec3 U = normalize(cross(F, R));
 

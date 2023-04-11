@@ -28,7 +28,7 @@ class Renderer : public btm::BaseRenderer
 public:
     Renderer(sPtr<btm::Window> window);
     virtual void update() override { BTM_WARN("NOT IMPLEMENTED"); }
-    virtual void draw() override;
+    virtual void draw(Camera const &cam) override;
     virtual void cleanup() override;
 
 private:

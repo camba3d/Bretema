@@ -38,7 +38,7 @@ Renderer::Renderer(sPtr<btm::Window> window) : btm::BaseRenderer(window)
     markAsInit();
 }
 
-void Renderer::draw()
+void Renderer::draw(Camera const &cam)
 {
     // Wait for GPU (1 second timeout)
     VK_CHECK(vkWaitForFences(mDevice, 1, &mRenderFence, true, sOneSec));
@@ -85,11 +85,9 @@ void Renderer::draw()
     vkCmdBindPipeline(mGraphicsCB, VK_PIPELINE_BIND_POINT_GRAPHICS, mPipelines[1]);
 
     // CAMERA as PushConstant
-    glm::vec3 camPos     = { 0.f, 0.f, -4.f };
-    glm::mat4 view       = glm::translate(glm::mat4(1.f), camPos);
-    glm::mat4 projection = glm::perspective(glm::radians(70.f), mViewportSize.x / mViewportSize.y, 0.1f, 200.0f);
-    glm::mat4 model      = glm::rotate(glm::mat4(1.f), glm::radians(mFrameNumber * 0.4f), glm::vec3(0, 1, 0));
-    projection[1][1] *= -1;  // ??
+    glm::mat4         view       = cam.V();  // glm::translate(glm::mat4(1.f), { 0.f, 0.f, -4.f });
+    glm::mat4         projection = cam.P();  // glm::perspective(glm::radians(70.f), mViewportSize.x / mViewportSize.y, 0.1f, 200.0f);
+    glm::mat4         model      = glm::mat4(1.f);  // glm::rotate(glm::mat4(1.f), glm::radians(mFrameNumber * 0.4f), glm::vec3(0, 1, 0));
     MeshPushConstants constants;
     constants.N   = glm::transpose(glm::inverse(model));
     constants.MVP = projection * view * model;

@@ -210,7 +210,7 @@ target_compile_definitions(${PROJECT_NAME}
     PRIVATE
         -DImTextureID=ImU64
 )
-
+ 
 # Compile Flags [ Windows ]
 if(MSVC)
     if (CMAKE_BUILD_TYPE EQUAL "RELEASE")
@@ -270,4 +270,4 @@ endfunction()
 
 # NEW_EXE( VkDemo Tests/VkDemo.cpp )
 NEW_EXE( main Tests/main.cpp )
-NEW_EXE( ImGuiDemo Tests/ImGuiDemo.cpp )
+# NEW_EXE( ImGuiDemo Tests/ImGuiDemo.cpp )

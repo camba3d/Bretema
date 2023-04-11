@@ -5,6 +5,7 @@ namespace btm
 
 // clang-format off
 #define RENDERER(call) do { BTM_ASSERT(mRenderer); (mRenderer)->call; } while (0);
+// clang-format on
 
 App::App(std::string name, RenderAPI renderAPI) : mName(std::move(name)), mRenderAPI(renderAPI)
 {
@@ -37,7 +38,11 @@ void App::run()
             bool const close = window->isMarkedToClose();
 
             // RENDERER(update());
-            RENDERER(draw());
+            for (auto &camera : mCameras)
+                camera.update(1.77777f, INF3);
+
+            auto const &mainCamera = mCameras.at(0);
+            RENDERER(draw(mainCamera));
 
             if (close)
                 window->destroy();  // WARNING : This should trigger something on 'SelectedRenderer' ??
@@ -78,38 +83,39 @@ bool App::isMarkedToClose() const
     return mClose;
 }
 
-glm::vec2 App::cursor() const
-{
-    return mCursor;
-}
 void App::cursor(glm::vec2 cursor)
 {
     glm::vec2 const displ = cursor - mCursor;
-    mCursor = std::move(cursor);
+    mCursor               = std::move(cursor);
 
-    for (auto & camera : mCameras)
-        camera.onInputUpdate(displ, mCursor, mMouse, mKeys);
+    onInputChange(displ, ZERO2);
 }
 
-Input::State App::key(Input::Key k) const
+void App::wheel(glm::vec2 wheel)
 {
-    return mKeys.count(k) > 0 ? mKeys.at(k) : sDefaultState;
+    onInputChange(ZERO2, std::move(wheel));
 }
-void App::key(Input::Key k, Input::State s)
+
+void App::mouse(UI::Mouse m, UI::State s)
+{
+    mMouse[m] = s;
+
+    onInputChange();
+}
+
+void App::key(UI::Key k, UI::State s)
 {
     mKeys[k] = s;
 
-    for (auto & camera : mCameras)
-        camera.onInputUpdate(displ, mCursor, mMouse, mKeys);
+    onInputChange();
 }
 
-Input::State App::mouse(Input::Mouse m) const
+void App::onInputChange(glm::vec2 displ, glm::vec2 wheel)
 {
-    return mMouse.count(m) > 0 ? mMouse.at(m) : sDefaultState;
-}
-void App::mouse(Input::Mouse m, Input::State s)
-{
-    mMouse[m] = s;
+    auto const &ui = UI::Info(std::move(displ), std::move(wheel), mCursor, &mMouse, &mKeys);
+
+    for (auto &camera : mCameras)
+        camera.onInputChange(ui);
 }
 
 }  // namespace btm

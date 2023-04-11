@@ -9,17 +9,13 @@ namespace btm
 class Camera
 {
 public:
-    void setZoom(float displ) { mOffset.z += displ; }
+    inline void setZoom(float displ) { mOffset.z += displ; }
 
-    void setSpeed(float displ) { mSpeed += displ; }
+    inline void setSpeed(float displ) { mSpeed += displ; }
 
-    void setFOV(float displ)
-    {
-        mFOV += glm::radians(displ);
-        mFOV = glm::clamp(mFOV, 4.0f, 120.0f);
-    }
+    inline void setFOV(float displ) { mFOV = glm::clamp((mFOV + displ * 0.5f), 4.f, 140.f); }
 
-    void update(float ar, bool isOrbital, glm::vec3 const &target = INF3)
+    void update(float ar, glm::vec3 const &target = INF3)
     {
         if (target != INF3)
             mPivot.pos() = target;
@@ -28,89 +24,87 @@ public:
         if (mPivot.rotZ() != 0.f)
             mPivot.rot().z = 0.f;
 
-        // Avoid camera flip at 90º
-        if (mPivot.rotX() >= 90.f and mPivot.rotX() < 180.f)
-            mPivot.rot().x = 89.9f;
+        // // Avoid camera flip at 90º
+        // if (mPivot.rotX() >= 90.f and mPivot.rotX() < 180.f)
+        //     mPivot.rot().x = 89.9f;
 
-        // Avoid camera flip at 270º
-        if (mPivot.rotX() >= 180.f and mPivot.rotX() < 270.f)
-            mPivot.rot().x = 270.f;
+        // // Avoid camera flip at 270º
+        // if (mPivot.rotX() >= 180.f and mPivot.rotX() < 270.f)
+        //     mPivot.rot().x = 270.f;
 
         auto const [F, R, U] = mPivot.getVectors();
+        auto const [B, L, D] = std::make_tuple(-F, -R, -U);
 
         // Movement
         //----------
-        if (isOrbital)
+        float const speed = realSpeed();
+
+        if (mIsOrbital)
         {
-            if (mMovement.F)
-                mOffset.z -= mSpeed;
-            if (mMovement.B)
-                mOffset.z += mSpeed;
-            if (mMovement.R)
-                mOffset.x += mSpeed;
-            if (mMovement.L)
-                mOffset.x -= mSpeed;
-            if (mMovement.U)
-                mOffset.y -= mSpeed;
-            if (mMovement.D)
-                mOffset.y += mSpeed;
+            mOffset.z -= speed * float(mMovement.F);
+            mOffset.z += speed * float(mMovement.B);
+            mOffset.x += speed * float(mMovement.R);
+            mOffset.x -= speed * float(mMovement.L);
+            mOffset.y += speed * float(mMovement.D);
+            mOffset.y -= speed * float(mMovement.U);
         }
-        else
-        {  // * FPS
-            if (mMovement.F)
-                mPivot.pos() += F * mSpeed;
-            if (mMovement.B)
-                mPivot.pos() += -F * mSpeed;
-            if (mMovement.R)
-                mPivot.pos() += R * mSpeed;
-            if (mMovement.L)
-                mPivot.pos() += -R * mSpeed;
-            if (mMovement.U)
-                mPivot.pos() += -U * mSpeed;
-            if (mMovement.D)
-                mPivot.pos() += U * mSpeed;
+        else  // Fly
+        {
+            mPivot.pos() += (F * speed) * float(mMovement.F);
+            mPivot.pos() += (B * speed) * float(mMovement.B);
+            mPivot.pos() += (R * speed) * float(mMovement.R);
+            mPivot.pos() += (L * speed) * float(mMovement.L);
+            mPivot.pos() += (U * speed) * float(mMovement.U);
+            mPivot.pos() += (D * speed) * float(mMovement.D);
         }
 
         // Matrices
         //----------
-        glm::vec3 const eye = mPivot.pos() + (mOffset.x * R) + (mOffset.y * U) - (mOffset.z * F);
-        mV                  = glm::lookAt(eye, eye + F, UP);
-        mP                  = glm::perspective(mFOV, ar, 0.1f, 100'000.f);
+        mEye = mPivot.pos() + (mOffset.x * R) + (mOffset.y * U) - (mOffset.z * F);
+
+        mV = glm::lookAt(mEye, mEye + F, UP);
+        mP = glm::perspective(-glm::radians(mFOV), ar, 0.1f, 100'000.f);
     }
 
-    void onInputUpdate(
-      glm::vec2 const                        &displ,
-      glm::vec2 const                        &currPos,
-      umap<Input::Mouse, Input::State> const &mouse,
-      umap<Input::Key, Input::State>          keys)
+    void onInputChange(UI::Info const &ui)
     {
-        // Camera movement
-        //   if (keys.at(Input::Key::Q) ==Input::State::Press) { movement.U = true; } // Up
-        //   if (!aIO.keyHold(KeyCode::Q)) { movement.U = false; }
+        mSpeedMod = ui.pressed(UI::Key::LeftShift) ? 2.f : 1.f;
 
-        //   if (aIO.keyHold(KeyCode::E)) { movement.D = true; } // Down
-        //   if (!aIO.keyHold(KeyCode::E)) { movement.D = false; }
-        //   if (aIO.keyHold(KeyCode::W)) { movement.F = true; } // Front
-        //   if (!aIO.keyHold(KeyCode::W)) { movement.F = false; }
-        //   if (aIO.keyHold(KeyCode::S)) { movement.B = true; } // Back
-        //   if (!aIO.keyHold(KeyCode::S)) { movement.B = false; }
-        //   if (aIO.keyHold(KeyCode::D)) { movement.R = true; } // Right
-        //   if (!aIO.keyHold(KeyCode::D)) { movement.R = false; }
-        //   if (aIO.keyHold(KeyCode::A)) { movement.L = true; } // Left
-        //   if (!aIO.keyHold(KeyCode::A)) { movement.L = false; }
-        //   if (aIO.keyHold(KeyCode::Num0)) { pivot.reset(); } // Reset
+        if (ui.pressed(UI::Key::O, true))
+            mIsOrbital = !mIsOrbital;
 
-        // Scroll for Fov / Shift + Scroll for Zoom
-        // (aIO.keyHold(KeyCode::LeftShift)) ? setZoom(aIO.scrollV() * 10.f) : setFOV(aIO.scrollV())
-        // (aIO.keyHold(KeyCode::LeftShift)) ? setZoom(aIO.scrollV()) : setFOV(aIO.scrollV());
+        float const speed = realSpeed();
 
-        // Cmd/Ctrl: to rotate camera
-        // pivot.modRot(glm::vec3{aIO.axisV(), aIO.axisH(), 0.f} * 0.25f);
+        // Reset
+        if (ui.pressed(UI::Key::Num0))
+            mPivot.reset();
+
+        // Movement
+        mMovement.U = ui.pressed(UI::Key::Q);
+        mMovement.D = ui.pressed(UI::Key::E);
+        mMovement.F = ui.pressed(UI::Key::W);
+        mMovement.B = ui.pressed(UI::Key::S);
+        mMovement.R = ui.pressed(UI::Key::D);
+        mMovement.L = ui.pressed(UI::Key::A);
+
+        // Zoom / Fov
+        float const wheelY = ui.wheel().y * speed;
+        if (ui.pressed(UI::Key::LeftAlt))
+            setFOV(wheelY);
+        else
+            setZoom(wheelY);
+
+        // Rotation
+        auto const displ = -ui.displ() * speed;
+        if (ui.pressed(UI::Mouse::Left))
+            mPivot.rot() += glm::vec3(displ.y, displ.x, 0.f);
+
+        BTM_INFOF("[CAMERA] -> e:{} | o:{} | f:{} | s:{}", mEye, mOffset, mFOV, speed);
     }
 
-    glm::mat4 V() const { return mV; }
-    glm::mat4 P() const { return mP; }
-    glm::mat4 VP() const { return mP * mV; }
+    inline glm::mat4 V() const { return mV; }
+    inline glm::mat4 P() const { return mP; }
+    inline glm::mat4 VP() const { return mP * mV; }
 
 private:
     struct
@@ -121,12 +115,17 @@ private:
     glm::mat4 mV { 1.f };
     glm::mat4 mP { 1.f };
 
-    float     mFOV { 0.4f };
-    glm::vec3 mOffset { 0.f, 0.f, 1.f };
+    float     mFOV    = 75.f;
+    glm::vec3 mEye    = ZERO3;
+    glm::vec3 mOffset = FRONT * 6.f;
 
     Transform mPivot = {};
 
-    float mSpeed = 1.f;
+    float        mSpeed    = 1.f;
+    float        mSpeedMod = 1.f;
+    inline float realSpeed() { return mSpeed * mSpeedMod; }
+
+    bool mIsOrbital = false;
 };
 
 }  // namespace btm

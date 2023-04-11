@@ -3,6 +3,8 @@
 #include "btm_base.hpp"
 #include "btm_window.hpp"
 
+#include "btm_camera.hpp"
+
 namespace btm
 {
 
@@ -124,9 +126,9 @@ public:
     inline bool isInitialized() { return mInit; }
 
     // ACTIONS
-    virtual void update()  = 0;
-    virtual void draw()    = 0;
-    virtual void cleanup() = 0;
+    virtual void update()                = 0;
+    virtual void draw(Camera const &cam) = 0;
+    virtual void cleanup()               = 0;
 
 protected:
     inline void markAsInit() { mInit = true; }

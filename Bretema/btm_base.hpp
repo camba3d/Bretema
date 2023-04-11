@@ -18,8 +18,11 @@
 #include <array>
 
 // Glm
+#define GLM_FORCE_LEFT_HANDED
 #define GLM_ENABLE_EXPERIMENTAL
 #define GLM_FORCE_SWIZZLE
+#define GLM_FORCE_RADIANS
+#define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #include <glm/glm.hpp>
 #include <glm/gtc/constants.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -181,17 +184,27 @@ namespace btm
 inline glm::vec3 constexpr RIGHT = { 1, 0, 0 };
 inline glm::vec3 constexpr UP    = { 0, 1, 0 };
 inline glm::vec3 constexpr FRONT = { 0, 0, 1 };
-inline float constexpr INF       = std::numeric_limits<float>::infinity();
-inline glm::vec3 constexpr INF3  = { INF, INF, INF };
 
-inline i32 constexpr sMaxFloatPrint = 3;  // fmt:glm float precission
+inline float constexpr INF      = std::numeric_limits<float>::infinity();
+inline glm::vec2 constexpr INF2 = { INF, INF };
+inline glm::vec3 constexpr INF3 = { INF, INF, INF };
+inline glm::vec4 constexpr INF4 = { INF, INF, INF, INF };
 
-// VOID PTR WITH DATA  // check if use std::any ??
+inline float constexpr ZERO      = 0.f;
+inline glm::vec2 constexpr ZERO2 = { 0.f, 0.f };
+inline glm::vec3 constexpr ZERO3 = { 0.f, 0.f, 0.f };
+inline glm::vec4 constexpr ZERO4 = { 0.f, 0.f, 0.f, 0.f };
+
+inline float PI      = 3.14159265359f;
+inline float TAU     = 2.f * PI;
+inline float HALF_PI = PI * 0.5f;
+
+// VOID PTR WITH DATA
 struct CoolPtr
 {
     u32         bytes = 0;
     u32         count = 0;
-    void const *data  = nullptr;
+    void const *data  = nullptr;  // @dani : const ??
 };
 template<typename T>
 inline CoolPtr asCoolPtr(std::vector<T> const &v)
@@ -200,14 +213,14 @@ inline CoolPtr asCoolPtr(std::vector<T> const &v)
 }
 
 // MATHS
-float clampRot(float angle)
+inline float clampRot(float angle)
 {
     auto turns = floorf(angle / 360.f);
     return angle - 360.f * turns;
 }
 
-// INPUT
-namespace Input
+// USER INPUT
+namespace UI
 {
 
 enum struct State
@@ -371,7 +384,52 @@ enum struct Key
     RightMeta  = RightSuper,
 };
 
-}  // namespace Input
+using MouseState = umap<Mouse, State>;
+using KeyState   = umap<Key, State>;
+
+class Info
+{
+public:
+    Info(glm::vec2 displ, glm::vec2 wheel, glm::vec2 cursor, MouseState *ms, KeyState *ks) :
+      mDispl(std::move(displ)),
+      mWheel(std::move(wheel)),
+      mCursor(std::move(cursor)),
+      mMouse(ms),
+      mKeys(ks)
+    {
+    }
+
+    inline glm::vec2 displ() const { return mDispl; }
+
+    inline glm::vec2 wheel() const { return mWheel; }
+
+    inline glm::vec2 cursor() const { return mCursor; }
+
+    inline bool pressed(Key k, bool ignoreHold = false) const
+    {
+        if (!mKeys)
+            return false;
+        auto const K = *mKeys;
+        return K.count(k) > 0 ? (K.at(k) == State::Press or (!ignoreHold and K.at(k) == State::Hold)) : false;
+    }
+
+    inline bool pressed(Mouse m, bool ignoreHold = false) const
+    {
+        if (!mMouse)
+            return false;
+        auto const M = *mMouse;
+        return M.count(m) > 0 ? (M.at(m) == State::Press or (!ignoreHold and M.at(m) == State::Hold)) : false;
+    }
+
+private:
+    glm::vec2   mDispl  = ZERO2;
+    glm::vec2   mWheel  = ZERO2;
+    glm::vec2   mCursor = ZERO2;
+    MouseState *mMouse  = nullptr;
+    KeyState   *mKeys   = nullptr;
+};
+
+}  // namespace UI
 
 // COLORS
 namespace Color
@@ -386,6 +444,8 @@ glm::vec3 constexpr Lime         = { .5f, 1.f, 0.f };
 glm::vec3 constexpr Orange       = { 1.f, .3f, 0.f };
 glm::vec3 constexpr StrongYellow = { 1.f, .5f, 0.f };
 }  // namespace Color
+
+inline i32 constexpr sMaxFloatPrint = 3;  // fmt:glm float precission
 
 }  // namespace btm
 
