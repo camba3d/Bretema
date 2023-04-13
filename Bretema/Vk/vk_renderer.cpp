@@ -87,7 +87,7 @@ void Renderer::draw(Camera const &cam)
     // CAMERA as PushConstant
     glm::mat4         view       = cam.V();  // glm::translate(glm::mat4(1.f), { 0.f, 0.f, -4.f });
     glm::mat4         projection = cam.P();  // glm::perspective(glm::radians(70.f), mViewportSize.x / mViewportSize.y, 0.1f, 200.0f);
-    glm::mat4         model      = glm::mat4(1.f);  // glm::rotate(glm::mat4(1.f), glm::radians(mFrameNumber * 0.4f), glm::vec3(0, 1, 0));
+    glm::mat4         model      = glm::rotate(glm::mat4(1.f), glm::radians(180.f), glm::vec3(0, 1, 0));
     MeshPushConstants constants;
     constants.N   = glm::transpose(glm::inverse(model));
     constants.MVP = projection * view * model;

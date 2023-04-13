@@ -88,32 +88,38 @@ void App::cursor(glm::vec2 cursor)
     glm::vec2 const displ = cursor - mCursor;
     mCursor               = std::move(cursor);
 
-    onInputChange(displ, ZERO2);
+    auto const &ui = genInputInfo(std::move(displ), ZERO2);
+
+    bool const validEvent = ui.pressed(UI::Mouse::Left) or ui.pressed(UI::Mouse::Right) or ui.pressed(UI::Mouse::Middle);
+
+    if (validEvent)
+        onInputChange(ui);
 }
 
 void App::wheel(glm::vec2 wheel)
 {
-    onInputChange(ZERO2, std::move(wheel));
+    onInputChange(genInputInfo(ZERO2, std::move(wheel)));
 }
 
 void App::mouse(UI::Mouse m, UI::State s)
 {
     mMouse[m] = s;
-
-    onInputChange();
+    onInputChange(genInputInfo());
 }
 
 void App::key(UI::Key k, UI::State s)
 {
     mKeys[k] = s;
-
-    onInputChange();
+    onInputChange(genInputInfo());
 }
 
-void App::onInputChange(glm::vec2 displ, glm::vec2 wheel)
+UI::Info App::genInputInfo(glm::vec2 displ, glm::vec2 wheel)
 {
-    auto const &ui = UI::Info(std::move(displ), std::move(wheel), mCursor, &mMouse, &mKeys);
+    return UI::Info(std::move(displ), std::move(wheel), mCursor, &mMouse, &mKeys);
+}
 
+void App::onInputChange(UI::Info const &ui)
+{
     for (auto &camera : mCameras)
         camera.onInputChange(ui);
 }

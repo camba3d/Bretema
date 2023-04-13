@@ -1,38 +1,41 @@
 import os
 import shutil
 import argparse
+import subprocess
 
 
-# TODO: UPDATE THIS TO USE 'subprocess' NOT 'os.system'... *facepalm*
+def subprocess_call(*args):
+    assert len(args) > 0
+
+    print(f"[[RUNNING]] : {' '.join(args)}")
+
+    res = subprocess.call(args)
+
+    if res != 0:
+        print(f"[ERR] {str(args[0])} execution failed : {res}")
+        exit(res)
+
 
 if __name__ == "__main__":
-
     # CLI
 
-    ap = argparse.ArgumentParser(description="Project Builder...")
-    ap.add_argument("--build", default=False,
-                    action=argparse.BooleanOptionalAction)
-    ap.add_argument("--clean", default=False,
-                    action=argparse.BooleanOptionalAction)
-    ap.add_argument("--tests", default=False,
-                    action=argparse.BooleanOptionalAction)
-    ap.add_argument("--debug", default=False,
-                    action=argparse.BooleanOptionalAction)
-    ap.add_argument("--release", default=False,
-                    action=argparse.BooleanOptionalAction)
+    ap = argparse.ArgumentParser(description="[bretema] - source compile helper")
+    ap.add_argument("-c", "--clean", default=False, action="store_true", help="perform a cleanup before anything")
+    ap.add_argument("-b", "--build", default=False, action="store_true", help="enables build")
+    ap.add_argument("-d", "--debug", default=False, action="store_true", help="compile as debug (default is release)")
+    ap.add_argument("-t", "--tests", default=False, action="store_true", help="also compile tests")
+    ap.add_argument("-v", default=False, action="store_true", help="enable cmake log-level : 'status'")
     args = ap.parse_args()
-
-    if args.release and args.debug:
-        exit("[ERR] => Select only one '--debug' or '--release'")
 
     # Parse arguments
 
     build_tests_str = "ON" if args.tests else "OFF"
-    build_type_str = "Release" if args.release == 1 else "Debug"
+    build_type_str = "Debug" if args.debug == 1 else "Release"
 
-    args_msg_tmpl = "[args] => clean:{}, build:{}, tests:{}, type:{}"
-    args_msg = args_msg_tmpl.format(
-        args.clean, args.build, build_tests_str, build_type_str)
+    log_level_str = "STATUS" if args.v else "WARNING"
+
+    args_msg_tmpl = "[args] => clean:{}, build:{}, tests:{}, debug:{}, verbose:{}"
+    args_msg = args_msg_tmpl.format(args.clean, args.build, args.tests, args.debug, log_level_str)
     print(args_msg)
 
     # Create build folder
@@ -46,11 +49,9 @@ if __name__ == "__main__":
     # Clean (remove files from ./build/)
 
     if args.clean:
-
         print("\n[cleaning] => {}".format(path))
 
         for root, dirs, files in os.walk(path):
-
             print("  [cleaning] => FILES")
             for f in files:
                 file = os.path.join(root, f)
@@ -66,16 +67,18 @@ if __name__ == "__main__":
     # Build (cmake)
 
     if args.build:
-
         os.chdir(path)
 
-        cmake_cmd_tmpl = 'cmake --log-level=WARNING -DCMAKE_BUILD_TYPE={} .. -G "Ninja" -DOPT_TESTS={}'
-        cmake_cmd = cmake_cmd_tmpl.format(build_type_str, build_tests_str)
+        subprocess_call(
+            "cmake",
+            f"--log-level={log_level_str}",
+            f"-DCMAKE_BUILD_TYPE={build_type_str}",
+            f"-DOPT_TESTS={build_tests_str}",
+            "-G",
+            "Ninja",
+            "..",
+        )
 
-        print("\n[cmake] => {}".format(cmake_cmd))
-        os.system(cmake_cmd)
+        subprocess_call("ninja")
 
-        print("\n[ninja] => {}".format(path))
-        os.system("ninja")
-
-        print("\n")
+        print(f"\n{'*'*60}\n")

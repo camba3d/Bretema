@@ -195,9 +195,18 @@ inline glm::vec2 constexpr ZERO2 = { 0.f, 0.f };
 inline glm::vec3 constexpr ZERO3 = { 0.f, 0.f, 0.f };
 inline glm::vec4 constexpr ZERO4 = { 0.f, 0.f, 0.f, 0.f };
 
+inline float constexpr ONE      = 1.f;
+inline glm::vec2 constexpr ONE2 = { 1.f, 1.f };
+inline glm::vec3 constexpr ONE3 = { 1.f, 1.f, 1.f };
+inline glm::vec4 constexpr ONE4 = { 1.f, 1.f, 1.f, 1.f };
+
 inline float PI      = 3.14159265359f;
 inline float TAU     = 2.f * PI;
 inline float HALF_PI = PI * 0.5f;
+
+inline glm::vec3 FLIP_X { -1, 1, 1 };
+inline glm::vec3 FLIP_Y { 1, -1, 1 };
+inline glm::vec3 FLIP_z { 1, 1, -1 };
 
 // VOID PTR WITH DATA
 struct CoolPtr

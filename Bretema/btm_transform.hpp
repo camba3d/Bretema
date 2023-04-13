@@ -5,6 +5,28 @@
 namespace btm
 {
 
+struct Directions
+{
+    Directions(glm::vec3 const &front)
+    {
+        F = glm::normalize(front);
+        R = glm::normalize(glm::cross(F, UP));
+        U = glm::normalize(glm::cross(F, R));
+        B = -F;
+        L = -R;
+        D = -U;
+    }
+
+    Directions(glm::mat4 const &m) : Directions(m[2].xyz()) {}
+
+    glm::vec3 F = {};
+    glm::vec3 R = {};
+    glm::vec3 U = {};
+    glm::vec3 B = {};
+    glm::vec3 L = {};
+    glm::vec3 D = {};
+};
+
 class Transform
 {
 public:
@@ -17,18 +39,20 @@ public:
         R = glm::rotate(R, glm::radians(safeRot().y), UP);
         R = glm::rotate(R, glm::radians(safeRot().x), RIGHT);
 
-        glm::mat4 S = glm::scale(glm::mat4 { 1.f }, mScl * -FRONT);
+        glm::mat4 S = glm::scale(glm::mat4 { 1.f }, mScl);
 
         return T * R * S;
     }
 
-    std::tuple<glm::vec3, glm::vec3, glm::vec3> getVectors() const
-    {
-        glm::vec3 F = normalize(matrix()[2]).xyz();
-        glm::vec3 R = normalize(cross(F, UP));
-        glm::vec3 U = normalize(cross(F, R));
+    Directions directions() const { return Directions(matrix()); }
 
-        return { F, R, U };
+    void setFront(glm::vec3 const &front)
+    {
+        auto const dir = directions();
+        auto const A   = glm::normalize(dir.F);
+        auto const B   = glm::normalize(front);
+        mRot           = glm::degrees(glm::eulerAngles(glm::rotation(A, B)));
+        BTM_INFOF("rot... {} | {} | {}", A, B, mRot);
     }
 
     void reset() { *this = {}; }

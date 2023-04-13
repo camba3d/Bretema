@@ -46,7 +46,8 @@ private:
     void wheel(glm::vec2 wheel);
 
     // METHODS
-    void onInputChange(glm::vec2 displ = ZERO2, glm::vec2 wheel = ZERO2);
+    UI::Info genInputInfo(glm::vec2 displ = ZERO2, glm::vec2 wheel = ZERO2);
+    void     onInputChange(UI::Info const &ui);
 
     // PROPERTIES VARS
     std::string    mName   = "";
