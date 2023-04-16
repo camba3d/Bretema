@@ -19,17 +19,14 @@ public:
     {
         if (target != INF3)
             mPivot.pos() = target;
-
         // Avoid any ROLL
-        if (mPivot.rotZ() != 0.f)
+        if (mPivot.rot().z != 0.f)
             mPivot.rot().z = 0.f;
-
         // Avoid camera flip at 90º
-        if (mPivot.rotX() >= 90.f and mPivot.rotX() < 180.f)
+        if (mPivot.rot().x >= 90.f and mPivot.rot().x < 180.f)
             mPivot.rot().x = 90.f - 0.2f;
-
         // Avoid camera flip at 270º
-        if (mPivot.rotX() >= 180.f and mPivot.rotX() < 270.f)
+        if (mPivot.rot().x >= 180.f and mPivot.rot().x < 270.f)
             mPivot.rot().x = 270.f + 0.2f;
 
         auto const dir = mPivot.directions();
@@ -152,6 +149,10 @@ private:
     inline float realSpeed() { return mSpeed * mSpeedMod; }
 
     bool mIsOrbital = false;
+
+    ////////
+    // implment rotation pivot on transform ??
+    ////////
 };
 
 }  // namespace btm

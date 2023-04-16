@@ -58,33 +58,27 @@ public:
     void reset() { *this = {}; }
 
     // TRANSLATION
-    inline float posX() { return mPos.x; }
-    inline float posY() { return mPos.y; }
-    inline float posZ() { return mPos.z; }
-
     inline glm::vec3  pos() const { return mPos; }
     inline glm::vec3 &pos() { return mPos; }
 
     // SCALE
-    inline float sclX() { return mScl.x; }
-    inline float sclY() { return mScl.y; }
-    inline float sclZ() { return mScl.z; }
-
     inline glm::vec3  scl() const { return mScl; }
     inline glm::vec3 &scl() { return mScl; }
 
     // ROTATION
-    inline float rotX() const { return safeRot().x; }
-    inline float rotY() const { return safeRot().y; }
-    inline float rotZ() const { return safeRot().z; }
-
     inline glm::vec3  rot() const { return safeRot(); }
     inline glm::vec3 &rot() { return safeRot(); }
+
+    // // PIVOT
+    // inline glm::vec3  pivot() const { return mPivot; }
+    // inline glm::vec3 &pivot() { return mPivot; }
 
 private:
     glm::vec3         mPos { 0.f };
     mutable glm::vec3 mRot { 0.f };
     glm::vec3         mScl { 1.f };
+
+    // glm::vec3 mPivot = INF3;
 
     glm::vec3 &safeRot() const
     {
