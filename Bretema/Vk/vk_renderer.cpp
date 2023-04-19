@@ -85,9 +85,15 @@ void Renderer::draw(Camera const &cam)
     vkCmdBindPipeline(mGraphicsCB, VK_PIPELINE_BIND_POINT_GRAPHICS, mPipelines[1]);
 
     // CAMERA as PushConstant
-    glm::mat4         view       = cam.V();  // glm::translate(glm::mat4(1.f), { 0.f, 0.f, -4.f });
-    glm::mat4         projection = cam.P();  // glm::perspective(glm::radians(70.f), mViewportSize.x / mViewportSize.y, 0.1f, 200.0f);
-    glm::mat4         model      = glm::rotate(glm::mat4(1.f), glm::radians(180.f), glm::vec3(0, 1, 0));
+    glm::mat4 view       = cam.V();  // glm::translate(glm::mat4(1.f), { 0.f, 0.f, -4.f });
+    glm::mat4 projection = cam.P();  // glm::perspective(glm::radians(70.f), mViewportSize.x / mViewportSize.y, 0.1f, 200.0f);
+    glm::mat4 model      = []
+    {
+        Transform t;
+        t.setFront({ 0, 0.25, 1 });
+        t.rot().y += 180.f;
+        return t.matrix();
+    }();
     MeshPushConstants constants;
     constants.N   = glm::transpose(glm::inverse(model));
     constants.MVP = projection * view * model;
@@ -309,7 +315,7 @@ void Renderer::initDefaultRenderPass()
     color0.initialLayout            = VK_IMAGE_LAYOUT_UNDEFINED;         // Let it as undefined on init
     color0.finalLayout              = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;   // Ready to display on renderpass end
     VkAttachmentReference refColor0 = {};
-    refColor0.attachment            = 0;  // Attachment idx in the renderpass
+    refColor0.attachment            = 0;                                 // Attachment idx in the renderpass
     refColor0.layout                = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
     // att1 : Depth (@notsure: could not be also on 0????)
     VkAttachmentDescription depth0  = {};

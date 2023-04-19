@@ -227,6 +227,33 @@ inline float clampRot(float angle)
     auto turns = floorf(angle / 360.f);
     return angle - 360.f * turns;
 }
+inline bool fuzzyCmp(float f1, float f2, float threshold = 0.01f)
+{
+    auto const diff = abs(f1 - f2);
+    auto const isEq = diff <= threshold;
+    return isEq;
+}
+inline bool fuzzyCmp(glm::vec2 const &v1, glm::vec2 const &v2, float t = 0.01f)
+{
+    return fuzzyCmp(v1.x, v2.x, t) && fuzzyCmp(v1.y, v2.y, t);
+}
+inline bool fuzzyCmp(glm::vec3 const &v1, glm::vec3 const &v2, float t = 0.01f)
+{
+    return fuzzyCmp(v1.x, v2.x, t) && fuzzyCmp(v1.y, v2.y, t) && fuzzyCmp(v1.z, v2.z, t);
+}
+inline bool fuzzyCmp(glm::vec4 const &v1, glm::vec4 const &v2, float t = 0.01f)
+{
+    return fuzzyCmp(v1.x, v2.x, t) && fuzzyCmp(v1.y, v2.y, t) && fuzzyCmp(v1.z, v2.z, t) && fuzzyCmp(v1.w, v2.w, t);
+}
+template<typename T>
+inline bool isAligned(T const &a, T const &b, float margin = 0.f)
+{
+    return abs(glm::dot(glm::normalize(a), glm::normalize(b))) >= (1.f - 0.0001f - margin);
+}
+inline float map(float v, float c, float C, float o, float O)
+{
+    return o + (O - o) * (v - c) / (C - c);
+}
 
 // USER INPUT
 namespace UI

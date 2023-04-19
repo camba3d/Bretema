@@ -19,6 +19,17 @@ struct Directions
 
     Directions(glm::mat4 const &m) : Directions(m[2].xyz()) {}
 
+    Directions operator*(float factor)
+    {
+        F *= factor;
+        R *= factor;
+        U *= factor;
+        B *= factor;
+        L *= factor;
+        D *= factor;
+        return *this;
+    }
+
     glm::vec3 F = {};
     glm::vec3 R = {};
     glm::vec3 U = {};
@@ -44,6 +55,20 @@ public:
         return T * R * S;
     }
 
+    glm::mat4 matrixRotFirst() const
+    {
+        glm::mat4 T = glm::translate(glm::mat4 { 1.f }, mPos);
+
+        glm::mat4 R { 1.f };
+        R = glm::rotate(R, glm::radians(safeRot().z), FRONT);
+        R = glm::rotate(R, glm::radians(safeRot().y), UP);
+        R = glm::rotate(R, glm::radians(safeRot().x), RIGHT);
+
+        glm::mat4 S = glm::scale(glm::mat4 { 1.f }, mScl);
+
+        return R * T * S;
+    }
+
     Directions directions() const { return Directions(matrix()); }
 
     void setFront(glm::vec3 const &front)
@@ -52,7 +77,6 @@ public:
         auto const A   = glm::normalize(dir.F);
         auto const B   = glm::normalize(front);
         mRot           = glm::degrees(glm::eulerAngles(glm::rotation(A, B)));
-        BTM_INFOF("rot... {} | {} | {}", A, B, mRot);
     }
 
     void reset() { *this = {}; }
@@ -69,16 +93,10 @@ public:
     inline glm::vec3  rot() const { return safeRot(); }
     inline glm::vec3 &rot() { return safeRot(); }
 
-    // // PIVOT
-    // inline glm::vec3  pivot() const { return mPivot; }
-    // inline glm::vec3 &pivot() { return mPivot; }
-
 private:
     glm::vec3         mPos { 0.f };
     mutable glm::vec3 mRot { 0.f };
     glm::vec3         mScl { 1.f };
-
-    // glm::vec3 mPivot = INF3;
 
     glm::vec3 &safeRot() const
     {

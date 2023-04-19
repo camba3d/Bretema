@@ -9,57 +9,24 @@ namespace btm
 class Camera
 {
 public:
-    inline void setZoom(float displ) { mOffset.z += displ; }
-
-    inline void setSpeed(float displ) { mSpeed += displ; }
-
-    inline void setFOV(float displ) { mFOV = glm::clamp((mFOV + displ * 0.5f), 4.f, 140.f); }
+    inline void speed(float displ) { mSpeed += displ; }
+    inline void fov(float displ) { mFOV = glm::clamp((mFOV + displ * 0.5f), 4.f, 140.f); }
 
     void update(float ar, glm::vec3 const &target = INF3)
     {
         if (target != INF3)
-            mPivot.pos() = target;
-        // Avoid any ROLL
-        if (mPivot.rot().z != 0.f)
-            mPivot.rot().z = 0.f;
-        // Avoid camera flip at 90º
-        if (mPivot.rot().x >= 90.f and mPivot.rot().x < 180.f)
-            mPivot.rot().x = 90.f - 0.2f;
-        // Avoid camera flip at 270º
-        if (mPivot.rot().x >= 180.f and mPivot.rot().x < 270.f)
-            mPivot.rot().x = 270.f + 0.2f;
+            move(mLookAt - target);
 
-        auto const dir = mPivot.directions();
+        mV = glm::lookAt(mEye, (mUseOrb ? mLookAt : mEye + front()), UP);
 
-        // Movement
-        //----------
-        float const speed = realSpeed();
-
-        if (mIsOrbital)
+        if (mUseOrtho)
         {
-            mOffset.z += speed * float(mMovement.F);
-            mOffset.z -= speed * float(mMovement.B);
-            mOffset.x -= speed * float(mMovement.R);
-            mOffset.x += speed * float(mMovement.L);
-            mOffset.y += speed * float(mMovement.U);
-            mOffset.y -= speed * float(mMovement.D);
+            float const w = 10.f;
+            float const h = 10.f;
+            mP            = glm::ortho(w, -w, h, -h);
         }
-        else  // Fly
-        {
-            mPivot.pos() += (dir.F * speed) * float(mMovement.F);
-            mPivot.pos() += (dir.B * speed) * float(mMovement.B);
-            mPivot.pos() += (dir.R * speed) * float(mMovement.R);
-            mPivot.pos() += (dir.L * speed) * float(mMovement.L);
-            mPivot.pos() += (dir.D * speed) * float(mMovement.U);
-            mPivot.pos() += (dir.U * speed) * float(mMovement.D);
-        }
-
-        // Matrices
-        //----------
-        mEye = mPivot.pos() + (mOffset.x * dir.R) + (mOffset.y * dir.U) + (mOffset.z * dir.F);
-
-        mV = glm::lookAt(mEye, mEye + dir.F, UP);
-        mP = glm::perspective(-glm::radians(mFOV), ar, 0.1f, 100'000.f);
+        else
+            mP = glm::perspective(-glm::radians(mFOV), ar, 0.1f, 100'000.f);
     }
 
     void onInputChange(UI::Info const &ui)
@@ -68,56 +35,50 @@ public:
 
         if (ui.pressed(UI::Key::O, true))
         {
-            if (mIsOrbital)  // Orb to Fly
-            {
-                mPivot.pos() = mEye;
-                mOffset      = ZERO3;
-            }
-            else  // Fly to Orb
-            {
-                mOffset      = mEye;
-                mPivot.pos() = ZERO3;
-
-                // mPivot.setFront(-mOffset);
-            }
-            mIsOrbital = !mIsOrbital;
+            if (!mUseOrb)
+                mLookAt = ZERO3;
+            mUseOrb = !mUseOrb;
         }
 
-        float const speed = realSpeed();
+        if (ui.pressed(UI::Key::Comma, true))
+            mUseOrtho = !mUseOrtho;
 
         // Reset
         if (ui.pressed(UI::Key::Num0))
-            mPivot.reset();
+        {
+            *this = {};
+        }
 
         // Movement
-        mMovement.U = ui.pressed(UI::Key::Q);
-        mMovement.D = ui.pressed(UI::Key::E);
-        mMovement.F = ui.pressed(UI::Key::W);
-        mMovement.B = ui.pressed(UI::Key::S);
-        mMovement.R = ui.pressed(UI::Key::D);
-        mMovement.L = ui.pressed(UI::Key::A);
+        // clang-format off
+        auto const dir = Directions(front()) * speed();
+        if (ui.pressed(UI::Key::Q)) { move(dir.U); }
+        if (ui.pressed(UI::Key::E)) { move(dir.D); }
+        if (ui.pressed(UI::Key::W)) { move(dir.F, dir.F * float(!mUseOrb)); }
+        if (ui.pressed(UI::Key::S)) { move(dir.B, dir.B * float(!mUseOrb)); }
+        if (ui.pressed(UI::Key::D)) { move(dir.R); }
+        if (ui.pressed(UI::Key::A)) { move(dir.L); }
+        // clang-format on
 
         // Zoom / Fov
-        float const wheelY = ui.wheel().y * speed;
-        if (ui.pressed(UI::Key::LeftAlt))
-            setFOV(wheelY);
-        else
-            setZoom(wheelY);
+        auto const fovMod  = ui.wheel().y * speed();
+        auto const zoomMod = front() * fovMod;
+        ui.pressed(UI::Key::LeftAlt) ? fov(fovMod) : move(zoomMod, (mUseOrb ? ZERO3 : zoomMod));
 
         // Rotation
-        auto const displ = ui.displ() * speed * 0.1f;
+        auto const rotMod = ui.displ() * speed() * 0.01f;
         if (ui.pressed(UI::Mouse::Left))
-            mPivot.rot() += glm::vec3(displ.y, -displ.x, 0.f);
+            rotate({ rotMod.y, -rotMod.x, 0.f });
 
         BTM_INFOF(
-          "[CAMERA] -> e:{} | r:{} | p:{} | o:{} | f:{} | s:{} | orb:{}",
+          "[CAMERA] -> E : {} | L : {} | F : {} | S : {} | Orb : {} | World : {} | Orth : {}",
           mEye,
-          mPivot.rot(),
-          mPivot.pos(),
-          mOffset,
+          mLookAt,
           mFOV,
-          speed,
-          mIsOrbital);
+          mSpeed,
+          mUseOrb,
+          mUseWorldAxes,
+          mUseOrtho);
     }
 
     inline glm::mat4 V() const { return mV; }
@@ -125,34 +86,63 @@ public:
     inline glm::mat4 VP() const { return mP * mV; }
 
 private:
+    glm::vec3 front() { return mLookAt - mEye; }
+
+    void move(glm::vec3 const &displ) { move(displ, displ); }
+
+    void move(glm::vec3 const &displEye, glm::vec3 const &displLookAt)
+    {
+        auto const auxE = mEye + displEye;
+        auto const auxL = mLookAt + displLookAt;
+
+        if (!mUseOrb || (mUseOrb && !fuzzyCmp(auxE, auxL, 0.5f)))
+            mEye = auxE;
+
+        if (!isAligned(auxL - mEye, UP))
+            mLookAt = auxL;
+    }
+
+    void rotate(glm::vec3 rotInc)
+    {
+        BTM_INFOF("to rot => {}", rotInc);
+        auto const dir = Directions(front());
+
+        glm::mat4 mx {}, my {};
+        glm::rotate(mx, rotInc.y, UP);
+        glm::rotate(my, rotInc.x, dir.R);
+
+        auto &satellite = !mUseOrb ? mLookAt : mEye;
+        auto &base      = !mUseOrb ? mEye : mLookAt;
+
+        satellite = (mx * glm::vec4((satellite - base), 1.f)).xyz() + base;
+        satellite = (my * glm::vec4((satellite - base), 1.f)).xyz() + base;
+
+        // if (!isAligned({ next - base }, UP, 0.01f))
+        // satellite = next;
+    }
+
+    // To Serialize
+    glm::vec3 mEye    = FRONT * 6.f;
+    glm::vec3 mLookAt = ZERO3;
+    float     mFOV    = 75.f;
+    float     mSpeed  = 1.f;
+
+    // Dynamic
     struct
     {
         bool U, D, F, B, R, L;
+        bool isOn() { return U || D || F || B || R || L; }
     } mMovement;
 
     glm::mat4 mV { 1.f };
     glm::mat4 mP { 1.f };
 
-    float     mFOV    = 75.f;
-    glm::vec3 mEye    = ZERO3;
-    glm::vec3 mOffset = ZERO3;
-
-    Transform mPivot = []()
-    {
-        Transform t;
-        t.pos().z = -6;
-        return t;
-    }();
-
-    float        mSpeed    = 1.f;
     float        mSpeedMod = 1.f;
-    inline float realSpeed() { return mSpeed * mSpeedMod; }
+    inline float speed() { return mSpeed * mSpeedMod; }
 
-    bool mIsOrbital = false;
-
-    ////////
-    // implment rotation pivot on transform ??
-    ////////
+    bool mUseOrb       = false;
+    bool mUseOrtho     = false;
+    bool mUseWorldAxes = false;
 };
 
 }  // namespace btm

@@ -27,6 +27,10 @@ if __name__ == "__main__":
     ap.add_argument("-v", default=False, action="store_true", help="enable cmake log-level : 'status'")
     args = ap.parse_args()
 
+    def verb_print(msg):
+        if args.v:
+            print(msg)
+
     # Parse arguments
 
     build_tests_str = "ON" if args.tests else "OFF"
@@ -43,25 +47,25 @@ if __name__ == "__main__":
     path = "./build/"
 
     if not os.path.exists(path):
-        print("\n[mkdir] => {}".format(path))
+        verb_print("\n[mkdir] => {}".format(path))
         os.mkdir(path)
 
     # Clean (remove files from ./build/)
 
     if args.clean:
-        print("\n[cleaning] => {}".format(path))
+        verb_print("\n[cleaning] => {}".format(path))
 
         for root, dirs, files in os.walk(path):
-            print("  [cleaning] => FILES")
+            verb_print("  [cleaning] => FILES")
             for f in files:
                 file = os.path.join(root, f)
-                print("    -> {}".format(file))
+                verb_print("    -> {}".format(file))
                 os.unlink(file)
 
-            print("  [cleaning] => DIRS")
+            verb_print("  [cleaning] => DIRS")
             for d in dirs:
                 dir = os.path.join(root, d)
-                print("    -> {}".format(dir))
+                verb_print("    -> {}".format(dir))
                 shutil.rmtree(dir)
 
     # Build (cmake)
