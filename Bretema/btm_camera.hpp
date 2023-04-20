@@ -19,22 +19,22 @@ public:
 
         if (movU) { move(dir.U); }  // Move up
         if (movD) { move(dir.D); }  // Move down
-        if (movF) { move(dir.F, dir.F * float(!mUseOrb)); }  // Move forward
-        if (movB) { move(dir.B, dir.B * float(!mUseOrb)); }  // Move backward
+        if (movF) { move(dir.F, dir.F * float(!mUseOrb), -speed()); }  // Move forward
+        if (movB) { move(dir.B, dir.B * float(!mUseOrb), speed()); }  // Move backward
         if (movR) { move(dir.R); }  // Move right
         if (movL) { move(dir.L); }  // Move left
 
-        if (rotU) { rotate( RIGHT * speed() * 0.01f); } // Look up
-        if (rotD) { rotate(-RIGHT * speed() * 0.01f); } // Look down
-        if (rotR) { rotate(-UP    * speed() * 0.01f); } // Look right
-        if (rotL) { rotate( UP    * speed() * 0.01f); } // Look left
+        if (rotU) { rotate( RIGHT * speed()); } // Look up
+        if (rotD) { rotate(-RIGHT * speed()); } // Look down
+        if (rotR) { rotate(-UP    * speed()); } // Look right
+        if (rotL) { rotate( UP    * speed()); } // Look left
         // clang-format on
 
         mV = glm::lookAt(mEye, (mUseOrb ? mLookAt : mEye + front()), UP);
 
         if (mUseOrtho)
         {
-            float const mod = glm::distance(mEye, ZERO3);  // mEye.z;  // map(mFOV, 4.f, 140.f, 0.001f, 1.f);
+            float const mod = mOrthoOffset;
             float const w   = ar * mod;
             float const h   = 1.f * mod;
             mP              = glm::ortho(w, -w, h, -h, 0.1f, 1'000.f);
@@ -45,7 +45,7 @@ public:
 
     void onInputChange(UI::Info const &ui)
     {
-        mSpeedMod = ui.pressed(UI::Key::LeftShift) ? 2.f : 1.f;
+        mSpeedMod = ui.pressed(UI::Key::LeftShift) ? 10.f : 1.f;
 
         if (ui.pressed(UI::Key::O, true))
         {
@@ -55,7 +55,22 @@ public:
         }
 
         if (ui.pressed(UI::Key::Comma, true))
+        {
+            if (!mUseOrtho)
+            {
+                mOrthoOffset = mEye.z - 1.25f;
+                mEye.z       = std::copysignf(mLookAt.z, 6.f);
+                mLookAt.z    = 0;  // wip : what to do when eye and lookat are negative
+            }
+            else
+            {
+                float const diff = (mOrthoOffset - mEye.z) + 1.25f;
+                mEye.z += diff;
+                mLookAt.z += diff;
+            }
+
             mUseOrtho = !mUseOrtho;
+        }
 
         // Reset
         if (ui.pressed(UI::Key::Num0))
@@ -80,25 +95,28 @@ public:
         // Zoom / Fov
         auto const fovMod  = ui.wheel().y * speed();
         auto const zoomMod = front() * fovMod;
-        if (mUseOrtho || ui.pressed(UI::Key::LeftAlt))
+        if (ui.pressed(UI::Key::LeftAlt))
             fov(fovMod);
+        else if (mUseOrtho)
+            move(ZERO3, ZERO3, fovMod);
         else
             move(zoomMod, (mUseOrb ? ZERO3 : zoomMod));
 
         // Rotation
-        auto const rotMod = -ui.displ() * speed() * 0.01f;
+        auto const rotMod = -ui.displ() * speed();
         if (ui.pressed(UI::Mouse::Left))
             rotate({ rotMod.y, rotMod.x, 0.f });
 
         BTM_INFOF(
-          "[CAMERA] -> E : {} | L : {} | F : {} | S : {} | Orb : {} | World : {} | Orth : {}",
+          "[CAMERA] -> E : {} | L : {} | F : {} | S : {} | Orb : {} | World : {} | Ortho : {} / {}",
           mEye,
           mLookAt,
           mFOV,
           speed(),
           mUseOrb,
           mUseWorldAxes,
-          mUseOrtho);
+          mUseOrtho,
+          mOrthoOffset);
     }
 
     glm::mat4 V() const { return mV; }
@@ -118,16 +136,18 @@ public:
 private:
     void move(glm::vec3 const &displ) { move(displ, displ); }
 
-    void move(glm::vec3 const &displEye, glm::vec3 const &displLookAt)
+    void move(glm::vec3 const &displEye, glm::vec3 const &displLookAt, float orthoInc = 0.f)
     {
-        auto const auxE = mEye + displEye;
-        auto const auxL = mLookAt + displLookAt;
+        auto const auxE = mEye + displEye * (mUseOrtho ? XY3 : XYZ3);
+        auto const auxL = mLookAt + displLookAt * (mUseOrtho ? XY3 : XYZ3);
 
         if (!mUseOrb || (mUseOrb && !fuzzyCmp(auxE, auxL, 0.5f)))
             mEye = auxE;
 
-        if (!isAligned(auxL - mEye, UP))
+        if (!isAligned(auxL - mEye, UP) && !fuzzyCmp(mEye, auxL, 0.5f))
             mLookAt = auxL;
+
+        mOrthoOffset = std::max(0.5f, mOrthoOffset + orthoInc);
     }
 
     void rotate(glm::vec3 rotInc)
@@ -142,23 +162,24 @@ private:
             satellite = next;
     }
 
-    // To Serialize
-    glm::vec3 mEye    = FRONT * 6.f;
-    glm::vec3 mLookAt = ZERO3;
-    float     mFOV    = 75.f;
-    float     mSpeed  = 1.f;
-
     // Dynamic
     bool movU, movD, movF, movB, movR, movL, rotR, rotL, rotU, rotD;
 
     glm::mat4 mV { 1.f };
     glm::mat4 mP { 1.f };
 
-    float mSpeedMod = 1.f;
+    float mSpeedMod    = 1.f;
+    float mOrthoOffset = 6.f;
 
     bool mUseOrb       = false;
     bool mUseOrtho     = false;
     bool mUseWorldAxes = false;
+
+    // To Serialize
+    glm::vec3 mEye    = FRONT * mOrthoOffset;
+    glm::vec3 mLookAt = ZERO3;
+    float     mFOV    = 75.f;
+    float     mSpeed  = 0.01f;
 };
 
 }  // namespace btm

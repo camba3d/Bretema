@@ -18,11 +18,19 @@
 #include <array>
 
 // Glm
-#define GLM_FORCE_LEFT_HANDED
+#define GLM_FORCE_INLINE
 #define GLM_ENABLE_EXPERIMENTAL
+
+// #define GLM_FORCE_SSE
+// #define GLM_FORCE_DEFAULT_ALIGNED_GENTYPES
+
 #define GLM_FORCE_SWIZZLE
+#define GLM_FORCE_SILENT_WARNINGS
+
 #define GLM_FORCE_RADIANS
+#define GLM_FORCE_LEFT_HANDED
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
+
 #include <glm/glm.hpp>
 #include <glm/gtc/constants.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -181,32 +189,60 @@ namespace btm
 {
 
 // GLOBAL CONSTS
-inline glm::vec3 constexpr RIGHT = { 1, 0, 0 };
-inline glm::vec3 constexpr UP    = { 0, 1, 0 };
-inline glm::vec3 constexpr FRONT = { 0, 0, 1 };
-
-inline float constexpr INF      = std::numeric_limits<float>::infinity();
-inline glm::vec2 constexpr INF2 = { INF, INF };
-inline glm::vec3 constexpr INF3 = { INF, INF, INF };
-inline glm::vec4 constexpr INF4 = { INF, INF, INF, INF };
-
-inline float constexpr ZERO      = 0.f;
-inline glm::vec2 constexpr ZERO2 = { 0.f, 0.f };
-inline glm::vec3 constexpr ZERO3 = { 0.f, 0.f, 0.f };
-inline glm::vec4 constexpr ZERO4 = { 0.f, 0.f, 0.f, 0.f };
-
-inline float constexpr ONE      = 1.f;
-inline glm::vec2 constexpr ONE2 = { 1.f, 1.f };
-inline glm::vec3 constexpr ONE3 = { 1.f, 1.f, 1.f };
-inline glm::vec4 constexpr ONE4 = { 1.f, 1.f, 1.f, 1.f };
-
-inline float PI      = 3.14159265359f;
-inline float TAU     = 2.f * PI;
-inline float HALF_PI = PI * 0.5f;
-
-inline glm::vec3 FLIP_X { -1, 1, 1 };
-inline glm::vec3 FLIP_Y { 1, -1, 1 };
-inline glm::vec3 FLIP_z { 1, 1, -1 };
+inline glm::vec3 const RIGHT   = { 1, 0, 0 };
+inline glm::vec3 const UP      = { 0, 1, 0 };
+inline glm::vec3 const FRONT   = { 0, 0, 1 };
+//
+inline float const     INF     = std::numeric_limits<float>::infinity();
+inline glm::vec2 const INF2    = { INF, INF };
+inline glm::vec3 const INF3    = { INF, INF, INF };
+inline glm::vec4 const INF4    = { INF, INF, INF, INF };
+//
+inline float const     ZERO    = 0.f;
+inline glm::vec2 const ZERO2   = { 0.f, 0.f };
+inline glm::vec3 const ZERO3   = { 0.f, 0.f, 0.f };
+inline glm::vec4 const ZERO4   = { 0.f, 0.f, 0.f, 0.f };
+//
+inline float const     ONE     = 1.f;
+inline glm::vec2 const ONE2    = { 1.f, 1.f };
+inline glm::vec3 const ONE3    = { 1.f, 1.f, 1.f };
+inline glm::vec4 const ONE4    = { 1.f, 1.f, 1.f, 1.f };
+//
+inline float const     PI      = 3.14159265359f;
+inline float const     TAU     = 2.f * PI;
+inline float const     HALF_PI = PI * 0.5f;
+//
+inline glm::vec3 const FLIP_X  = { -1, 1, 1 };
+inline glm::vec3 const FLIP_Y  = { 1, -1, 1 };
+inline glm::vec3 const FLIP_Z  = { 1, 1, -1 };
+//
+inline glm::vec2 const X2      = { 1, 0 };
+inline glm::vec2 const Y2      = { 0, 1 };
+inline glm::vec2 const XY2     = { 1, 1 };
+//
+inline glm::vec3 const X3      = { 1, 0, 0 };
+inline glm::vec3 const Y3      = { 0, 1, 0 };
+inline glm::vec3 const Z3      = { 0, 0, 1 };
+inline glm::vec3 const YZ3     = { 0, 1, 1 };
+inline glm::vec3 const XZ3     = { 1, 0, 1 };
+inline glm::vec3 const XY3     = { 1, 1, 0 };
+inline glm::vec3 const XYZ3    = { 1, 1, 1 };
+//
+inline glm::vec4 const X4      = { 1, 0, 0, 0 };
+inline glm::vec4 const Y4      = { 0, 1, 0, 0 };
+inline glm::vec4 const Z4      = { 0, 0, 1, 0 };
+inline glm::vec4 const YZ4     = { 0, 1, 1, 0 };
+inline glm::vec4 const XZ4     = { 1, 0, 1, 0 };
+inline glm::vec4 const XY4     = { 1, 1, 0, 0 };
+inline glm::vec4 const XW4     = { 1, 0, 0, 1 };
+inline glm::vec4 const YW4     = { 0, 1, 0, 1 };
+inline glm::vec4 const ZW4     = { 0, 0, 1, 1 };
+inline glm::vec4 const XYZ4    = { 1, 1, 1, 0 };
+inline glm::vec4 const XYW4    = { 1, 1, 0, 1 };
+inline glm::vec4 const XZW4    = { 1, 0, 1, 1 };
+inline glm::vec4 const YZW4    = { 0, 1, 1, 1 };
+inline glm::vec4 const XYZW4   = { 1, 1, 1, 1 };
+//
 
 // VOID PTR WITH DATA
 struct CoolPtr
@@ -470,15 +506,15 @@ private:
 // COLORS
 namespace Color
 {
-glm::vec3 constexpr Red          = { 1.f, 0.f, 0.f };
-glm::vec3 constexpr Green        = { 0.f, 1.f, 0.f };
-glm::vec3 constexpr Blue         = { 0.f, 0.f, 1.f };
-glm::vec3 constexpr Magenta      = { 1.f, 0.f, 1.f };
-glm::vec3 constexpr Yellow       = { 1.f, 1.f, 0.f };
-glm::vec3 constexpr Cyan         = { 0.f, 1.f, 1.f };
-glm::vec3 constexpr Lime         = { .5f, 1.f, 0.f };
-glm::vec3 constexpr Orange       = { 1.f, .3f, 0.f };
-glm::vec3 constexpr StrongYellow = { 1.f, .5f, 0.f };
+glm::vec3 const Red          = { 1.f, 0.f, 0.f };
+glm::vec3 const Green        = { 0.f, 1.f, 0.f };
+glm::vec3 const Blue         = { 0.f, 0.f, 1.f };
+glm::vec3 const Magenta      = { 1.f, 0.f, 1.f };
+glm::vec3 const Yellow       = { 1.f, 1.f, 0.f };
+glm::vec3 const Cyan         = { 0.f, 1.f, 1.f };
+glm::vec3 const Lime         = { .5f, 1.f, 0.f };
+glm::vec3 const Orange       = { 1.f, .3f, 0.f };
+glm::vec3 const StrongYellow = { 1.f, .5f, 0.f };
 }  // namespace Color
 
 inline i32 constexpr sMaxFloatPrint = 3;  // fmt:glm float precission
