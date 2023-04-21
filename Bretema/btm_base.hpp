@@ -208,10 +208,6 @@ inline glm::vec2 const ONE2    = { 1.f, 1.f };
 inline glm::vec3 const ONE3    = { 1.f, 1.f, 1.f };
 inline glm::vec4 const ONE4    = { 1.f, 1.f, 1.f, 1.f };
 //
-inline float const     PI      = 3.14159265359f;
-inline float const     TAU     = 2.f * PI;
-inline float const     HALF_PI = PI * 0.5f;
-//
 inline glm::vec3 const FLIP_X  = { -1, 1, 1 };
 inline glm::vec3 const FLIP_Y  = { 1, -1, 1 };
 inline glm::vec3 const FLIP_Z  = { 1, 1, -1 };
@@ -242,6 +238,11 @@ inline glm::vec4 const XYW4    = { 1, 1, 0, 1 };
 inline glm::vec4 const XZW4    = { 1, 0, 1, 1 };
 inline glm::vec4 const YZW4    = { 0, 1, 1, 1 };
 inline glm::vec4 const XYZW4   = { 1, 1, 1, 1 };
+//
+inline float const     PI      = 3.14159265359f;
+inline float const     TAU     = 2.f * PI;
+inline float const     HALF_PI = PI * 0.5f;
+inline float const     EPSILON = 0.00001f;  // std::numeric_limits<float>::epsilon();
 //
 
 // VOID PTR WITH DATA

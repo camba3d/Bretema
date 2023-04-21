@@ -8,6 +8,12 @@ namespace btm
 
 class Camera
 {
+    static float constexpr sBound            = 1.5f;
+    static float constexpr sFar              = 1'000.f;
+    static float constexpr sNear             = 0.1f;
+    static float constexpr sInitZ            = 6.f;
+    static float constexpr sMouseSensitivity = 0.1f;
+
 public:
     void update(float ar, glm::vec3 const &target = INF3)
     {
@@ -16,18 +22,19 @@ public:
 
         // clang-format off
         auto const dir = Directions(front()) * speed();
+        float const upFlip = mUseOrb ? 1.f : -1.f;
 
         if (movU) { move(dir.U); }  // Move up
         if (movD) { move(dir.D); }  // Move down
         if (movF) { move(dir.F, dir.F * float(!mUseOrb), -speed()); }  // Move forward
-        if (movB) { move(dir.B, dir.B * float(!mUseOrb), speed()); }  // Move backward
+        if (movB) { move(dir.B, dir.B * float(!mUseOrb), speed()); }   // Move backward
         if (movR) { move(dir.R); }  // Move right
         if (movL) { move(dir.L); }  // Move left
 
         if (rotU) { rotate( RIGHT * speed()); } // Look up
         if (rotD) { rotate(-RIGHT * speed()); } // Look down
-        if (rotR) { rotate(-UP    * speed()); } // Look right
-        if (rotL) { rotate( UP    * speed()); } // Look left
+        if (rotR) { rotate(upFlip *  UP * speed()); } // Look right
+        if (rotL) { rotate(upFlip * -UP * speed()); } // Look left
         // clang-format on
 
         mV = glm::lookAt(mEye, (mUseOrb ? mLookAt : mEye + front()), UP);
@@ -35,40 +42,40 @@ public:
         if (mUseOrtho)
         {
             float const mod = mOrthoOffset;
-            float const w   = ar * mod;
-            float const h   = 1.f * mod;
-            mP              = glm::ortho(w, -w, h, -h, 0.1f, 1'000.f);
+            float const w   = mod * ar;
+            float const h   = mod;
+            mP              = glm::ortho(w, -w, h, -h, -sFar * .5f, sFar * .5f);
         }
         else
-            mP = glm::perspective(-glm::radians(mFOV), ar, 0.1f, 100'000.f);
+            mP = glm::perspective(-glm::radians(mFOV), ar, sNear, sFar);
     }
 
     void onInputChange(UI::Info const &ui)
     {
         mSpeedMod = ui.pressed(UI::Key::LeftShift) ? 10.f : 1.f;
 
+        // Toggle Orbital rotation
         if (ui.pressed(UI::Key::O, true))
         {
             if (!mUseOrb)
-                mLookAt = ZERO3;
+                mLookAt.z = 0.f;
             mUseOrb = !mUseOrb;
         }
 
+        // Toggle Orthographic projection
         if (ui.pressed(UI::Key::Comma, true))
         {
             if (!mUseOrtho)
             {
-                mOrthoOffset = mEye.z - 1.25f;
-                mEye.z       = std::copysignf(mLookAt.z, 6.f);
-                mLookAt.z    = 0;  // wip : what to do when eye and lookat are negative
+                mOrthoOffset = mEye.z = std::copysignf(std::max(abs(mEye.z), sBound), mEye.z);
+                mLookAt.z             = 0.f;
+                mWasOrbBeforeOrtho    = mUseOrb;
+                mUseOrb               = true;
             }
             else
             {
-                float const diff = (mOrthoOffset - mEye.z) + 1.25f;
-                mEye.z += diff;
-                mLookAt.z += diff;
+                mUseOrb = mWasOrbBeforeOrtho;
             }
-
             mUseOrtho = !mUseOrtho;
         }
 
@@ -103,7 +110,7 @@ public:
             move(zoomMod, (mUseOrb ? ZERO3 : zoomMod));
 
         // Rotation
-        auto const rotMod = -ui.displ() * speed();
+        auto const rotMod = -ui.displ() * speed() * sMouseSensitivity;
         if (ui.pressed(UI::Mouse::Left))
             rotate({ rotMod.y, rotMod.x, 0.f });
 
@@ -138,16 +145,16 @@ private:
 
     void move(glm::vec3 const &displEye, glm::vec3 const &displLookAt, float orthoInc = 0.f)
     {
-        auto const auxE = mEye + displEye * (mUseOrtho ? XY3 : XYZ3);
-        auto const auxL = mLookAt + displLookAt * (mUseOrtho ? XY3 : XYZ3);
+        auto const auxE = mEye + displEye;
+        auto const auxL = mLookAt + displLookAt;
 
-        if (!mUseOrb || (mUseOrb && !fuzzyCmp(auxE, auxL, 0.5f)))
+        if (!mUseOrb || (mUseOrb && !fuzzyCmp(auxE, auxL, sBound)))
             mEye = auxE;
 
-        if (!isAligned(auxL - mEye, UP) && !fuzzyCmp(mEye, auxL, 0.5f))
+        if (!isAligned(auxL - mEye, UP) && !fuzzyCmp(mEye, auxL, sBound))
             mLookAt = auxL;
 
-        mOrthoOffset = std::max(0.5f, mOrthoOffset + orthoInc);
+        mOrthoOffset = std::max(sBound, mOrthoOffset + orthoInc);
     }
 
     void rotate(glm::vec3 rotInc)
@@ -169,14 +176,15 @@ private:
     glm::mat4 mP { 1.f };
 
     float mSpeedMod    = 1.f;
-    float mOrthoOffset = 6.f;
+    float mOrthoOffset = sInitZ;
 
-    bool mUseOrb       = false;
-    bool mUseOrtho     = false;
-    bool mUseWorldAxes = false;
+    bool mUseOrb            = false;
+    bool mUseOrtho          = false;
+    bool mUseWorldAxes      = false;
+    bool mWasOrbBeforeOrtho = false;
 
     // To Serialize
-    glm::vec3 mEye    = FRONT * mOrthoOffset;
+    glm::vec3 mEye    = FRONT * sInitZ;
     glm::vec3 mLookAt = ZERO3;
     float     mFOV    = 75.f;
     float     mSpeed  = 0.01f;

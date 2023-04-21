@@ -11,7 +11,7 @@ struct Directions
     {
         F = glm::normalize(front);
         R = glm::normalize(glm::cross(F, UP));
-        U = glm::normalize(glm::cross(F, R));
+        U = glm::normalize(glm::cross(F, -R));
         B = -F;
         L = -R;
         D = -U;
