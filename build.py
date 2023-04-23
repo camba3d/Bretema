@@ -16,7 +16,7 @@ def subprocess_call(*args):
         exit(res)
 
 
-if __name__ == "__main__":
+def main():
     # CLI
 
     ap = argparse.ArgumentParser(description="[bretema] - source compile helper")
@@ -85,4 +85,14 @@ if __name__ == "__main__":
 
         subprocess_call("ninja")
 
+
+if __name__ == "__main__":
+    try:
+        main()
         print(f"\n{'*'*60}\n")
+    except KeyboardInterrupt:
+        print("\n[INFO] : User interruptus")
+        exit(0)
+    except Exception as e:
+        print(f"\n[CRITICAL] : {e}")
+        exit(1)

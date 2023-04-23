@@ -58,7 +58,7 @@ add_subdirectory(Modules/glfw)
 list(APPEND EXTRA_LIBS glfw)
 
 # Vulkan
-find_package(Vulkan REQUIRED COMPONENTS glslc)
+find_package(Vulkan REQUIRED )
 find_program(glslc_executable NAMES glslc HINTS Vulkan::glslc)
 list(APPEND EXTRA_LIB_INCL ${GLFW_DIR}/deps)
 list(APPEND EXTRA_LIBS Vulkan::Vulkan)
@@ -66,6 +66,7 @@ list(APPEND EXTRA_LIBS Vulkan::Vulkan)
 set(VK_BOOTSTRAP_DISABLE_WARNINGS ON CACHE BOOL "" FORCE)
 add_subdirectory(Modules/vk-bootstrap)
 list(APPEND EXTRA_LIBS vk-bootstrap)
+
 
 # ImGui: Platform agnostic GUI
 set(IMGUI_DIR Modules/ImGui)

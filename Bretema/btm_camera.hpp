@@ -22,7 +22,8 @@ public:
 
         // clang-format off
         auto const dir = Directions(front()) * speed();
-        float const upFlip = mUseOrb ? 1.f : -1.f;
+        float const xFlip = mUseOrb ? -1.f : 1.f;
+        float const yFlip = mUseOrb ? 1.f : -1.f;
 
         if (movU) { move(dir.U); }  // Move up
         if (movD) { move(dir.D); }  // Move down
@@ -31,10 +32,10 @@ public:
         if (movR) { move(dir.R); }  // Move right
         if (movL) { move(dir.L); }  // Move left
 
-        if (rotU) { rotate( RIGHT * speed()); } // Look up
-        if (rotD) { rotate(-RIGHT * speed()); } // Look down
-        if (rotR) { rotate(upFlip *  UP * speed()); } // Look right
-        if (rotL) { rotate(upFlip * -UP * speed()); } // Look left
+        if (rotU) { rotate(xFlip *  RIGHT * speed()); } // Look up
+        if (rotD) { rotate(xFlip * -RIGHT * speed()); } // Look down
+        if (rotR) { rotate(yFlip *  UP * speed()); } // Look right
+        if (rotL) { rotate(yFlip * -UP * speed()); } // Look left
         // clang-format on
 
         mV = glm::lookAt(mEye, (mUseOrb ? mLookAt : mEye + front()), UP);
