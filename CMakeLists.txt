@@ -214,10 +214,11 @@ target_compile_definitions(${PROJECT_NAME}
  
 # Compile Flags [ Windows ]
 if(MSVC)
+    add_compile_definitions(NOMINMAX)
     if (CMAKE_BUILD_TYPE EQUAL "RELEASE")
-        target_compile_options(${PROJECT_NAME} PRIVATE /Ox /W4 /WX /MD)
+        target_compile_options(${PROJECT_NAME} PRIVATE /Ox /Ob2 /MD)
     else()
-        target_compile_options(${PROJECT_NAME} PRIVATE /Zi /W4 /WX /MDd)
+        target_compile_options(${PROJECT_NAME} PRIVATE /Zi /W4 /WX /MDd /wd4996)
     endif()
 
 # Compile Flags [ Unix / Linux / MacOS ]
@@ -225,7 +226,7 @@ else()
     if (CMAKE_BUILD_TYPE EQUAL "RELEASE")
         target_compile_options(${PROJECT_NAME} PRIVATE -O3)
     else()
-        target_compile_options(${PROJECT_NAME} PRIVATE -O0 -g3 -ggdb -Wall -Wpedantic -Wextra -Wrange-loop-construct -Wno-missing-field-initializers)
+        target_compile_options(${PROJECT_NAME} PRIVATE -O0 -g3 -ggdb -Wall -Werror -Wextra -pedantic -Wno-missing-field-initializers)
     endif()
 endif()
 

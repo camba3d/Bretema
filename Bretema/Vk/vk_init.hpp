@@ -72,12 +72,12 @@ inline auto VertexInputState(VertexInputDescription const &desc = {}, void *pNex
     info.vertexAttributeDescriptionCount = 0;
     if (desc.bindings.size() >= 1 && desc.bindings.data())
     {
-        info.vertexBindingDescriptionCount = desc.bindings.size();
+        info.vertexBindingDescriptionCount = (u32)desc.bindings.size();
         info.pVertexBindingDescriptions    = desc.bindings.data();
     }
     if (desc.attributes.size() >= 1 && desc.attributes.data())
     {
-        info.vertexAttributeDescriptionCount = desc.attributes.size();
+        info.vertexAttributeDescriptionCount = (u32)desc.attributes.size();
         info.pVertexAttributeDescriptions    = desc.attributes.data();
     }
 
@@ -303,7 +303,7 @@ VkPipeline Pipeline(vk::PipelineBuilder pb, VkDevice device, VkRenderPass pass)
     VkGraphicsPipelineCreateInfo info {};
     info.sType               = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
     info.pNext               = nullptr;
-    info.stageCount          = pb.shaderStages.size();
+    info.stageCount          = (u32)pb.shaderStages.size();
     info.pStages             = pb.shaderStages.data();
     info.pVertexInputState   = &pb.vertexInputInfo;
     info.pInputAssemblyState = &pb.inputAssembly;

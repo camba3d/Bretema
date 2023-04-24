@@ -54,10 +54,10 @@ private:
     inline Material  *getMaterial(const std::string &name) { return mMatMap.count(name) > 0 ? &mMatMap[name] : nullptr; }
     inline MeshGroup *getMesh(const std::string &name) { return mMeshMap.count(name) > 0 ? &mMeshMap[name] : nullptr; }
 
-    inline VkExtent2D extent2D() { return VkExtent2D(mViewportSize.x, mViewportSize.y); }
-    inline VkExtent3D extent3D() { return VkExtent3D(mViewportSize.x, mViewportSize.y, 1); }
-    inline u32        extent_w() { return static_cast<u32>(mViewportSize.x); }
-    inline u32        extent_h() { return static_cast<u32>(mViewportSize.y); }
+    inline VkExtent2D extent2D() { return VkExtent2D((u32)mViewportSize.x, (u32)mViewportSize.y); }
+    inline VkExtent3D extent3D() { return VkExtent3D((u32)mViewportSize.x, (u32)mViewportSize.y, 1); }
+    inline u32        extent_w() { return (u32)mViewportSize.x; }
+    inline u32        extent_h() { return (u32)mViewportSize.y; }
     inline u32        extent_d() { return 1; }
 
     std::vector<RenderObject> mRenderables;
@@ -67,38 +67,38 @@ private:
 
     btm::ds::DeletionQueue mDeletionQueue {};
 
-    VmaAllocator mAllocator = VK_NULL_HANDLE;  // Memory Allocator - AMD lib
+    VmaAllocator mAllocator = VK_NULL_HANDLE;                                  // Memory Allocator - AMD lib
 
-    VkInstance               mInstance       = VK_NULL_HANDLE;  // Vulkan library handle
-    VkDebugUtilsMessengerEXT mDebugMessenger = VK_NULL_HANDLE;  // Vulkan debug output handle
-    VkPhysicalDevice         mChosenGPU      = VK_NULL_HANDLE;  // GPU chosen as the default device
-    VkDevice                 mDevice         = VK_NULL_HANDLE;  // Vulkan device for commands
-    VkSurfaceKHR             mSurface        = VK_NULL_HANDLE;  // Vulkan window surface (in a future could be an array)
+    VkInstance               mInstance       = VK_NULL_HANDLE;                 // Vulkan library handle
+    VkDebugUtilsMessengerEXT mDebugMessenger = VK_NULL_HANDLE;                 // Vulkan debug output handle
+    VkPhysicalDevice         mChosenGPU      = VK_NULL_HANDLE;                 // GPU chosen as the default device
+    VkDevice                 mDevice         = VK_NULL_HANDLE;                 // Vulkan device for commands
+    VkSurfaceKHR             mSurface        = VK_NULL_HANDLE;                 // Vulkan window surface (in a future could be an array)
 
     VkSwapchainKHR           mSwapchain            = VK_NULL_HANDLE;           // Vulkan swapchain
     VkFormat                 mSwapchainImageFormat = VK_FORMAT_B8G8R8A8_SRGB;  // Image format expected by window
     std::vector<VkImage>     mSwapchainImages      = {};                       // List of images from the swapchain
     std::vector<VkImageView> mSwapchainImageViews  = {};                       // List of image-views from the swapchain
 
-    vk::Queue       mGraphicsQ  = {};  // Queue/Family for Graphics
-    VkCommandPool   mGraphicsCP = {};  // Command-Pool for Graphics-commands
-    VkCommandBuffer mGraphicsCB = {};  // Command-Buffer for Graphics-commands
+    vk::Queue       mGraphicsQ  = {};                                          // Queue/Family for Graphics
+    VkCommandPool   mGraphicsCP = {};                                          // Command-Pool for Graphics-commands
+    VkCommandBuffer mGraphicsCB = {};                                          // Command-Buffer for Graphics-commands
 
-    vk::Queue       mPresentQ  = {};  // Queue/Family for Present
-    VkCommandPool   mPresentCP = {};  // Command-Pool for Present-commands
-    VkCommandBuffer mPresentCB = {};  // Command-Buffer for Present-commands
+    vk::Queue       mPresentQ  = {};                                           // Queue/Family for Present
+    VkCommandPool   mPresentCP = {};                                           // Command-Pool for Present-commands
+    VkCommandBuffer mPresentCB = {};                                           // Command-Buffer for Present-commands
 
-    vk::Queue       mComputeQ  = {};  // Queue/Family for Compute
-    VkCommandPool   mComputeCP = {};  // Command-Pool for Compute-commands
-    VkCommandBuffer mComputeCB = {};  // Command-Buffer for Compute-commands
+    vk::Queue       mComputeQ  = {};                                           // Queue/Family for Compute
+    VkCommandPool   mComputeCP = {};                                           // Command-Pool for Compute-commands
+    VkCommandBuffer mComputeCB = {};                                           // Command-Buffer for Compute-commands
 
-    vk::Queue       mTransferQ  = {};  // Queue/Family for Transfer
-    VkCommandPool   mTransferCP = {};  // Command-Pool for Transfer-commands
-    VkCommandBuffer mTransferCB = {};  // Command-Buffer for Transfer-commands
+    vk::Queue       mTransferQ  = {};                                          // Queue/Family for Transfer
+    VkCommandPool   mTransferCP = {};                                          // Command-Pool for Transfer-commands
+    VkCommandBuffer mTransferCB = {};                                          // Command-Buffer for Transfer-commands
 
     VkImageView    mDepthImageView         = VK_NULL_HANDLE;
     AllocatedImage mDepthImage             = {};
-    static VkFormat constexpr sDepthFormat = VK_FORMAT_D32_SFLOAT;  // @todo: Check VK_FORMAT_D32_SFLOAT_S8_UINT  ??
+    static VkFormat constexpr sDepthFormat = VK_FORMAT_D32_SFLOAT;   // @todo: Check VK_FORMAT_D32_SFLOAT_S8_UINT  ??
 
     VkRenderPass               mDefaultRenderPass = VK_NULL_HANDLE;  // Basic renderpass config with (1) color and subpass
     std::vector<VkFramebuffer> mFramebuffers      = {};              // Bucket of FBOs, one per swapchain-image(view)
@@ -112,7 +112,7 @@ private:
     std::vector<VkPipelineLayout> mPipelineLayouts = {};  // Bucket of pipeline-layouts
     std::vector<VkPipeline>       mPipelines       = {};  // Bucket of pipelines
 
-    std::vector<Mesh> mMeshes = {};  // Bucket of mesehes
+    std::vector<Mesh> mMeshes = {};                       // Bucket of mesehes
 };
 
 }  // namespace btm::vk

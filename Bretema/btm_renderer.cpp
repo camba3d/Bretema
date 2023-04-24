@@ -105,8 +105,8 @@ std::vector<Mesh> parseGltf(bool isBin, std::string const &filepath, std::span<u
     tinygltf::Model    model;
     std::string        err, warn;
 
-    bool const ok =
-      isBin ? ctx.LoadBinaryFromMemory(&model, &err, &warn, bin.data(), bin.size()) : ctx.LoadASCIIFromFile(&model, &err, &warn, filepath);
+    bool const ok = isBin ? ctx.LoadBinaryFromMemory(&model, &err, &warn, bin.data(), (u32)bin.size())
+                          : ctx.LoadASCIIFromFile(&model, &err, &warn, filepath);
 
     if (!err.empty())
         BTM_ERRF("Loading GLTF {}: {}", filepath, err);
@@ -128,7 +128,7 @@ std::vector<Mesh> parseGltf(std::string const &filepath)
     auto const bin   = btm::bin::read(filepath);
     bool const isBin = btm::bin::checkMagic(ds::view(bin, 4), { 'g', 'l', 'T', 'F' });
 
-    return parseGltf(isBin, filepath, ds::view(bin, -1));
+    return parseGltf(isBin, filepath, ds::view(bin, (u32)-1));
 }
 
 std::vector<Mesh> parseGltf(std::span<u8 const> bin, std::string name = "")

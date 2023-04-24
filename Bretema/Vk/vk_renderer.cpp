@@ -75,7 +75,7 @@ void Renderer::draw(Camera const &cam)
     renderpassBI.renderArea.offset.y   = 0;
     renderpassBI.renderArea.extent     = extent2D();
     renderpassBI.framebuffer           = mFramebuffers[swapchainImageIndex];
-    renderpassBI.clearValueCount       = clears.size();
+    renderpassBI.clearValueCount       = (u32)clears.size();
     renderpassBI.pClearValues          = clears.data();
 
     vkCmdBeginRenderPass(mGraphicsCB, &renderpassBI, VK_SUBPASS_CONTENTS_INLINE);
@@ -228,7 +228,7 @@ void Renderer::initSwapchain()
     auto vkbSwapchainBuilder = vkb::SwapchainBuilder { mChosenGPU, mDevice, mSurface };
     auto vkbSwapchainResult  = vkbSwapchainBuilder.use_default_format_selection()
                                 .set_desired_present_mode(VK_PRESENT_MODE_FIFO_KHR)  // fifo = vsync present mode
-                                .set_desired_extent(mViewportSize.x, mViewportSize.y)
+                                .set_desired_extent((u32)mViewportSize.x, (u32)mViewportSize.y)
                                 .use_default_image_usage_flags()
                                 .set_desired_min_image_count(sInFlight)
                                 .build();
@@ -356,14 +356,14 @@ void Renderer::initDefaultRenderPass()
     renderpassCI.sType                  = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
     // att(s)
     auto const atts                     = std::array { color0, depth0 };
-    renderpassCI.attachmentCount        = atts.size();
+    renderpassCI.attachmentCount        = (u32)atts.size();
     renderpassCI.pAttachments           = atts.data();
     // subpass(es)
     renderpassCI.subpassCount           = 1;
     renderpassCI.pSubpasses             = &subpass;
     // dep(s)
     auto const deps                     = std::array { depColor0, depDepth0 };
-    renderpassCI.dependencyCount        = deps.size();
+    renderpassCI.dependencyCount        = (u32)deps.size();
     renderpassCI.pDependencies          = deps.data();
 
     VK_CHECK(vkCreateRenderPass(mDevice, &renderpassCI, nullptr, &mDefaultRenderPass));
@@ -391,7 +391,7 @@ void Renderer::initFramebuffers()
     {
         auto const atts = std::array { mSwapchainImageViews[i], mDepthImageView };
 
-        framebufferCI.attachmentCount = atts.size();
+        framebufferCI.attachmentCount = (u32)atts.size();
         framebufferCI.pAttachments    = atts.data();
 
         VK_CHECK(vkCreateFramebuffer(mDevice, &framebufferCI, nullptr, &mFramebuffers[i]));

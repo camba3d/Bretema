@@ -76,7 +76,7 @@
 #ifdef _WIN32
 #    undef APIENTRY
 #    define GLFW_EXPOSE_NATIVE_WIN32
-#    include <GLFW/glfw3native.h>  // for glfwGetWin32Window
+#    include <GLFW/glfw3native.h>                                                                  // for glfwGetWin32Window
 #endif
 #define GLFW_HAS_WINDOW_TOPMOST    (GLFW_VERSION_MAJOR * 1000 + GLFW_VERSION_MINOR * 100 >= 3200)  // 3.2+ GLFW_FLOATING
 #define GLFW_HAS_WINDOW_HOVERED    (GLFW_VERSION_MAJOR * 1000 + GLFW_VERSION_MINOR * 100 >= 3300)  // 3.3+ GLFW_HOVERED
@@ -135,7 +135,7 @@ struct ImGui_ImplGlfw_Data
     GLFWcharfun        PrevUserCallbackChar;
     GLFWmonitorfun     PrevUserCallbackMonitor;
 
-    ImGui_ImplGlfw_Data() { *this = {}; }
+    ImGui_ImplGlfw_Data() { memset((void *)this, 0, sizeof(*this)); }
 };
 
 // Backend data stored in io.BackendPlatformUserData to allow support for multiple Dear ImGui contexts
@@ -490,9 +490,9 @@ static bool ImGui_ImplGlfw_Init(GLFWwindow *window, bool install_callbacks, Glfw
     ImGui_ImplGlfw_Data *bd    = IM_NEW(ImGui_ImplGlfw_Data)();
     io.BackendPlatformUserData = (void *)bd;
     io.BackendPlatformName     = "imgui_impl_glfw";
-    io.BackendFlags |= ImGuiBackendFlags_HasMouseCursors;       // We can honor GetMouseCursor() values (optional)
-    io.BackendFlags |= ImGuiBackendFlags_HasSetMousePos;        // We can honor io.WantSetMousePos requests (optional, rarely used)
-    io.BackendFlags |= ImGuiBackendFlags_PlatformHasViewports;  // We can create multi-viewports on the Platform side (optional)
+    io.BackendFlags |= ImGuiBackendFlags_HasMouseCursors;          // We can honor GetMouseCursor() values (optional)
+    io.BackendFlags |= ImGuiBackendFlags_HasSetMousePos;           // We can honor io.WantSetMousePos requests (optional, rarely used)
+    io.BackendFlags |= ImGuiBackendFlags_PlatformHasViewports;     // We can create multi-viewports on the Platform side (optional)
 #if GLFW_HAS_MOUSE_PASSTHROUGH || (GLFW_HAS_WINDOW_HOVERED && defined(_WIN32))
     io.BackendFlags |= ImGuiBackendFlags_HasMouseHoveredViewport;  // We can call io.AddMouseViewportEvent() with correct data (optional)
 #endif

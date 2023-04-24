@@ -26,6 +26,7 @@ public:
       mName(name),
       mEye(eye),
       mLookAt(lookAt),
+      mMode(mode),
       mOrthoOffset(mEye.z)
     {
     }
