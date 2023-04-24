@@ -193,6 +193,12 @@ private:
     bool  mUseWorldAxes = false;
 };
 
+class SmoothCamera
+{
+    Camera A;
+    Camera B;
+};
+
 }  // namespace btm
 
    // template<>
