@@ -91,7 +91,7 @@ void Renderer::draw(Camera const &cam)
     MeshPushConstants constants;
     constants.N   = glm::transpose(glm::inverse(model));
     constants.MVP = projection * view * model;
-    // upload the matrix to the GPU via push constants
+    // upload matrices to the GPU via push constants
     vkCmdPushConstants(mGraphicsCB, mPipelineLayouts[1], VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(MeshPushConstants), &constants);
 
     // MESHes Drawing

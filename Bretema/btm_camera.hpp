@@ -15,6 +15,21 @@ class Camera
     static float constexpr sMouseSensitivity = 0.1f;
 
 public:
+    enum struct Mode
+    {
+        Fly,
+        Orb,
+        Ortho
+    };
+
+    Camera(std::string name, glm::vec3 eye = FRONT * sInitZ, glm::vec3 lookAt = ZERO3, Mode mode = Mode::Fly) :
+      mName(name),
+      mEye(eye),
+      mLookAt(lookAt),
+      mOrthoOffset(mEye.z)
+    {
+    }
+
     void update(float ar, glm::vec3 const &target = INF3)
     {
         if (target != INF3)
@@ -22,25 +37,24 @@ public:
 
         // clang-format off
         auto const dir = Directions(front()) * speed();
-        float const xFlip = mUseOrb ? -1.f : 1.f;
-        float const yFlip = mUseOrb ? 1.f : -1.f;
-
         if (movU) { move(dir.U); }  // Move up
         if (movD) { move(dir.D); }  // Move down
-        if (movF) { move(dir.F, dir.F * float(!mUseOrb), -speed()); }  // Move forward
-        if (movB) { move(dir.B, dir.B * float(!mUseOrb), speed()); }   // Move backward
+        if (movF) { move(dir.F, dir.F * float(!useOrb()), -speed()); }  // Move forward
+        if (movB) { move(dir.B, dir.B * float(!useOrb()), speed()); }   // Move backward
         if (movR) { move(dir.R); }  // Move right
         if (movL) { move(dir.L); }  // Move left
 
+        float const xFlip = useOrb() ? -1.f : 1.f;
+        float const yFlip = useOrb() ? 1.f : -1.f;
         if (rotU) { rotate(xFlip *  RIGHT * speed()); } // Look up
         if (rotD) { rotate(xFlip * -RIGHT * speed()); } // Look down
-        if (rotR) { rotate(yFlip *  UP * speed()); } // Look right
-        if (rotL) { rotate(yFlip * -UP * speed()); } // Look left
+        if (rotR) { rotate(yFlip *  UP * speed()); }    // Look right
+        if (rotL) { rotate(yFlip * -UP * speed()); }    // Look left
         // clang-format on
 
-        mV = glm::lookAt(mEye, (mUseOrb ? mLookAt : mEye + front()), UP);
+        mV = glm::lookAt(mEye, (useOrb() ? mLookAt : mEye + front()), UP);
 
-        if (mUseOrtho)
+        if (isOrtho())
         {
             float const mod = mOrthoOffset;
             float const w   = mod * ar;
@@ -58,32 +72,28 @@ public:
         // Toggle Orbital rotation
         if (ui.pressed(UI::Key::O, true))
         {
-            if (!mUseOrb)
+            if (!useOrb())
+            {
                 mLookAt.z = 0.f;
-            mUseOrb = !mUseOrb;
+            }
+            mMode = useOrb() ? Mode::Fly : Mode::Orb;
         }
 
         // Toggle Orthographic projection
         if (ui.pressed(UI::Key::Comma, true))
         {
-            if (!mUseOrtho)
+            if (!isOrtho())
             {
                 mOrthoOffset = mEye.z = std::copysignf(std::max(abs(mEye.z), sBound), mEye.z);
                 mLookAt.z             = 0.f;
-                mWasOrbBeforeOrtho    = mUseOrb;
-                mUseOrb               = true;
             }
-            else
-            {
-                mUseOrb = mWasOrbBeforeOrtho;
-            }
-            mUseOrtho = !mUseOrtho;
+            mMode = isOrtho() ? Mode::Fly : Mode::Ortho;
         }
 
         // Reset
-        if (ui.pressed(UI::Key::Num0))
+        if (ui.pressed(UI::Key::R))
         {
-            *this = {};
+            *this = { mName };
         }
 
         // Movement
@@ -105,26 +115,15 @@ public:
         auto const zoomMod = front() * fovMod;
         if (ui.pressed(UI::Key::LeftAlt))
             fov(fovMod);
-        else if (mUseOrtho)
+        else if (isOrtho())
             move(ZERO3, ZERO3, fovMod);
         else
-            move(zoomMod, (mUseOrb ? ZERO3 : zoomMod));
+            move(zoomMod, (useOrb() ? ZERO3 : zoomMod));
 
         // Rotation
         auto const rotMod = -ui.displ() * speed() * sMouseSensitivity;
         if (ui.pressed(UI::Mouse::Left))
             rotate({ rotMod.y, rotMod.x, 0.f });
-
-        BTM_INFOF(
-          "[CAMERA] -> E : {} | L : {} | F : {} | S : {} | Orb : {} | World : {} | Ortho : {} / {}",
-          mEye,
-          mLookAt,
-          mFOV,
-          speed(),
-          mUseOrb,
-          mUseWorldAxes,
-          mUseOrtho,
-          mOrthoOffset);
     }
 
     glm::mat4 V() const { return mV; }
@@ -141,6 +140,11 @@ public:
     float speed() { return mSpeed * mSpeedMod; }
     void  speed(float displ) { mSpeed += displ; }
 
+    bool isOrb() { return mMode == Mode::Orb; }
+    bool isFly() { return mMode == Mode::Fly; }
+    bool isOrtho() { return mMode == Mode::Ortho; }
+    bool useOrb() { return mMode == Mode::Orb || mMode == Mode::Ortho; }
+
 private:
     void move(glm::vec3 const &displ) { move(displ, displ); }
 
@@ -149,7 +153,7 @@ private:
         auto const auxE = mEye + displEye;
         auto const auxL = mLookAt + displLookAt;
 
-        if (!mUseOrb || (mUseOrb && !fuzzyCmp(auxE, auxL, sBound)))
+        if (!useOrb() || (useOrb() && !fuzzyCmp(auxE, auxL, sBound)))
             mEye = auxE;
 
         if (!isAligned(auxL - mEye, UP) && !fuzzyCmp(mEye, auxL, sBound))
@@ -160,8 +164,8 @@ private:
 
     void rotate(glm::vec3 rotInc)
     {
-        auto &satellite = !mUseOrb ? mLookAt : mEye;
-        auto &base      = !mUseOrb ? mEye : mLookAt;
+        auto &satellite = !useOrb() ? mLookAt : mEye;
+        auto &base      = !useOrb() ? mEye : mLookAt;
 
         satellite       = glm::rotate(satellite - base, rotInc.y, UP) + base;       // Rot Left <-> Right
         auto const next = glm::rotate(satellite - base, rotInc.x, right()) + base;  // Rot Up <-> Down
@@ -170,25 +174,57 @@ private:
             satellite = next;
     }
 
+    // To Serialize
+    std::string mName   = "";
+    glm::vec3   mEye    = FRONT * sInitZ;
+    glm::vec3   mLookAt = ZERO3;
+    float       mFOV    = 75.f;
+    float       mSpeed  = 0.01f;
+    Mode        mMode   = Mode::Fly;
+
     // Dynamic
     bool movU, movD, movF, movB, movR, movL, rotR, rotL, rotU, rotD;
 
     glm::mat4 mV { 1.f };
     glm::mat4 mP { 1.f };
 
-    float mSpeedMod    = 1.f;
-    float mOrthoOffset = sInitZ;
-
-    bool mUseOrb            = false;
-    bool mUseOrtho          = false;
-    bool mUseWorldAxes      = false;
-    bool mWasOrbBeforeOrtho = false;
-
-    // To Serialize
-    glm::vec3 mEye    = FRONT * sInitZ;
-    glm::vec3 mLookAt = ZERO3;
-    float     mFOV    = 75.f;
-    float     mSpeed  = 0.01f;
+    float mSpeedMod     = 1.f;
+    float mOrthoOffset  = sInitZ;
+    bool  mUseWorldAxes = false;
 };
 
 }  // namespace btm
+
+   // template<>
+// struct fmt::formatter<btm::Camera>
+// {
+//     constexpr auto parse(format_parse_context &ctx) -> decltype(ctx.begin()) { return ctx.begin(); }
+
+//     template<typename FormatContext>
+//     auto format(btm::Camera const &c, FormatContext &ctx) const -> decltype(ctx.out())
+//     {
+//         auto const boolStr = [](bool b) { return b ? "T" : "F"; };
+
+//         auto const modeStr = [](btm::Camera::Mode m)
+//         {
+//             switch (m)
+//             {
+//                 case btm::Camera::Mode::Fly: return "Fly  ";
+//                 case btm::Camera::Mode::Orb: return "Orb  ";
+//                 case btm::Camera::Mode::Ortho: return "Ortho";
+//                 default: return "";
+//             }
+//         };
+
+//         return fmt::format_to(
+//           ctx.out(),
+//           "[CAMERA] '{}' -> E:{} | L:{} | F:{} | S:{} | W:{} | M:{} | O:{}",
+//           mEye,
+//           mLookAt,
+//           mFOV,
+//           speed(),
+//           boolStr(mUseWorldAxes),
+//           modeStr(mMode),
+//           mOrthoOffset);
+//     }
+// };
