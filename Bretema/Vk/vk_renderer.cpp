@@ -85,15 +85,9 @@ void Renderer::draw(Camera const &cam)
     vkCmdBindPipeline(mGraphicsCB, VK_PIPELINE_BIND_POINT_GRAPHICS, mPipelines[1]);
 
     // CAMERA as PushConstant
-    glm::mat4 view       = cam.V();  // glm::translate(glm::mat4(1.f), { 0.f, 0.f, -4.f });
-    glm::mat4 projection = cam.P();  // glm::perspective(glm::radians(70.f), mViewportSize.x / mViewportSize.y, 0.1f, 200.0f);
-    glm::mat4 model      = []
-    {
-        Transform t;
-        t.setFront({ 0, 0.25, 1 });
-        t.rot().y += 180.f;
-        return t.matrix();
-    }();
+    glm::mat4         view       = cam.V();  // glm::translate(glm::mat4(1.f), { 0.f, 0.f, -4.f });
+    glm::mat4         projection = cam.P();  // glm::perspective(glm::radians(70.f), mViewportSize.x / mViewportSize.y, 0.1f, 200.0f);
+    glm::mat4         model      = glm::mat4(1.f);
     MeshPushConstants constants;
     constants.N   = glm::transpose(glm::inverse(model));
     constants.MVP = projection * view * model;
