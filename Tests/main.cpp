@@ -1,6 +1,6 @@
 #include "Bretema/btm_app.hpp"
 
-int main()
+int main(int argc, char *argv[])
 {
     btm::App app { "Bretema", btm::RenderAPI::Vulkan };
     while (true)  // Allows app restart

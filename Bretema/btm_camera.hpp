@@ -93,9 +93,7 @@ public:
 
         // Reset
         if (ui.pressed(UI::Key::R))
-        {
-            *this = { mName };
-        }
+            reset();
 
         // Movement
         movU = ui.pressed(UI::Key::Q);
@@ -145,6 +143,8 @@ public:
     bool isFly() { return mMode == Mode::Fly; }
     bool isOrtho() { return mMode == Mode::Ortho; }
     bool useOrb() { return mMode == Mode::Orb || mMode == Mode::Ortho; }
+
+    void reset() { *this = { mName }; }
 
 private:
     void move(glm::vec3 const &displ) { move(displ, displ); }

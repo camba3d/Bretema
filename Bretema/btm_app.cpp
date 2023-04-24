@@ -39,7 +39,9 @@ void App::run()
 
             // RENDERER(update());
             for (auto &camera : mCameras)
+            {
                 camera.update(1.77777f, INF3);
+            }
 
             auto const &mainCamera = mCameras.at(0);
             RENDERER(draw(mainCamera));

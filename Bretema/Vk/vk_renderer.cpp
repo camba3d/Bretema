@@ -537,7 +537,7 @@ void Renderer::loadMeshes()  // todo : this have to come from user-land
     addMesh("cube", "./Assets/Geometry/cube2.glb");
 #else
     auto const scenes = {
-        "./Assets/Geometry/suzanne_donut.glb",  //
+        runtime::exepath() + "/Assets/Geometry/suzanne_donut.glb",  //
         // "./Assets/Geometry/cube2.glb",          //
     };
 

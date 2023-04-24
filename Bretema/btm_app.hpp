@@ -62,7 +62,9 @@ private:
     sPtr<btm::Window>  mMainWindow = nullptr;
     btm::BaseRenderer *mRenderer   = nullptr;
 
-    std::vector<Camera> mCameras = { { "Main" } };
+    std::vector<Camera> mCameras = { sDefaultCamera };
+
+    inline static Camera const sDefaultCamera { "Main" };
 };
 
 }  // namespace btm

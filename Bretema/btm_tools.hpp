@@ -6,6 +6,48 @@
 #include <fstream>
 
 //=====================================
+// STRINGS
+//=====================================
+namespace btm::str
+{
+inline std::string replace(std::string str, std::string const &from, std::string const &to)
+{
+    size_t pos = 0;
+    while ((pos = str.find(from)) < str.size())
+    {
+        str.replace(pos, from.length(), to);
+    }
+
+    return str;
+}
+
+inline std::vector<std::string> split(const std::string &str, const std::string &delimeter)
+{
+    std::string              token;
+    std::vector<std::string> splitted;
+    size_t                   ini { 0 }, end { 0 };
+
+    // Split and store the string body
+    while ((end = str.find(delimeter, ini)) < str.size())
+    {
+        token = str.substr(ini, end - ini);
+        ini   = end + delimeter.size();
+        splitted.push_back(token);
+    }
+
+    // Store the string tail
+    if (ini < str.size())
+    {
+        token = str.substr(ini);
+        splitted.push_back(token);
+    }
+
+    return splitted;
+}
+
+}  // namespace btm::str
+
+//=====================================
 // DATA STRUCTURES & DATA STRUCTURES TOOLS
 //=====================================
 namespace btm::ds
@@ -123,6 +165,34 @@ auto checkMagic(std::span<const T> bin, std::vector<T> const &magic) -> bool
 }
 
 }  // namespace btm::bin
+
+//=====================================
+// RUNTIME
+//=====================================
+namespace btm::runtime
+{
+#ifdef WIN32
+inline std::string exepath()
+{
+    char   result[MAX_PATH];
+    size_t found;
+    GetModuleFileName(NULL, result, MAX_PATH);
+    found = std::string(result).find_last_of("\\");
+    return str::replace(std::string(result).substr(0, found), "\\", "/");
+}
+#else
+inline std::string exepath()
+{
+    char    result[PATH_MAX];
+    size_t  found;
+    ssize_t count = readlink("/proc/self/exe", result, PATH_MAX);
+    found         = std::string(result).find_last_of("/");
+    // return(readlink(result).substr(0,found) + "/");
+    return std::string(result, (count > 0) ? count : 0);
+}
+#endif
+
+}  // namespace btm::runtime
 
 //
 //
