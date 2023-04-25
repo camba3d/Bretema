@@ -10,12 +10,15 @@
 //=====================================
 namespace btm::str
 {
-inline std::string replace(std::string str, std::string const &from, std::string const &to)
+inline std::string replace(std::string str, std::string const &from, std::string const &to, bool onlyFirstMatch = false)
 {
     size_t pos = 0;
     while ((pos = str.find(from)) < str.size())
     {
         str.replace(pos, from.length(), to);
+
+        if (onlyFirstMatch)
+            break;
     }
 
     return str;
