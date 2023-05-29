@@ -35,6 +35,10 @@ void App::run()
         isAnyWindowOpen = false;
         for (auto &window : { mMainWindow })
         {
+            std::string et = mETimer.elapsedStr();
+            window->titleInfo(et);
+            mETimer.reset();
+
             bool const close = window->isMarkedToClose();
 
             // RENDERER(update());

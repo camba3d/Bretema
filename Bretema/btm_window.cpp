@@ -128,7 +128,7 @@ void *Window::handle() const
 void Window::refreshTitle()
 {
     if (mHandle)
-        glfwSetWindowTitle(mHandle, (BTM_APP(mHandle).name() + " :: " + mTitle + " ::" + mTitleInfo).c_str());
+        glfwSetWindowTitle(mHandle, (BTM_APP(mHandle).name() + " :: " + mTitle + " :: " + mTitleInfo).c_str());
 }
 
 void Window::title(std::string title)

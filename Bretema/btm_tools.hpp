@@ -5,10 +5,62 @@
 #include <filesystem>
 #include <fstream>
 
+namespace btm
+{
+
+//=====================================
+// TIMER
+//=====================================
+
+template<typename TimeUnit, bool Scoped>
+class Timer
+{
+    using Clock = std::chrono::high_resolution_clock;
+
+public:
+    Timer(std::string const &msg = "") : mMsg(msg) {}
+    ~Timer()
+    {
+        if (Scoped)
+            showElapsed();
+    }
+
+    inline void reset(std::string const &msg = "")
+    {
+        mMsg   = msg != "" ? msg : mMsg;
+        mBegin = Clock::now();
+    }
+
+    inline int32_t elapsed() const { return std::chrono::duration_cast<TimeUnit>(Clock::now() - mBegin).count(); }
+
+    inline std::string elapsedStr() const
+    {
+        std::string const unit = std::is_same_v<TimeUnit, std::chrono::nanoseconds> ? "ns" : "ms";
+        return BTM_FMT("{} {}", elapsed(), unit);
+    }
+
+    inline void showElapsed() const { BTM_INFOF("[Timer] - {} : {}", mMsg, elapsedStr()); }
+
+    inline void showElapsedAndReset()
+    {
+        showElapsed();
+        reset();
+    }
+
+private:
+    Clock::time_point mBegin = Clock::now();
+    std::string       mMsg   = "";
+};
+
+using Timer_Ms       = Timer<std::chrono::milliseconds, false>;
+using Timer_Ns       = Timer<std::chrono::nanoseconds, false>;
+using ScopedTimer_Ms = Timer<std::chrono::milliseconds, true>;
+using ScopedTimer_Ns = Timer<std::chrono::nanoseconds, true>;
+
 //=====================================
 // STRINGS
 //=====================================
-namespace btm::str
+namespace str
 {
 inline std::string replace(std::string str, std::string const &from, std::string const &to, bool onlyFirstMatch = false)
 {
@@ -48,12 +100,12 @@ inline std::vector<std::string> split(const std::string &str, const std::string 
     return splitted;
 }
 
-}  // namespace btm::str
+}  // namespace str
 
 //=====================================
 // DATA STRUCTURES & DATA STRUCTURES TOOLS
 //=====================================
-namespace btm::ds
+namespace ds
 {
 
 class DeletionQueue
@@ -98,12 +150,12 @@ auto merge(auto &dst, std::span<T> src) -> void
     dst.insert(dst.end(), src.begin(), src.end());
 };
 
-}  // namespace btm::ds
+}  // namespace ds
 
 //=====================================
 // FILES / FILESYSTEM TOOLS
 //=====================================
-namespace btm::fs
+namespace fs
 {
 
 inline auto read(std::string const &path) -> std::string
@@ -127,12 +179,12 @@ inline auto read(std::string const &path) -> std::string
     return str;
 }
 
-}  // namespace btm::fs
+}  // namespace fs
 
 //=====================================
 // BINARY DATA TOOLS
 //=====================================
-namespace btm::bin
+namespace bin
 {
 
 inline auto read(std::string const &path) -> std::vector<u8>
@@ -167,12 +219,12 @@ auto checkMagic(std::span<const T> bin, std::vector<T> const &magic) -> bool
     return match;
 }
 
-}  // namespace btm::bin
+}  // namespace bin
 
 //=====================================
 // RUNTIME
 //=====================================
-namespace btm::runtime
+namespace runtime
 {
 #ifdef WIN32
 inline std::string exepath()
@@ -195,7 +247,9 @@ inline std::string exepath()
 }
 #endif
 
-}  // namespace btm::runtime
+}  // namespace runtime
+
+}  // namespace btm
 
 //
 //

@@ -64,6 +64,8 @@ private:
 
     std::vector<Camera> mCameras = { sDefaultCamera };
 
+    btm::Timer_Ms mETimer { "MainLoop" };
+
     inline static Camera const sDefaultCamera { "Main" };
 };
 
