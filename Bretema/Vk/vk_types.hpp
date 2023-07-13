@@ -137,9 +137,8 @@ struct Queue
 struct QueueCmd
 {
     QueueCmd() = default;
-    QueueCmd(sPtr<Queue> q) : queue(q) {}
 
-    sPtr<Queue>     queue = {};
+    Queue          *queue = {};
     VkCommandPool   pool  = {};
     VkCommandBuffer cmd   = {};
 };

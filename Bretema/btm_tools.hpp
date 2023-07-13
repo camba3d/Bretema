@@ -31,7 +31,7 @@ public:
         mBegin = Clock::now();
     }
 
-    inline int32_t elapsed() const { return std::chrono::duration_cast<TimeUnit>(Clock::now() - mBegin).count(); }
+    inline i32 elapsed() const { return (i32)(std::chrono::duration_cast<TimeUnit>(Clock::now() - mBegin).count()); }
 
     inline std::string elapsedStr() const
     {

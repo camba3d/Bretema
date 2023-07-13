@@ -16,12 +16,21 @@
 //= FORCE DISCRETE GPU
 //===========================
 
-#define BTM_FORCE_DISCRETE_GPU                                   \
-    extern "C"                                                   \
-    {                                                            \
-        DLL_EXPORT int NvOptimusEnablement                  = 1; \
-        DLL_EXPORT int AmdPowerXpressRequestHighPerformance = 1; \
-    }
+#if defined(_WIN64) && defined(_WIN32) && defined(_MSC_VER)
+#    define BTM_FORCE_DISCRETE_GPU                                                        \
+        extern "C"                                                                        \
+        {                                                                                 \
+            _declspec(dllexport) DWORD NvOptimusEnablement                  = 0x00000001; \
+            _declspec(dllexport) DWORD AmdPowerXpressRequestHighPerformance = 0x00000001; \
+        }
+#elif defined(_WIN64) && defined(_WIN32)
+#    define BTM_FORCE_DISCRETE_GPU                                                   \
+        extern "C"                                                                   \
+        {                                                                            \
+            __attribute__((dllexport)) int NvOptimusEnablement                  = 1; \
+            __attribute__((dllexport)) int AmdPowerXpressRequestHighPerformance = 1; \
+        }
+#endif
 
 //===========================
 //= INCLUDEs

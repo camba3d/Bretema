@@ -273,7 +273,7 @@ void Renderer::initCommands()
     {
         auto const flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
 
-        qc.queue = sPtr<vk::Queue>(q);
+        qc.queue = q;
 
         auto const cpInfo = vk::CreateInfo::CommandPool(q->family, flags);
         VK_CHECK(vkCreateCommandPool(mDevice, &cpInfo, nullptr, &qc.pool));
@@ -532,13 +532,19 @@ void Renderer::executeImmediately(VkCommandPool pool, VkQueue queue, const std::
 
 void Renderer::initMeshes()  // todo : this have to come from user-land
 {
+#ifdef _MSC_VER
+    static auto const sGeometryPath = runtime::exepath() + "/../Assets/Geometry";
+#else
+    static auto const sGeometryPath = runtime::exepath() + "/Assets/Geometry";
+#endif
+
 #if 1
     auto const addMesh = [this](auto const &name, auto const &path) { mMeshMap[name] = createMesh(btm::parseGltf(path)); };
 
-    addMesh("monkey", "./Assets/Geometry/suzanne_donut.glb");
-    addMesh("cube", "./Assets/Geometry/cube2.glb");
+    addMesh("monkey", sGeometryPath + "/suzanne_donut.glb");
+    addMesh("cube", sGeometryPath + "/cube2.glb");
 #else
-    auto const scenes = {
+    auto const        scenes        = {
         runtime::exepath() + "/Assets/Geometry/suzanne_donut.glb",  //
         // "./Assets/Geometry/cube2.glb",          //
     };
