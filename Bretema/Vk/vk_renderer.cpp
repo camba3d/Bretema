@@ -27,12 +27,13 @@ Renderer::Renderer(sPtr<btm::Window> window) : btm::BaseRenderer(window)
     initCommands();
     initSyncStructures();
 
-    initPipelines();
+    initMaterials();
+    initMeshes();
+    initTestScene();
 
     // init_descriptors();
     // init_pipelines();
     // load_images();
-    loadMeshes();
     // init_scene();
 
     markAsInit();
@@ -82,23 +83,25 @@ void Renderer::draw(Camera const &cam)
 
     //===========
 
-    vkCmdBindPipeline(mGraphicsCB, VK_PIPELINE_BIND_POINT_GRAPHICS, mPipelines[1]);
+    // vkCmdBindPipeline(mGraphicsCB, VK_PIPELINE_BIND_POINT_GRAPHICS, mPipelines[1]);
 
-    // CAMERA as PushConstant
-    glm::mat4         view       = cam.V();  // glm::translate(glm::mat4(1.f), { 0.f, 0.f, -4.f });
-    glm::mat4         projection = cam.P();  // glm::perspective(glm::radians(70.f), mViewportSize.x / mViewportSize.y, 0.1f, 200.0f);
-    glm::mat4         model      = glm::mat4(1.f);
-    MeshPushConstants constants;
-    constants.N   = glm::transpose(glm::inverse(model));
-    constants.MVP = projection * view * model;
-    // upload matrices to the GPU via push constants
-    vkCmdPushConstants(mGraphicsCB, mPipelineLayouts[1], VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(MeshPushConstants), &constants);
+    // // CAMERA as PushConstant
+    // glm::mat4         view       = cam.V();  // glm::translate(glm::mat4(1.f), { 0.f, 0.f, -4.f });
+    // glm::mat4         projection = cam.P();  // glm::perspective(glm::radians(70.f), mViewportSize.x / mViewportSize.y, 0.1f, 200.0f);
+    // glm::mat4         model      = glm::mat4(1.f);
+    // MeshPushConstants constants;
+    // constants.N   = glm::transpose(glm::inverse(model));
+    // constants.MVP = projection * view * model;
+    // // upload matrices to the GPU via push constants
+    // vkCmdPushConstants(mGraphicsCB, mPipelineLayouts[1], VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(MeshPushConstants), &constants);
 
-    // MESHes Drawing
-    for (auto const &mesh : mMeshes)
-    {
-        mesh.draw(mGraphicsCB);
-    }
+    // // RENDER SCENEs !!!
+    // // for (auto const &mesh : mMeshes)
+    // //{
+    // //    mesh.draw(mGraphicsCB);
+    // //}
+
+    drawScene("test", cam);
 
     //===========
 
@@ -379,8 +382,8 @@ void Renderer::initFramebuffers()
     framebufferCI.pNext                   = nullptr;
     framebufferCI.renderPass              = mDefaultRenderPass;
     framebufferCI.attachmentCount         = 1;
-    framebufferCI.width                   = extent_w();
-    framebufferCI.height                  = extent_h();
+    framebufferCI.width                   = extentW();
+    framebufferCI.height                  = extentH();
     framebufferCI.layers                  = 1;
 
     // Grab how many images we have in the swapchain
@@ -427,7 +430,7 @@ void Renderer::initSyncStructures()
     BTM_CREATE_VS(name);             \
     BTM_CREATE_FS(name);
 
-void Renderer::initPipelines()
+void Renderer::initMaterials()
 {
     // Shaders
     BTM_CREATE_DRAW_SHADER(tri);
@@ -528,9 +531,9 @@ void Renderer::executeImmediately(VkCommandPool pool, VkQueue queue, const std::
 
 //-----------------------------------------------------------------------------
 
-void Renderer::loadMeshes()  // todo : this have to come from user-land
+void Renderer::initMeshes()  // todo : this have to come from user-land
 {
-#if 0
+#if 1
     auto const addMesh = [this](auto const &name, auto const &path) { mMeshMap[name] = createMesh(btm::parseGltf(path)); };
 
     addMesh("monkey", "./Assets/Geometry/suzanne_donut.glb");
@@ -636,6 +639,75 @@ MeshGroup Renderer::createMesh(btm::MeshGroup const &meshes)
 Material *Renderer::createMaterial(VkPipeline pipeline, VkPipelineLayout layout, std::string const &name)
 {
     return &(mMatMap.insert({ name, Material { pipeline, layout } })).first->second;
+}
+
+//-----------------------------------------------------------------------------
+
+void Renderer::initTestScene()
+{
+    auto &testScene = mScenes["test"];
+
+    RenderObject ro { mesh0("monkey"), material("default") };
+    testScene.push_back(ro);
+
+    for (int x = -20; x <= 20; x++)
+    {
+        for (int y = -20; y <= 20; y++)
+        {
+            glm::mat4 translation = glm::translate(glm::mat4 { 1.0 }, glm::vec3(x, 0, y));
+            glm::mat4 scale       = glm::scale(glm::mat4 { 1.0 }, glm::vec3(0.2, 0.2, 0.2));
+            ro.transform          = translation * scale;
+            testScene.push_back(ro);
+        }
+    }
+}
+
+//-----------------------------------------------------------------------------
+
+void Renderer::drawScene(std::string const &name, Camera const &cam)
+{
+    //===============
+
+    glm::mat4 const &view       = cam.V();  // glm::translate(glm::mat4(1.f), { 0.f, 0.f, -4.f });
+    glm::mat4 const &projection = cam.P();  // glm::perspective(glm::radians(70.f), mViewportSize.x / mViewportSize.y, 0.1f, 200.0f);
+
+    MeshPushConstants constants;
+    // constants.N   = glm::transpose(glm::inverse(model));
+    // constants.MVP = projection * view * model;
+    // vkCmdPushConstants(mGraphicsCB, mPipelineLayouts[1], VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(MeshPushConstants), &constants);
+
+    //===============
+
+    bool const  sceneExists = mScenes.count(name) > 0;
+    auto const &scene       = sceneExists ? mScenes[name] : std::vector<RenderObject> {};
+    // BTM_INFOF("SCENE: IS VALID? {}, IS EMPTY? {}", sceneExists, scene.empty());
+
+    //===============
+
+    Mesh     *lastMesh     = nullptr;
+    Material *lastMaterial = nullptr;
+
+    for (auto const &ro : scene)
+    {
+        // update push-constant
+        constants.N   = glm::transpose(glm::inverse(ro.transform));
+        constants.MVP = projection * view * ro.transform;
+        vkCmdPushConstants(mGraphicsCB, mPipelineLayouts[1], VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(MeshPushConstants), &constants);
+        // only bind the pipeline if it doesn't match with the already bound one
+        if (ro.material != lastMaterial)
+        {
+            ro.material->bind(mGraphicsCB);
+            lastMaterial = ro.material;
+        }
+        // only bind the mesh if it's a different one from last bind
+        if (ro.mesh != lastMesh)
+        {
+            ro.mesh->bind(mGraphicsCB);
+            lastMesh = ro.mesh;
+        }
+        // draw
+        ro.mesh->draw(mGraphicsCB);
+    }
 }
 
 //-----------------------------------------------------------------------------

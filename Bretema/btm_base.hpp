@@ -89,6 +89,7 @@ using uset = std::unordered_set<T>;
 
 // General Macros
 #define MBU          [[maybe_unused]]
+#define NDSC         [[nodiscard]]
 #define BTM_BIT(x)   (1 << x)
 #define BTM_BIND(fn) [this](auto &&...args) { return this->fn(args...); }
 

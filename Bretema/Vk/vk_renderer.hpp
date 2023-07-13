@@ -15,6 +15,15 @@
 namespace btm::vk
 {
 
+struct FrameData
+{
+    VkSemaphore     presentSemaphore = VK_NULL_HANDLE;
+    VkSemaphore     renderSemaphore  = VK_NULL_HANDLE;
+    VkFence         renderFence      = VK_NULL_HANDLE;
+    VkCommandPool   commandPool      = VK_NULL_HANDLE;
+    VkCommandBuffer commandBuffer    = VK_NULL_HANDLE;
+};
+
 class Renderer : public btm::BaseRenderer
 {
     static constexpr u64 sOneSec = 1000000000;
@@ -38,12 +47,12 @@ private:
     void initDefaultRenderPass();
     void initFramebuffers();
     void initSyncStructures();
-    void initPipelines();
 
-    /// Execute commands immediately and wait for the device to finish.
+    void initMaterials();
+    void initMeshes();
+    void initTestScene();
+
     void executeImmediately(VkCommandPool pool, VkQueue queue, const std::function<void(VkCommandBuffer cb)> &fn);
-
-    void loadMeshes();
 
     AllocatedBuffer createBuffer(u64 byteSize, VkBufferUsageFlags usage, VkMemoryPropertyFlags memProps, bool addToDelQueue = true);
     AllocatedBuffer createBufferStaging(void const *data, u64 bytes, VkBufferUsageFlags usage);
@@ -51,19 +60,23 @@ private:
     MeshGroup createMesh(btm::MeshGroup const &meshes);
     Material *createMaterial(VkPipeline pipeline, VkPipelineLayout layout, std::string const &name);
 
-    inline Material  *getMaterial(const std::string &name) { return mMatMap.count(name) > 0 ? &mMatMap[name] : nullptr; }
-    inline MeshGroup *getMesh(const std::string &name) { return mMeshMap.count(name) > 0 ? &mMeshMap[name] : nullptr; }
+    void drawScene(std::string const &name, Camera const &cam);
+
+    inline Material  *material(const std::string &name) { return mMatMap.count(name) > 0 ? &mMatMap[name] : nullptr; }
+    inline MeshGroup *mesh(const std::string &name) { return mMeshMap.count(name) > 0 ? &mMeshMap[name] : nullptr; }
+    inline Mesh      *mesh0(const std::string &name) { return mMeshMap.count(name) > 0 ? &mMeshMap[name][0] : nullptr; }
 
     inline VkExtent2D extent2D() { return VkExtent2D((u32)mViewportSize.x, (u32)mViewportSize.y); }
     inline VkExtent3D extent3D() { return VkExtent3D((u32)mViewportSize.x, (u32)mViewportSize.y, 1); }
-    inline u32        extent_w() { return (u32)mViewportSize.x; }
-    inline u32        extent_h() { return (u32)mViewportSize.y; }
-    inline u32        extent_d() { return 1; }
+    inline u32        extentW() { return (u32)mViewportSize.x; }
+    inline u32        extentH() { return (u32)mViewportSize.y; }
+    inline u32        extentD() { return 1; }
 
-    std::vector<RenderObject> mRenderables;
+    // std::vector<RenderObject> mRenderables;
 
-    std::unordered_map<std::string, Material>  mMatMap;
-    std::unordered_map<std::string, MeshGroup> mMeshMap;
+    std::unordered_map<std::string, Material>                  mMatMap;
+    std::unordered_map<std::string, MeshGroup>                 mMeshMap;
+    std::unordered_map<std::string, std::vector<RenderObject>> mScenes;
 
     btm::ds::DeletionQueue mDeletionQueue {};
 
@@ -111,8 +124,6 @@ private:
 
     std::vector<VkPipelineLayout> mPipelineLayouts = {};  // Bucket of pipeline-layouts
     std::vector<VkPipeline>       mPipelines       = {};  // Bucket of pipelines
-
-    std::vector<Mesh> mMeshes = {};                       // Bucket of mesehes
 };
 
 }  // namespace btm::vk

@@ -136,23 +136,33 @@ struct Mesh
     AllocatedBuffer indices    = {};
     AllocatedBuffer vertices   = {};
 
-    inline void draw(VkCommandBuffer cmd) const
+    // ROOM TO IMPROVEMENT : https://developer.nvidia.com/vulkan-memory-management
+
+    /* @DANI
+     You should store multiple buffers, like the vertex and index buffer, into a single VkBuffer and use offsets in
+     commands like vkCmdBindVertexBuffers. The advantage is that your data is more cache friendly in that case, because
+     it's closer together. It is even possible to reuse the same chunk of memory for multiple resources if they are not
+     used during the same render operations, provided that their data is refreshed, of course. This is known as aliasing
+     and some Vulkan functions have explicit flags to specify that you want to do this.
+    */
+
+    inline void bind(VkCommandBuffer cmd) const
     {
-        // ROOM TO IMPROVEMENT : https://developer.nvidia.com/vulkan-memory-management
-
-        /* @DANI
-         You should store multiple buffers, like the vertex and index buffer, into a single VkBuffer and use offsets in
-         commands like vkCmdBindVertexBuffers. The advantage is that your data is more cache friendly in that case, because
-         it's closer together. It is even possible to reuse the same chunk of memory for multiple resources if they are not
-         used during the same render operations, provided that their data is refreshed, of course. This is known as aliasing
-         and some Vulkan functions have explicit flags to specify that you want to do this.
-        */
-
         VkBuffer const     v[]       = { vertices.buffer };
         VkDeviceSize const offsets[] = { 0 };
         vkCmdBindVertexBuffers(cmd, 0, 1, v, offsets);
         vkCmdBindIndexBuffer(cmd, indices.buffer, 0, VK_INDEX_TYPE_UINT16);
+    }
+
+    inline void draw(VkCommandBuffer cmd) const
+    {  //
         vkCmdDrawIndexed(cmd, indexCount, 1, 0, 0, 0);
+    }
+
+    inline void bindNdraw(VkCommandBuffer cmd) const
+    {
+        bind(cmd);
+        draw(cmd);
     }
 };
 using MeshGroup = std::vector<Mesh>;
@@ -161,13 +171,15 @@ struct Material
 {
     VkPipeline       pipeline;
     VkPipelineLayout pipelineLayout;
+
+    inline void bind(VkCommandBuffer cmd) { vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline); }
 };
 
 struct RenderObject
 {
-    Mesh     *mesh;
-    Material *material;
-    glm::mat4 transform;
+    Mesh       *mesh;
+    Material   *material;
+    glm::mat4   transform;
 };
 
 //---------------------------------------------------------
