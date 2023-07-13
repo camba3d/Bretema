@@ -42,22 +42,22 @@ Renderer::Renderer(sPtr<btm::Window> window) : btm::BaseRenderer(window)
 void Renderer::draw(Camera const &cam)
 {
     // Wait for GPU (1 second timeout)
-    VK_CHECK(vkWaitForFences(mDevice, 1, &mRenderFence, true, sOneSec));
-    VK_CHECK(vkResetFences(mDevice, 1, &mRenderFence));
+    VK_CHECK(vkWaitForFences(mDevice, 1, &frame().renderFence, true, sOneSec));
+    VK_CHECK(vkResetFences(mDevice, 1, &frame().renderFence));
 
     // Request image from the swapchain (1 second timeout)
     u32 swapchainImageIndex;
-    VK_CHECK(vkAcquireNextImageKHR(mDevice, mSwapchain, sOneSec, mPresentSemaphore, nullptr, &swapchainImageIndex));
+    VK_CHECK(vkAcquireNextImageKHR(mDevice, mSwapchain, sOneSec, frame().presentSemaphore, nullptr, &swapchainImageIndex));
 
     // Reset command buffer
-    VK_CHECK(vkResetCommandBuffer(mGraphicsCB, 0));
+    VK_CHECK(vkResetCommandBuffer(frame().graphics.cmd, 0));
 
     // Begin the command buffer recording.
     // We will use this command buffer exactly once, so we want to let Vulkan know that
     VkCommandBufferBeginInfo cbBeginInfo {};
     cbBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
     cbBeginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-    VK_CHECK(vkBeginCommandBuffer(mGraphicsCB, &cbBeginInfo));
+    VK_CHECK(vkBeginCommandBuffer(frame().graphics.cmd, &cbBeginInfo));
 
     // Make a clear-color from frame number.
     // This will flash with a 120*pi frame period.
@@ -79,34 +79,16 @@ void Renderer::draw(Camera const &cam)
     renderpassBI.clearValueCount       = (u32)clears.size();
     renderpassBI.pClearValues          = clears.data();
 
-    vkCmdBeginRenderPass(mGraphicsCB, &renderpassBI, VK_SUBPASS_CONTENTS_INLINE);
+    vkCmdBeginRenderPass(frame().graphics.cmd, &renderpassBI, VK_SUBPASS_CONTENTS_INLINE);
 
     //===========
-
-    // vkCmdBindPipeline(mGraphicsCB, VK_PIPELINE_BIND_POINT_GRAPHICS, mPipelines[1]);
-
-    // // CAMERA as PushConstant
-    // glm::mat4         view       = cam.V();  // glm::translate(glm::mat4(1.f), { 0.f, 0.f, -4.f });
-    // glm::mat4         projection = cam.P();  // glm::perspective(glm::radians(70.f), mViewportSize.x / mViewportSize.y, 0.1f, 200.0f);
-    // glm::mat4         model      = glm::mat4(1.f);
-    // MeshPushConstants constants;
-    // constants.N   = glm::transpose(glm::inverse(model));
-    // constants.MVP = projection * view * model;
-    // // upload matrices to the GPU via push constants
-    // vkCmdPushConstants(mGraphicsCB, mPipelineLayouts[1], VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(MeshPushConstants), &constants);
-
-    // // RENDER SCENEs !!!
-    // // for (auto const &mesh : mMeshes)
-    // //{
-    // //    mesh.draw(mGraphicsCB);
-    // //}
 
     drawScene("test", cam);
 
     //===========
 
-    vkCmdEndRenderPass(mGraphicsCB);
-    VK_CHECK(vkEndCommandBuffer(mGraphicsCB));
+    vkCmdEndRenderPass(frame().graphics.cmd);
+    VK_CHECK(vkEndCommandBuffer(frame().graphics.cmd));
 
     // Prepare the submission to the queue.
     // We want to wait on the mPresentSemaphore, as that semaphore is signaled when the swapchain is ready
@@ -118,13 +100,13 @@ void Renderer::draw(Camera const &cam)
     submitInfo.pNext                = nullptr;
     submitInfo.pWaitDstStageMask    = &waitStage;
     submitInfo.waitSemaphoreCount   = 1;
-    submitInfo.pWaitSemaphores      = &mPresentSemaphore;
+    submitInfo.pWaitSemaphores      = &frame().presentSemaphore;
     submitInfo.signalSemaphoreCount = 1;
-    submitInfo.pSignalSemaphores    = &mRenderSemaphore;
+    submitInfo.pSignalSemaphores    = &frame().renderSemaphore;
     submitInfo.commandBufferCount   = 1;
-    submitInfo.pCommandBuffers      = &mGraphicsCB;
+    submitInfo.pCommandBuffers      = &frame().graphics.cmd;
 
-    VK_CHECK(vkQueueSubmit(mGraphicsQ.queue, 1, &submitInfo, mRenderFence));  // Submit and execute
+    VK_CHECK(vkQueueSubmit(mGraphics.queue, 1, &submitInfo, frame().renderFence));  // Submit and execute
     // --> mRenderFence will now block until the graphic commands finish execution
 
     // This will put the image we just rendered into the visible window.
@@ -135,10 +117,10 @@ void Renderer::draw(Camera const &cam)
     presentInfo.pNext              = nullptr;
     presentInfo.pSwapchains        = &mSwapchain;
     presentInfo.swapchainCount     = 1;
-    presentInfo.pWaitSemaphores    = &mRenderSemaphore;
+    presentInfo.pWaitSemaphores    = &frame().renderSemaphore;
     presentInfo.waitSemaphoreCount = 1;
     presentInfo.pImageIndices      = &swapchainImageIndex;
-    VK_CHECK(vkQueuePresentKHR(mGraphicsQ.queue, &presentInfo));
+    VK_CHECK(vkQueuePresentKHR(mGraphics.queue, &presentInfo));
 
     // Increase the number of frames drawn
     mFrameNumber++;
@@ -147,9 +129,14 @@ void Renderer::draw(Camera const &cam)
 void Renderer::cleanup()
 {
     if (!isInitialized())
+    {
         return;
+    }
 
-    vkWaitForFences(mDevice, 1, &mRenderFence, true, sOneSec);  // make sure the GPU has stopped doing its things
+    for (u64 i = 0; i < sFlightFrames; i++)
+    {
+        vkWaitForFences(mDevice, 1, &mFrames[i].renderFence, true, sOneSec * 4);
+    }
 
     mDeletionQueue.flush();
 
@@ -169,7 +156,9 @@ void Renderer::initVulkan()
     auto vkbInstanceBuilder = vkb::InstanceBuilder {};
 
     for (auto &&ext : btm::Window::extensions())
+    {
         vkbInstanceBuilder.enable_extension(ext);
+    }
 
     auto vkbInstanceResult = vkbInstanceBuilder.set_app_name("Bretema Default Engine")
                                .request_validation_layers(true)
@@ -214,11 +203,11 @@ void Renderer::initVulkan()
     vmaCreateAllocator(&allocatorInfo, &mAllocator);
 
     // Queues
-    mGraphicsQ = { vkbDevice, vkb::QueueType::graphics };
-    mPresentQ  = { vkbDevice, vkb::QueueType::present };
-    mComputeQ  = { vkbDevice, vkb::QueueType::compute };
-    mTransferQ = { vkbDevice, vkb::QueueType::transfer };
-    BTM_INFOF("G:{} | P:{} | C:{} | T:{}", mGraphicsQ, mPresentQ, mComputeQ, mTransferQ);
+    mGraphics = vk::Queue { vkbDevice, vkb::QueueType::graphics };
+    mPresent  = vk::Queue { vkbDevice, vkb::QueueType::present };
+    mCompute  = vk::Queue { vkbDevice, vkb::QueueType::compute };
+    mTransfer = vk::Queue { vkbDevice, vkb::QueueType::transfer };
+    BTM_INFOF("G:{} | P:{} | C:{} | T:{}", mGraphics, mPresent, mCompute, mTransfer);
 }
 
 void Renderer::initSwapchain()
@@ -280,22 +269,28 @@ void Renderer::initSwapchain()
 
 void Renderer::initCommands()
 {
-    auto const initCommandsByFamily = [this](auto family, auto &pool, auto &cb)
+    auto const initCommandsByFamily = [this](vk::QueueCmd &qc, vk::Queue *q)
     {
         auto const flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
 
-        auto const cpInfo = vk::CreateInfo::CommandPool(family, flags);
-        VK_CHECK(vkCreateCommandPool(mDevice, &cpInfo, nullptr, &pool));
-        TO_DESTROY(vkDestroyCommandPool(mDevice, pool, nullptr));
+        qc.queue = sPtr<vk::Queue>(q);
 
-        auto const cbAllocInfo = vk::AllocInfo::CommandBuffer(pool);
-        VK_CHECK(vkAllocateCommandBuffers(mDevice, &cbAllocInfo, &cb));
+        auto const cpInfo = vk::CreateInfo::CommandPool(q->family, flags);
+        VK_CHECK(vkCreateCommandPool(mDevice, &cpInfo, nullptr, &qc.pool));
+        TO_DESTROY(vkDestroyCommandPool(mDevice, qc.pool, nullptr));
+
+        auto const cbAllocInfo = vk::AllocInfo::CommandBuffer(qc.pool);
+        VK_CHECK(vkAllocateCommandBuffers(mDevice, &cbAllocInfo, &qc.cmd));
     };
 
-    initCommandsByFamily(mGraphicsQ.family, mGraphicsCP, mGraphicsCB);
-    initCommandsByFamily(mPresentQ.family, mPresentCP, mPresentCB);
-    initCommandsByFamily(mComputeQ.family, mComputeCP, mComputeCB);
-    initCommandsByFamily(mTransferQ.family, mTransferCP, mTransferCB);
+    for (u64 i = 0; i < sFlightFrames; i++)
+    {
+        auto &fd = mFrames[i];
+        initCommandsByFamily(fd.graphics, &mGraphics);
+        initCommandsByFamily(fd.present, &mPresent);
+        initCommandsByFamily(fd.compute, &mCompute);
+        initCommandsByFamily(fd.transfer, &mTransfer);
+    }
 }
 
 void Renderer::initDefaultRenderPass()
@@ -405,17 +400,21 @@ void Renderer::initFramebuffers()
 
 void Renderer::initSyncStructures()
 {
-    auto const fenceCI     = vk::CreateInfo::Fence();
-    auto const semaphoreCI = vk::CreateInfo::Semaphore();
+    for (u64 i = 0; i < sFlightFrames; i++)
+    {
+        auto const fenceCI     = vk::CreateInfo::Fence();
+        auto const semaphoreCI = vk::CreateInfo::Semaphore();
+        auto      &fd          = mFrames[i];
 
-    VK_CHECK(vkCreateFence(mDevice, &fenceCI, nullptr, &mRenderFence));
-    TO_DESTROY(vkDestroyFence(mDevice, mRenderFence, nullptr));
+        VK_CHECK(vkCreateFence(mDevice, &fenceCI, nullptr, &fd.renderFence));
+        TO_DESTROY(vkDestroyFence(mDevice, fd.renderFence, nullptr));
 
-    VK_CHECK(vkCreateSemaphore(mDevice, &semaphoreCI, nullptr, &mPresentSemaphore));
-    TO_DESTROY(vkDestroySemaphore(mDevice, mPresentSemaphore, nullptr));
+        VK_CHECK(vkCreateSemaphore(mDevice, &semaphoreCI, nullptr, &fd.presentSemaphore));
+        TO_DESTROY(vkDestroySemaphore(mDevice, fd.presentSemaphore, nullptr));
 
-    VK_CHECK(vkCreateSemaphore(mDevice, &semaphoreCI, nullptr, &mRenderSemaphore));
-    TO_DESTROY(vkDestroySemaphore(mDevice, mRenderSemaphore, nullptr));
+        VK_CHECK(vkCreateSemaphore(mDevice, &semaphoreCI, nullptr, &fd.renderSemaphore));
+        TO_DESTROY(vkDestroySemaphore(mDevice, fd.renderSemaphore, nullptr));
+    }
 }
 
 #define BTM_CREATE_VS(name)                                                                \
@@ -443,7 +442,7 @@ void Renderer::initMaterials()
     auto const infoTri = vk::CreateInfo::PipelineLayout();
     VK_CHECK(vkCreatePipelineLayout(mDevice, &infoTri, nullptr, &mPipelineLayouts[0]));
 
-    VkPushConstantRange push_constant = { VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(MeshPushConstants) };
+    VkPushConstantRange push_constant = { VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(Matrices) };
     auto                infoMesh      = vk::CreateInfo::PipelineLayout();
     infoMesh.pPushConstantRanges      = &push_constant;
     infoMesh.pushConstantRangeCount   = 1;
@@ -600,8 +599,8 @@ AllocatedBuffer Renderer::createBufferStaging(void const *data, u64 bytes, VkBuf
 
     // Populate dev from host
     executeImmediately(
-      mTransferCP,
-      mTransferQ.queue,
+      frame().transfer.pool,
+      mTransfer.queue,
       [&](VkCommandBuffer cb)
       {
           VkBufferCopy const copyRegion { 0, 0, bytes };
@@ -671,10 +670,10 @@ void Renderer::drawScene(std::string const &name, Camera const &cam)
     glm::mat4 const &view       = cam.V();  // glm::translate(glm::mat4(1.f), { 0.f, 0.f, -4.f });
     glm::mat4 const &projection = cam.P();  // glm::perspective(glm::radians(70.f), mViewportSize.x / mViewportSize.y, 0.1f, 200.0f);
 
-    MeshPushConstants constants;
+    Matrices constants;
     // constants.N   = glm::transpose(glm::inverse(model));
     // constants.MVP = projection * view * model;
-    // vkCmdPushConstants(mGraphicsCB, mPipelineLayouts[1], VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(MeshPushConstants), &constants);
+    // vkCmdPushConstants(mGraphicsCB, mPipelineLayouts[1], VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(Matrices), &constants);
 
     //===============
 
@@ -692,21 +691,21 @@ void Renderer::drawScene(std::string const &name, Camera const &cam)
         // update push-constant
         constants.N   = glm::transpose(glm::inverse(ro.transform));
         constants.MVP = projection * view * ro.transform;
-        vkCmdPushConstants(mGraphicsCB, mPipelineLayouts[1], VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(MeshPushConstants), &constants);
+        vkCmdPushConstants(frame().graphics.cmd, mPipelineLayouts[1], VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(Matrices), &constants);
         // only bind the pipeline if it doesn't match with the already bound one
         if (ro.material != lastMaterial)
         {
-            ro.material->bind(mGraphicsCB);
+            ro.material->bind(frame().graphics.cmd);
             lastMaterial = ro.material;
         }
         // only bind the mesh if it's a different one from last bind
         if (ro.mesh != lastMesh)
         {
-            ro.mesh->bind(mGraphicsCB);
+            ro.mesh->bind(frame().graphics.cmd);
             lastMesh = ro.mesh;
         }
         // draw
-        ro.mesh->draw(mGraphicsCB);
+        ro.mesh->draw(frame().graphics.cmd);
     }
 }
 

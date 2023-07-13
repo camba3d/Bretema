@@ -1,6 +1,29 @@
 #pragma once
 
 //===========================
+//= DLL MACROS
+//===========================
+
+#ifdef _MSC_VER
+#    define DLL_EXPORT _declspec((dllexport))
+#    define DLL_IMPORT _declspec((dllimport))
+#else
+#    define DLL_EXPORT __attribute__((dllexport))
+#    define DLL_IMPORT __attribute__((dllimport))
+#endif
+
+//===========================
+//= FORCE DISCRETE GPU
+//===========================
+
+#define BTM_FORCE_DISCRETE_GPU                                   \
+    extern "C"                                                   \
+    {                                                            \
+        DLL_EXPORT int NvOptimusEnablement                  = 1; \
+        DLL_EXPORT int AmdPowerXpressRequestHighPerformance = 1; \
+    }
+
+//===========================
 //= INCLUDEs
 //===========================
 

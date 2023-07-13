@@ -11,78 +11,16 @@
 namespace btm::vk
 {
 
-struct AllocatedBuffer
-{
-    VkBuffer      buffer     = VK_NULL_HANDLE;
-    VmaAllocation allocation = VK_NULL_HANDLE;
-};
+//-----------------------------------------------------------------------------
 
-struct AllocatedImage
-{
-    VkImage       image      = VK_NULL_HANDLE;
-    VmaAllocation allocation = VK_NULL_HANDLE;
-};
+u32 constexpr R_BIT    = VK_COLOR_COMPONENT_R_BIT;
+u32 constexpr G_BIT    = VK_COLOR_COMPONENT_G_BIT;
+u32 constexpr B_BIT    = VK_COLOR_COMPONENT_B_BIT;
+u32 constexpr A_BIT    = VK_COLOR_COMPONENT_A_BIT;
+u32 constexpr RGB_BIT  = R_BIT | G_BIT | B_BIT;
+u32 constexpr RGBA_BIT = R_BIT | G_BIT | B_BIT | A_BIT;
 
-struct VertexInputDescription
-{
-    std::vector<VkVertexInputBindingDescription>   bindings;
-    std::vector<VkVertexInputAttributeDescription> attributes;
-
-    VkPipelineVertexInputStateCreateFlags flags = 0;
-
-    static VertexInputDescription const &get()
-    {
-        static auto const desc = []()
-        {
-            VertexInputDescription D;
-            D.bindings.push_back({ 0, sizeof(float) * (3 + 2 + 3 + 4), VK_VERTEX_INPUT_RATE_VERTEX });
-            D.attributes.push_back({ 0, 0, VK_FORMAT_R32G32B32_SFLOAT, 0 });     // pos
-            D.attributes.push_back({ 1, 0, VK_FORMAT_R32G32_SFLOAT, 0 });        // uv0
-            D.attributes.push_back({ 2, 0, VK_FORMAT_R32G32B32_SFLOAT, 0 });     // normal
-            D.attributes.push_back({ 3, 0, VK_FORMAT_R32G32B32A32_SFLOAT, 0 });  // tangent
-            return D;
-        }();
-
-        return desc;
-    }
-};
-
-struct Queue
-{
-    Queue() = default;
-
-    Queue(vkb::Device vkbDevice, vkb::QueueType queueType)
-    {
-        auto const q = vkbDevice.get_queue(queueType);
-        auto const f = vkbDevice.get_queue_index(queueType);
-        if (valid = q.has_value() && f.has_value(); valid)
-        {
-            queue  = q.value();
-            family = f.value();
-        }
-        BTM_ASSERT(valid);
-    }
-
-    VkQueue queue  = {};
-    u32     family = {};
-    bool    valid  = false;
-};
-
-struct PipelineBuilder
-{
-    std::vector<VkPipelineShaderStageCreateInfo> shaderStages;
-    VkPipelineVertexInputStateCreateInfo         vertexInputInfo;
-    VkPipelineInputAssemblyStateCreateInfo       inputAssembly;
-    VkViewport                                   viewport;
-    VkRect2D                                     scissor;
-    VkPipelineRasterizationStateCreateInfo       rasterizer;
-    VkPipelineColorBlendAttachmentState          colorBlendAttachment;
-    VkPipelineMultisampleStateCreateInfo         multisampling;
-    VkPipelineLayout                             pipelineLayout;
-    VkPipelineDepthStencilStateCreateInfo        depthStencil;
-};
-
-u32 constexpr RGBA_BIT = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
+//-----------------------------------------------------------------------------
 
 namespace Blend
 {
@@ -128,7 +66,101 @@ VkPipelineColorBlendAttachmentState const StraightColor = {
 };
 }  // namespace Blend
 
-//---------------------------------------------------------
+//-----------------------------------------------------------------------------
+
+struct AllocatedBuffer
+{
+    VkBuffer      buffer     = VK_NULL_HANDLE;
+    VmaAllocation allocation = VK_NULL_HANDLE;
+};
+
+//-----------------------------------------------------------------------------
+
+struct AllocatedImage
+{
+    VkImage       image      = VK_NULL_HANDLE;
+    VmaAllocation allocation = VK_NULL_HANDLE;
+};
+
+//-----------------------------------------------------------------------------
+
+struct VertexInputDescription
+{
+    std::vector<VkVertexInputBindingDescription>   bindings;
+    std::vector<VkVertexInputAttributeDescription> attributes;
+
+    VkPipelineVertexInputStateCreateFlags flags = 0;
+
+    static VertexInputDescription const &get()
+    {
+        static auto const desc = []()
+        {
+            VertexInputDescription D;
+            D.bindings.push_back({ 0, sizeof(float) * (3 + 2 + 3 + 4), VK_VERTEX_INPUT_RATE_VERTEX });
+            D.attributes.push_back({ 0, 0, VK_FORMAT_R32G32B32_SFLOAT, 0 });     // pos
+            D.attributes.push_back({ 1, 0, VK_FORMAT_R32G32_SFLOAT, 0 });        // uv0
+            D.attributes.push_back({ 2, 0, VK_FORMAT_R32G32B32_SFLOAT, 0 });     // normal
+            D.attributes.push_back({ 3, 0, VK_FORMAT_R32G32B32A32_SFLOAT, 0 });  // tangent
+            return D;
+        }();
+
+        return desc;
+    }
+};
+
+//-----------------------------------------------------------------------------
+
+struct Queue
+{
+    Queue() = default;
+    Queue(vkb::Device vkbDevice, vkb::QueueType aType)
+    {
+        type         = aType;
+        auto const q = vkbDevice.get_queue(aType);
+        auto const f = vkbDevice.get_queue_index(aType);
+        if (valid = q.has_value() && f.has_value(); valid)
+        {
+            queue  = q.value();
+            family = f.value();
+        }
+        BTM_ASSERT(valid);
+    }
+
+    VkQueue        queue  = {};
+    u32            family = {};
+    vkb::QueueType type   = vkb::QueueType::graphics;
+    bool           valid  = false;
+};
+
+//-----------------------------------------------------------------------------
+
+struct QueueCmd
+{
+    QueueCmd() = default;
+    QueueCmd(sPtr<Queue> q) : queue(q) {}
+
+    sPtr<Queue>     queue = {};
+    VkCommandPool   pool  = {};
+    VkCommandBuffer cmd   = {};
+};
+
+//-----------------------------------------------------------------------------
+
+struct PipelineBuilder
+{
+    std::vector<VkPipelineShaderStageCreateInfo> shaderStages;
+    VkPipelineVertexInputStateCreateInfo         vertexInputInfo;
+    VkPipelineInputAssemblyStateCreateInfo       inputAssembly;
+    VkViewport                                   viewport;
+    VkRect2D                                     scissor;
+    VkPipelineRasterizationStateCreateInfo       rasterizer;
+    VkPipelineColorBlendAttachmentState          colorBlendAttachment;
+    VkPipelineMultisampleStateCreateInfo         multisampling;
+    VkPipelineLayout                             pipelineLayout;
+    VkPipelineDepthStencilStateCreateInfo        depthStencil;
+};
+
+//-----------------------------------------------------------------------------
 
 struct Mesh
 {
@@ -165,7 +197,10 @@ struct Mesh
         draw(cmd);
     }
 };
+
 using MeshGroup = std::vector<Mesh>;
+
+//-----------------------------------------------------------------------------
 
 struct Material
 {
@@ -175,16 +210,46 @@ struct Material
     inline void bind(VkCommandBuffer cmd) { vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline); }
 };
 
+//-----------------------------------------------------------------------------
+
 struct RenderObject
 {
-    Mesh       *mesh;
-    Material   *material;
-    glm::mat4   transform;
+    Mesh     *mesh;
+    Material *material;
+    glm::mat4 transform;
 };
 
-//---------------------------------------------------------
+//-----------------------------------------------------------------------------
+
+struct Matrices
+{
+    glm::mat4 N;
+    glm::mat4 MVP;
+};
+
+//-----------------------------------------------------------------------------
+
+struct FrameData
+{
+    // * room to improve: https://vulkan-tutorial.com/Drawing_a_triangle/Drawing/Rendering_and_presentation
+
+    VkSemaphore presentSemaphore = VK_NULL_HANDLE;
+    VkSemaphore renderSemaphore  = VK_NULL_HANDLE;
+    VkFence     renderFence      = VK_NULL_HANDLE;
+
+    vk::QueueCmd graphics = {};
+    vk::QueueCmd present  = {};
+    vk::QueueCmd compute  = {};
+    vk::QueueCmd transfer = {};
+};
+
+//-----------------------------------------------------------------------------
 
 }  // namespace btm::vk
+
+//=====================================
+//=== FMT
+//=====================================
 
 template<>
 struct fmt::formatter<btm::vk::Queue>

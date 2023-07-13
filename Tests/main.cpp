@@ -1,5 +1,7 @@
 #include "Bretema/btm_app.hpp"
 
+BTM_FORCE_DISCRETE_GPU;
+
 int main(int argc, char *argv[])
 {
     btm::App app { "Bretema", btm::RenderAPI::Vulkan };

@@ -239,8 +239,7 @@ inline VkShaderModule ShaderModule(VkDevice device, std::string const &name, VkS
 
     // TODO / FIXME : On 'install' change shaders path to absolute from a selected resources-path
     // static auto const sShadersPath = std::string("./Assets/Shaders/");
-    BTM_INFO("AAAAAAAAAAAAAAAAAA");
-    BTM_INFOF("AAAAAAAAAAAAAAAAAA {}", runtime::exepath());
+    // BTM_INFOF("AAAAAAAAAAAAAAAAAA {}", runtime::exepath());
     static auto const sShadersPath = runtime::exepath() + "/Assets/Shaders/";
 
     if (sStageToExt.count(stage) < 1)

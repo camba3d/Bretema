@@ -15,24 +15,10 @@
 namespace btm::vk
 {
 
-struct FrameData
-{
-    VkSemaphore     presentSemaphore = VK_NULL_HANDLE;
-    VkSemaphore     renderSemaphore  = VK_NULL_HANDLE;
-    VkFence         renderFence      = VK_NULL_HANDLE;
-    VkCommandPool   commandPool      = VK_NULL_HANDLE;
-    VkCommandBuffer commandBuffer    = VK_NULL_HANDLE;
-};
-
 class Renderer : public btm::BaseRenderer
 {
-    static constexpr u64 sOneSec = 1000000000;
-
-    struct MeshPushConstants
-    {
-        glm::mat4 N;
-        glm::mat4 MVP;
-    };
+    static constexpr u64 sOneSec       = 1000000000;
+    static constexpr u64 sFlightFrames = 3;
 
 public:
     Renderer(sPtr<btm::Window> window);
@@ -62,9 +48,10 @@ private:
 
     void drawScene(std::string const &name, Camera const &cam);
 
-    inline Material  *material(const std::string &name) { return mMatMap.count(name) > 0 ? &mMatMap[name] : nullptr; }
-    inline MeshGroup *mesh(const std::string &name) { return mMeshMap.count(name) > 0 ? &mMeshMap[name] : nullptr; }
-    inline Mesh      *mesh0(const std::string &name) { return mMeshMap.count(name) > 0 ? &mMeshMap[name][0] : nullptr; }
+    inline Material  *material(std::string const &name) { return mMatMap.count(name) > 0 ? &mMatMap[name] : nullptr; }
+    inline MeshGroup *mesh(std::string const &name) { return mMeshMap.count(name) > 0 ? &mMeshMap[name] : nullptr; }
+    inline Mesh      *mesh0(std::string const &name) { return mMeshMap.count(name) > 0 ? &mMeshMap[name][0] : nullptr; }
+    inline FrameData &frame() { return mFrames[mFrameNumber % sFlightFrames]; }
 
     inline VkExtent2D extent2D() { return VkExtent2D((u32)mViewportSize.x, (u32)mViewportSize.y); }
     inline VkExtent3D extent3D() { return VkExtent3D((u32)mViewportSize.x, (u32)mViewportSize.y, 1); }
@@ -72,13 +59,18 @@ private:
     inline u32        extentH() { return (u32)mViewportSize.y; }
     inline u32        extentD() { return 1; }
 
-    // std::vector<RenderObject> mRenderables;
-
     std::unordered_map<std::string, Material>                  mMatMap;
     std::unordered_map<std::string, MeshGroup>                 mMeshMap;
     std::unordered_map<std::string, std::vector<RenderObject>> mScenes;
 
+    FrameData mFrames[sFlightFrames];
+
     btm::ds::DeletionQueue mDeletionQueue {};
+
+    vk::Queue mGraphics;
+    vk::Queue mPresent;
+    vk::Queue mCompute;
+    vk::Queue mTransfer;
 
     VmaAllocator mAllocator = VK_NULL_HANDLE;                                  // Memory Allocator - AMD lib
 
@@ -93,22 +85,6 @@ private:
     std::vector<VkImage>     mSwapchainImages      = {};                       // List of images from the swapchain
     std::vector<VkImageView> mSwapchainImageViews  = {};                       // List of image-views from the swapchain
 
-    vk::Queue       mGraphicsQ  = {};                                          // Queue/Family for Graphics
-    VkCommandPool   mGraphicsCP = {};                                          // Command-Pool for Graphics-commands
-    VkCommandBuffer mGraphicsCB = {};                                          // Command-Buffer for Graphics-commands
-
-    vk::Queue       mPresentQ  = {};                                           // Queue/Family for Present
-    VkCommandPool   mPresentCP = {};                                           // Command-Pool for Present-commands
-    VkCommandBuffer mPresentCB = {};                                           // Command-Buffer for Present-commands
-
-    vk::Queue       mComputeQ  = {};                                           // Queue/Family for Compute
-    VkCommandPool   mComputeCP = {};                                           // Command-Pool for Compute-commands
-    VkCommandBuffer mComputeCB = {};                                           // Command-Buffer for Compute-commands
-
-    vk::Queue       mTransferQ  = {};                                          // Queue/Family for Transfer
-    VkCommandPool   mTransferCP = {};                                          // Command-Pool for Transfer-commands
-    VkCommandBuffer mTransferCB = {};                                          // Command-Buffer for Transfer-commands
-
     VkImageView    mDepthImageView         = VK_NULL_HANDLE;
     AllocatedImage mDepthImage             = {};
     static VkFormat constexpr sDepthFormat = VK_FORMAT_D32_SFLOAT;   // @todo: Check VK_FORMAT_D32_SFLOAT_S8_UINT  ??
@@ -116,14 +92,8 @@ private:
     VkRenderPass               mDefaultRenderPass = VK_NULL_HANDLE;  // Basic renderpass config with (1) color and subpass
     std::vector<VkFramebuffer> mFramebuffers      = {};              // Bucket of FBOs, one per swapchain-image(view)
 
-    // There is room to improve here, check:
-    // * https://vulkan-tutorial.com/Drawing_a_triangle/Drawing/Rendering_and_presentation
-    VkSemaphore mPresentSemaphore = VK_NULL_HANDLE;
-    VkSemaphore mRenderSemaphore  = VK_NULL_HANDLE;
-    VkFence     mRenderFence      = VK_NULL_HANDLE;
-
-    std::vector<VkPipelineLayout> mPipelineLayouts = {};  // Bucket of pipeline-layouts
-    std::vector<VkPipeline>       mPipelines       = {};  // Bucket of pipelines
+    std::vector<VkPipelineLayout> mPipelineLayouts = {};             // Bucket of pipeline-layouts
+    std::vector<VkPipeline>       mPipelines       = {};             // Bucket of pipelines
 };
 
 }  // namespace btm::vk
