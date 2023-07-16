@@ -17,8 +17,9 @@ namespace btm::vk
 
 class Renderer : public btm::BaseRenderer
 {
-    static constexpr u64 sOneSec       = 1000000000;
-    static constexpr u64 sFlightFrames = 3;
+    static constexpr u64      sOneSec       = 1000000000;
+    static constexpr u64      sFlightFrames = 3;
+    static constexpr VkFormat sDepthFormat  = VK_FORMAT_D32_SFLOAT;  // @todo: Check VK_FORMAT_D32_SFLOAT_S8_UINT  ??
 
 public:
     Renderer(sPtr<btm::Window> window);
@@ -59,41 +60,48 @@ private:
     inline u32        extentH() { return (u32)mViewportSize.y; }
     inline u32        extentD() { return 1; }
 
-    std::unordered_map<std::string, Material>                  mMatMap;
-    std::unordered_map<std::string, MeshGroup>                 mMeshMap;
-    std::unordered_map<std::string, std::vector<RenderObject>> mScenes;
-
+    // PER FRAME
     FrameData mFrames[sFlightFrames];
 
-    btm::ds::DeletionQueue mDeletionQueue {};
+    // QUEUEs
+    vk::Queue mGraphics = {};
+    vk::Queue mPresent  = {};
+    vk::Queue mCompute  = {};
+    vk::Queue mTransfer = {};
 
-    vk::Queue mGraphics;
-    vk::Queue mPresent;
-    vk::Queue mCompute;
-    vk::Queue mTransfer;
+    // IDSM : INSTANCE, DEVICE, SURFACE
+    VkInstance               mInstance       = VK_NULL_HANDLE;  // Vulkan library handle
+    VkDebugUtilsMessengerEXT mDebugMessenger = VK_NULL_HANDLE;  // Vulkan debug output handle
+    VkPhysicalDevice         mChosenGPU      = VK_NULL_HANDLE;  // GPU chosen as the default device
+    VkDevice                 mDevice         = VK_NULL_HANDLE;  // Vulkan device for commands
+    VkSurfaceKHR             mSurface        = VK_NULL_HANDLE;  // Vulkan window surface
 
-    VmaAllocator mAllocator = VK_NULL_HANDLE;                                  // Memory Allocator - AMD lib
+    // MEMORY
+    btm::ds::DeletionQueue mDeletionQueue = {};
+    VmaAllocator           mAllocator     = VK_NULL_HANDLE;  // Memory Allocator - AMD lib
 
-    VkInstance               mInstance       = VK_NULL_HANDLE;                 // Vulkan library handle
-    VkDebugUtilsMessengerEXT mDebugMessenger = VK_NULL_HANDLE;                 // Vulkan debug output handle
-    VkPhysicalDevice         mChosenGPU      = VK_NULL_HANDLE;                 // GPU chosen as the default device
-    VkDevice                 mDevice         = VK_NULL_HANDLE;                 // Vulkan device for commands
-    VkSurfaceKHR             mSurface        = VK_NULL_HANDLE;                 // Vulkan window surface (in a future could be an array)
-
+    // SWAPCHAIN
     VkSwapchainKHR           mSwapchain            = VK_NULL_HANDLE;           // Vulkan swapchain
     VkFormat                 mSwapchainImageFormat = VK_FORMAT_B8G8R8A8_SRGB;  // Image format expected by window
     std::vector<VkImage>     mSwapchainImages      = {};                       // List of images from the swapchain
     std::vector<VkImageView> mSwapchainImageViews  = {};                       // List of image-views from the swapchain
 
-    VkImageView    mDepthImageView         = VK_NULL_HANDLE;
-    AllocatedImage mDepthImage             = {};
-    static VkFormat constexpr sDepthFormat = VK_FORMAT_D32_SFLOAT;   // @todo: Check VK_FORMAT_D32_SFLOAT_S8_UINT  ??
+    // DEPTH
+    VkImageView    mDepthImageView    = VK_NULL_HANDLE;
+    AllocatedImage mDepthImage        = {};
+    VkRenderPass   mDefaultRenderPass = VK_NULL_HANDLE;
 
-    VkRenderPass               mDefaultRenderPass = VK_NULL_HANDLE;  // Basic renderpass config with (1) color and subpass
-    std::vector<VkFramebuffer> mFramebuffers      = {};              // Bucket of FBOs, one per swapchain-image(view)
+    // FBOs
+    std::vector<VkFramebuffer> mFramebuffers = {};
 
-    std::vector<VkPipelineLayout> mPipelineLayouts = {};             // Bucket of pipeline-layouts
-    std::vector<VkPipeline>       mPipelines       = {};             // Bucket of pipelines
+    // MATERIALs
+    std::vector<VkPipelineLayout>             mPipelineLayouts = {};  // Bucket of pipeline-layouts
+    std::vector<VkPipeline>                   mPipelines       = {};  // Bucket of pipelines
+    std::unordered_map<std::string, Material> mMatMap          = {};
+
+    // GEOMETRY
+    std::unordered_map<std::string, MeshGroup>                 mMeshMap = {};
+    std::unordered_map<std::string, std::vector<RenderObject>> mScenes  = {};
 };
 
 }  // namespace btm::vk

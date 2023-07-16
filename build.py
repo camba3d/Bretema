@@ -4,6 +4,11 @@ import argparse
 import subprocess
 
 
+def add_to_path(path):
+    """Adds the given path to the system path."""
+    os.environ["PATH"] += ";" + path
+
+
 def subprocess_call(*args):
     assert len(args) > 0
 
@@ -17,6 +22,10 @@ def subprocess_call(*args):
 
 
 def main():
+    # PRE
+
+    add_to_path(os.path.join(os.environ["ProgramFiles(x86)"], "Microsoft Visual Studio", "2019", "Community", "MSBuild", "Current", "Bin"))
+
     # CLI
 
     ap = argparse.ArgumentParser(description="[bretema] - source compile helper")
@@ -24,8 +33,14 @@ def main():
     ap.add_argument("-b", "--build", default=False, action="store_true", help="enables build")
     ap.add_argument("-d", "--debug", default=False, action="store_true", help="compile as debug (default is release)")
     ap.add_argument("-t", "--tests", default=False, action="store_true", help="also compile tests")
+
+    # ap.add_argument("--ninja", default=False, action="store_true", help="use NINJA as CMake-Generator")
+    ap.add_argument("--msvc19", default=False, action="store_true", help="use MSVC2019 as CMake-Generator")
+
     ap.add_argument("-v", default=False, action="store_true", help="enable cmake log-level : 'status'")
     args = ap.parse_args()
+
+    gen = "Visual Studio 16 2019" if args.msvc19 else "Ninja"
 
     def verb_print(msg):
         if args.v:
@@ -35,6 +50,7 @@ def main():
 
     build_tests_str = "ON" if args.tests else "OFF"
     build_type_str = "Debug" if args.debug == 1 else "Release"
+    build_cmd = f"msbuild ALL_BUILD.vcxproj /p:Configuration={build_type_str}" if args.msvc19 else "Ninja"
 
     log_level_str = "STATUS" if args.v else "WARNING"
 
@@ -79,11 +95,11 @@ def main():
             f"-DCMAKE_BUILD_TYPE={build_type_str}",
             f"-DOPT_TESTS={build_tests_str}",
             "-G",
-            "Ninja",
+            gen,
             "..",
         )
 
-        subprocess_call("ninja")
+        subprocess_call(*build_cmd.split(" "))
 
 
 if __name__ == "__main__":

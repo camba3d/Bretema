@@ -676,10 +676,7 @@ void Renderer::drawScene(std::string const &name, Camera const &cam)
     glm::mat4 const &view       = cam.V();  // glm::translate(glm::mat4(1.f), { 0.f, 0.f, -4.f });
     glm::mat4 const &projection = cam.P();  // glm::perspective(glm::radians(70.f), mViewportSize.x / mViewportSize.y, 0.1f, 200.0f);
 
-    Matrices constants;
-    // constants.N   = glm::transpose(glm::inverse(model));
-    // constants.MVP = projection * view * model;
-    // vkCmdPushConstants(mGraphicsCB, mPipelineLayouts[1], VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(Matrices), &constants);
+    Matrices matrices;
 
     //===============
 
@@ -695,9 +692,9 @@ void Renderer::drawScene(std::string const &name, Camera const &cam)
     for (auto const &ro : scene)
     {
         // update push-constant
-        constants.N   = glm::transpose(glm::inverse(ro.transform));
-        constants.MVP = projection * view * ro.transform;
-        vkCmdPushConstants(frame().graphics.cmd, mPipelineLayouts[1], VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(Matrices), &constants);
+        matrices.N   = glm::transpose(glm::inverse(ro.transform));
+        matrices.MVP = projection * view * ro.transform;
+        vkCmdPushConstants(frame().graphics.cmd, mPipelineLayouts[1], VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(Matrices), &matrices);
         // only bind the pipeline if it doesn't match with the already bound one
         if (ro.material != lastMaterial)
         {

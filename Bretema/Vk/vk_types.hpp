@@ -220,6 +220,13 @@ struct RenderObject
 
 //-----------------------------------------------------------------------------
 
+struct CameraData
+{
+    glm::mat4 view;
+    glm::mat4 proj;
+    glm::mat4 viewproj;
+};
+
 struct Matrices
 {
     glm::mat4 N;
@@ -240,6 +247,10 @@ struct FrameData
     vk::QueueCmd present  = {};
     vk::QueueCmd compute  = {};
     vk::QueueCmd transfer = {};
+
+    AllocatedBuffer cameraBuffer;
+
+    VkDescriptorSet globalDesc;
 };
 
 //-----------------------------------------------------------------------------
