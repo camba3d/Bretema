@@ -20,24 +20,25 @@ Renderer::Renderer(sPtr<btm::Window> window) : btm::BaseRenderer(window)
 
     initVulkan();
     initSwapchain();
-
     initDefaultRenderPass();
     initFramebuffers();
-
     initCommands();
     initSyncStructures();
+
+    // initDescriptors();
 
     initMaterials();
     initMeshes();
     initTestScene();
 
-    // init_descriptors();
     // init_pipelines();
     // load_images();
     // init_scene();
 
     markAsInit();
 }
+
+//-----------------------------------------------------------------------------
 
 void Renderer::draw(Camera const &cam)
 {
@@ -126,6 +127,8 @@ void Renderer::draw(Camera const &cam)
     mFrameNumber++;
 }
 
+//-----------------------------------------------------------------------------
+
 void Renderer::cleanup()
 {
     if (!isInitialized())
@@ -210,6 +213,8 @@ void Renderer::initVulkan()
     BTM_INFOF("G:{} | P:{} | C:{} | T:{}", mGraphics, mPresent, mCompute, mTransfer);
 }
 
+//-----------------------------------------------------------------------------
+
 void Renderer::initSwapchain()
 {
     BTM_ASSERT_X(mViewportSize.x > 0 && mViewportSize.y > 0, "Invalid viewport size");
@@ -267,6 +272,8 @@ void Renderer::initSwapchain()
     TO_DESTROY(vkDestroyImageView(mDevice, mDepthImageView, nullptr));
 }
 
+//-----------------------------------------------------------------------------
+
 void Renderer::initCommands()
 {
     auto const initCommandsByFamily = [this](vk::QueueCmd &qc, vk::Queue *q)
@@ -292,6 +299,8 @@ void Renderer::initCommands()
         initCommandsByFamily(fd.transfer, &mTransfer);
     }
 }
+
+//-----------------------------------------------------------------------------
 
 void Renderer::initDefaultRenderPass()
 {
@@ -368,6 +377,8 @@ void Renderer::initDefaultRenderPass()
     TO_DESTROY(vkDestroyRenderPass(mDevice, mDefaultRenderPass, nullptr));
 }
 
+//-----------------------------------------------------------------------------
+
 void Renderer::initFramebuffers()
 {
     // Create the framebuffers for the swapchain images.
@@ -398,6 +409,8 @@ void Renderer::initFramebuffers()
     }
 }
 
+//-----------------------------------------------------------------------------
+
 void Renderer::initSyncStructures()
 {
     for (u64 i = 0; i < sFlightFrames; i++)
@@ -417,23 +430,25 @@ void Renderer::initSyncStructures()
     }
 }
 
-#define BTM_CREATE_VS(name)                                                                \
-    auto vs_##name = vk::Create::ShaderModule(mDevice, #name, VK_SHADER_STAGE_VERTEX_BIT); \
-    BTM_DEFER_(defer_vs_##name, vkDestroyShaderModule(mDevice, vs_##name, nullptr))
+//-----------------------------------------------------------------------------
 
-#define BTM_CREATE_FS(name)                                                                  \
-    auto fs_##name = vk::Create::ShaderModule(mDevice, #name, VK_SHADER_STAGE_FRAGMENT_BIT); \
-    BTM_DEFER_(defer_fs_##name, vkDestroyShaderModule(mDevice, fs_##name, nullptr))
+void Renderer::initDescriptors() {}
 
-#define BTM_CREATE_DRAW_SHADER(name) \
-    BTM_CREATE_VS(name);             \
-    BTM_CREATE_FS(name);
+//-----------------------------------------------------------------------------
 
 void Renderer::initMaterials()
 {
-    // Shaders
-    BTM_CREATE_DRAW_SHADER(tri);
-    BTM_CREATE_DRAW_SHADER(mesh);
+    // Shader - tri
+    auto vs_tri = vk::Create::ShaderModule(mDevice, "tri", VK_SHADER_STAGE_VERTEX_BIT);
+    BTM_DEFER(vkDestroyShaderModule(mDevice, vs_tri, nullptr));
+    auto fs_tri = vk::Create::ShaderModule(mDevice, "tri", VK_SHADER_STAGE_FRAGMENT_BIT);
+    BTM_DEFER(vkDestroyShaderModule(mDevice, fs_tri, nullptr));
+
+    // Shader - mesh
+    auto vs_mesh = vk::Create::ShaderModule(mDevice, "mesh", VK_SHADER_STAGE_VERTEX_BIT);
+    BTM_DEFER(vkDestroyShaderModule(mDevice, vs_mesh, nullptr));
+    auto fs_mesh = vk::Create::ShaderModule(mDevice, "mesh", VK_SHADER_STAGE_FRAGMENT_BIT);
+    BTM_DEFER(vkDestroyShaderModule(mDevice, fs_mesh, nullptr));
 
     // Pipeline Layout(s)
 
@@ -496,9 +511,55 @@ void Renderer::initMaterials()
 }
 
 //-----------------------------------------------------------------------------
+
+void Renderer::initMeshes()  // todo : this have to come from user-land
+{
+#ifdef _MSC_VER
+    static auto const sGeometryPath = runtime::exepath() + "/../Assets/Geometry";
+#else
+    static auto const sGeometryPath = runtime::exepath() + "/Assets/Geometry";
+#endif
+
+#if 1
+    auto const addMesh = [this](auto const &name, auto const &path) { mMeshMap[name] = createMesh(btm::parseGltf(path)); };
+
+    addMesh("monkey", sGeometryPath + "/suzanne_donut.glb");
+    addMesh("cube", sGeometryPath + "/cube2.glb");
+#else
+    auto const        scenes        = {
+        runtime::exepath() + "/Assets/Geometry/suzanne_donut.glb",  //
+        // "./Assets/Geometry/cube2.glb",          //
+    };
+
+    for (auto const &path : scenes)
+    {
+        auto const mg = createMesh(btm::parseGltf(path));
+        mMeshes.insert(mMeshes.end(), mg.begin(), mg.end());
+    }
+#endif
+}
+
 //-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
+
+void Renderer::initTestScene()
+{
+    auto &testScene = mScenes["test"];
+
+    RenderObject ro { mesh0("monkey"), material("default") };
+    testScene.push_back(ro);
+
+    for (int x = -20; x <= 20; x++)
+    {
+        for (int y = -20; y <= 20; y++)
+        {
+            glm::mat4 translation = glm::translate(glm::mat4 { 1.0 }, glm::vec3(x, 0, y));
+            glm::mat4 scale       = glm::scale(glm::mat4 { 1.0 }, glm::vec3(0.2, 0.2, 0.2));
+            ro.transform          = translation * scale;
+            testScene.push_back(ro);
+        }
+    }
+}
+
 //-----------------------------------------------------------------------------
 
 void Renderer::executeImmediately(VkCommandPool pool, VkQueue queue, const std::function<void(VkCommandBuffer cb)> &fn)
@@ -530,32 +591,7 @@ void Renderer::executeImmediately(VkCommandPool pool, VkQueue queue, const std::
 
 //-----------------------------------------------------------------------------
 
-void Renderer::initMeshes()  // todo : this have to come from user-land
-{
-#ifdef _MSC_VER
-    static auto const sGeometryPath = runtime::exepath() + "/../Assets/Geometry";
-#else
-    static auto const sGeometryPath = runtime::exepath() + "/Assets/Geometry";
-#endif
-
-#if 1
-    auto const addMesh = [this](auto const &name, auto const &path) { mMeshMap[name] = createMesh(btm::parseGltf(path)); };
-
-    addMesh("monkey", sGeometryPath + "/suzanne_donut.glb");
-    addMesh("cube", sGeometryPath + "/cube2.glb");
-#else
-    auto const        scenes        = {
-        runtime::exepath() + "/Assets/Geometry/suzanne_donut.glb",  //
-        // "./Assets/Geometry/cube2.glb",          //
-    };
-
-    for (auto const &path : scenes)
-    {
-        auto const mg = createMesh(btm::parseGltf(path));
-        mMeshes.insert(mMeshes.end(), mg.begin(), mg.end());
-    }
-#endif
-}
+//--- CREATION HELPERS ----------------
 
 //-----------------------------------------------------------------------------
 
@@ -648,24 +684,7 @@ Material *Renderer::createMaterial(VkPipeline pipeline, VkPipelineLayout layout,
 
 //-----------------------------------------------------------------------------
 
-void Renderer::initTestScene()
-{
-    auto &testScene = mScenes["test"];
-
-    RenderObject ro { mesh0("monkey"), material("default") };
-    testScene.push_back(ro);
-
-    for (int x = -20; x <= 20; x++)
-    {
-        for (int y = -20; y <= 20; y++)
-        {
-            glm::mat4 translation = glm::translate(glm::mat4 { 1.0 }, glm::vec3(x, 0, y));
-            glm::mat4 scale       = glm::scale(glm::mat4 { 1.0 }, glm::vec3(0.2, 0.2, 0.2));
-            ro.transform          = translation * scale;
-            testScene.push_back(ro);
-        }
-    }
-}
+//--- DRAW HELPERS --------------------
 
 //-----------------------------------------------------------------------------
 

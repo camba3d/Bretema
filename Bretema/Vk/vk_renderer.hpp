@@ -35,6 +35,8 @@ private:
     void initFramebuffers();
     void initSyncStructures();
 
+    void initDescriptors();
+
     void initMaterials();
     void initMeshes();
     void initTestScene();
