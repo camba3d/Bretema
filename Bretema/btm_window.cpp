@@ -118,6 +118,8 @@ void Window::size(i32 w, i32 h)
 {
     mW = w;
     mH = h;
+
+    mResized = true;
 }
 
 void *Window::handle() const

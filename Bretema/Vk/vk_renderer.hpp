@@ -62,10 +62,10 @@ private:
 
     //-------
 
-    inline VkExtent2D extent2D() { return VkExtent2D((u32)mViewportSize.x, (u32)mViewportSize.y); }
-    inline VkExtent3D extent3D() { return VkExtent3D((u32)mViewportSize.x, (u32)mViewportSize.y, 1); }
-    inline u32        extentW() { return (u32)mViewportSize.x; }
-    inline u32        extentH() { return (u32)mViewportSize.y; }
+    inline VkExtent2D extent2D() { return VkExtent2D((u32)w(), (u32)h()); }
+    inline VkExtent3D extent3D() { return VkExtent3D((u32)w(), (u32)h(), 1); }
+    inline u32        extentW() { return (u32)w(); }
+    inline u32        extentH() { return (u32)h(); }
     inline u32        extentD() { return 1; }
 
     //-------

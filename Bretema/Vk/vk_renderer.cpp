@@ -52,7 +52,7 @@ void Renderer::draw(Camera const &cam)
 
     if (resAcquire == VK_ERROR_OUT_OF_DATE_KHR)
     {
-        // recreateSwapchain();
+        recreateSwapchain();
         return;
     }
     else if (resAcquire != VK_SUCCESS && resAcquire != VK_SUBOPTIMAL_KHR)
@@ -134,9 +134,10 @@ void Renderer::draw(Camera const &cam)
     presentInfo.pImageIndices      = &swapchainImgIdx;
     auto resPresent                = vkQueuePresentKHR(mGraphics.queue, &presentInfo);
 
-    if (resPresent == VK_ERROR_OUT_OF_DATE_KHR || resPresent == VK_SUBOPTIMAL_KHR)
+    if (resPresent == VK_ERROR_OUT_OF_DATE_KHR || resPresent == VK_SUBOPTIMAL_KHR || mWindow->resized())
     {
-        // recreateSwapchain();
+        mWindow->resizedDone();
+        recreateSwapchain();
         return;
     }
     else if (resPresent != VK_SUCCESS)
@@ -202,7 +203,7 @@ void Renderer::initVulkan()
     mDebugMessenger = vkbInstance.debug_messenger;
 
     // Surface : // @dani externalize this call ??
-    glfwCreateWindowSurface(mInstance, (GLFWwindow *)mWindowHandle, nullptr, &mSurface);
+    glfwCreateWindowSurface(mInstance, (GLFWwindow *)mWindow->handle(), nullptr, &mSurface);
 
     // vkb : Select a GPU based on some criteria
     auto vkbGpuSelector = vkb::PhysicalDeviceSelector { vkbInstance };
@@ -242,7 +243,7 @@ void Renderer::initVulkan()
 
 void Renderer::initSwapchain(VkSwapchainKHR prev)
 {
-    BTM_ASSERT_X(mViewportSize.x > 0 && mViewportSize.y > 0, "Invalid viewport size");
+    BTM_ASSERT_X(mWindow->size().x > 0 && mWindow->size().y > 0, "Invalid viewport size");
 
     // === SWAP CHAIN ===
 
@@ -250,7 +251,7 @@ void Renderer::initSwapchain(VkSwapchainKHR prev)
     auto vkbSwapchainBuilder = vkb::SwapchainBuilder { mChosenGPU, mDevice, mSurface };
     auto vkbSwapchainResult  = vkbSwapchainBuilder.use_default_format_selection()
                                 .set_desired_present_mode(VK_PRESENT_MODE_FIFO_KHR)  // fifo = vsync present mode
-                                .set_desired_extent((u32)mViewportSize.x, (u32)mViewportSize.y)
+                                .set_desired_extent((u32)w(), (u32)h())
                                 .use_default_image_usage_flags()
                                 .set_desired_min_image_count(sInFlight)
                                 .set_old_swapchain(prev)
@@ -272,7 +273,7 @@ void Renderer::initSwapchain(VkSwapchainKHR prev)
 
     // Swapchain image-format and viewport
     mSwapchainImageFormat = vkbSwapchain.image_format;
-    mViewportSize         = { vkbSwapchain.extent.width, vkbSwapchain.extent.height };
+    // mViewportSize         = { vkbSwapchain.extent.width, vkbSwapchain.extent.height };
 
     // Swapchain deletion-queue
     ADD_DESTROY_SWAPCHAIN(vkDestroySwapchainKHR(mDevice, mSwapchain, nullptr));
@@ -414,8 +415,8 @@ void Renderer::initFramebuffers()
     framebufferCI.pNext                   = nullptr;
     framebufferCI.renderPass              = mDefaultRenderPass;
     framebufferCI.attachmentCount         = 1;
-    framebufferCI.width                   = extentW();
-    framebufferCI.height                  = extentH();
+    framebufferCI.width                   = (u32)extentW();
+    framebufferCI.height                  = (u32)extentH();
     framebufferCI.layers                  = 1;
 
     // Grab how many images we have in the swapchain
@@ -579,8 +580,8 @@ void Renderer::initMaterials()
     pb.inputAssembly        = vk::CreateInfo::InputAssembly();
     pb.viewport.x           = 0.0f;
     pb.viewport.y           = 0.0f;
-    pb.viewport.width       = mViewportSize.x;
-    pb.viewport.height      = mViewportSize.y;
+    pb.viewport.width       = w();
+    pb.viewport.height      = h();
     pb.viewport.minDepth    = 0.0f;
     pb.viewport.maxDepth    = 1.0f;
     pb.scissor.offset       = { 0, 0 };

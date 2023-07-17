@@ -125,6 +125,17 @@ public:
     // PROPS
     inline bool isInitialized() { return mInit; }
 
+    inline float w()
+    {
+        BTM_ASSERT(mWindow);
+        return mWindow ? mWindow->size().x : 1;
+    }
+    inline float h()
+    {
+        BTM_ASSERT(mWindow);
+        return mWindow ? mWindow->size().y : 1;
+    }
+
     // ACTIONS
     virtual void update()                = 0;
     virtual void draw(Camera const &cam) = 0;
@@ -135,9 +146,11 @@ protected:
 
     i32 mFrameNumber = 0;
 
-    bool      mInit         = false;
-    void     *mWindowHandle = nullptr;
-    glm::vec2 mViewportSize = { 1280, 720 };
+    bool mInit = false;
+    // void     *mWindowHandle = nullptr;
+    // glm::vec2 mViewportSize = { 1280, 720 };
+
+    sPtr<btm::Window> mWindow = nullptr;
 };
 
 //===========================
@@ -145,7 +158,7 @@ protected:
 //===========================
 
 MeshGroup parseGltf(std::string const &filepath);
-MeshGroup parseGltf(std::span<u8 const> bin);
+MeshGroup parseGltf(std::span<u8 const> bin, std::string name = "");
 
 }  // namespace btm
 

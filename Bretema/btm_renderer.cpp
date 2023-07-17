@@ -16,11 +16,9 @@ namespace btm
 
 BaseRenderer::BaseRenderer(sPtr<btm::Window> window)
 {
-    mWindowHandle = window->handle();
-    mViewportSize = window->size();
-
-    BTM_ASSERT_X(mWindowHandle, "Invalid window handle");
-    BTM_ASSERT_X(mViewportSize.x > 0 && mViewportSize.y > 0, "Invalid viewport size");
+    mWindow = window;
+    BTM_ASSERT_X(mWindow->handle(), "Invalid window handle");
+    BTM_ASSERT_X(w() > 0 && h() > 0, "Invalid viewport size");
 }
 
 //=========================================================
@@ -131,7 +129,7 @@ std::vector<Mesh> parseGltf(std::string const &filepath)
     return parseGltf(isBin, filepath, ds::view(bin, (u32)-1));
 }
 
-std::vector<Mesh> parseGltf(std::span<u8 const> bin, std::string name = "")
+std::vector<Mesh> parseGltf(std::span<u8 const> bin, std::string name)
 {
     auto const isBin = btm::bin::checkMagic(bin.subspan(0, 4), { 'g', 'l', 'T', 'F' });
     BTM_ASSERT(isBin);
