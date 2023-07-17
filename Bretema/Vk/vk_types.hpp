@@ -227,10 +227,12 @@ struct CameraData
     glm::mat4 viewproj;
 };
 
-struct Matrices
+//-----------------------------------------------------------------------------
+
+struct ModelData
 {
-    glm::mat4 N;
-    glm::mat4 MVP;
+    glm::mat4 normal;
+    glm::mat4 model;
 };
 
 //-----------------------------------------------------------------------------
@@ -248,9 +250,8 @@ struct FrameData
     vk::QueueCmd compute  = {};
     vk::QueueCmd transfer = {};
 
-    AllocatedBuffer cameraBuffer;
-
-    VkDescriptorSet globalDesc;
+    VkDescriptorSet descSet = VK_NULL_HANDLE;
+    AllocatedBuffer camera  = {};
 };
 
 //-----------------------------------------------------------------------------

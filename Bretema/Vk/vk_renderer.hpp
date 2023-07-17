@@ -29,7 +29,7 @@ public:
 
 private:
     void initVulkan();
-    void initSwapchain();
+    void initSwapchain(VkSwapchainKHR prev = VK_NULL_HANDLE);
     void initCommands();
     void initDefaultRenderPass();
     void initFramebuffers();
@@ -41,6 +41,8 @@ private:
     void initMeshes();
     void initTestScene();
 
+    void recreateSwapchain();
+
     void executeImmediately(VkCommandPool pool, VkQueue queue, const std::function<void(VkCommandBuffer cb)> &fn);
 
     AllocatedBuffer createBuffer(u64 byteSize, VkBufferUsageFlags usage, VkMemoryPropertyFlags memProps, bool addToDelQueue = true);
@@ -51,16 +53,30 @@ private:
 
     void drawScene(std::string const &name, Camera const &cam);
 
+    //-------
+
     inline Material  *material(std::string const &name) { return mMatMap.count(name) > 0 ? &mMatMap[name] : nullptr; }
     inline MeshGroup *mesh(std::string const &name) { return mMeshMap.count(name) > 0 ? &mMeshMap[name] : nullptr; }
     inline Mesh      *mesh0(std::string const &name) { return mMeshMap.count(name) > 0 ? &mMeshMap[name][0] : nullptr; }
     inline FrameData &frame() { return mFrames[mFrameNumber % sFlightFrames]; }
+
+    //-------
 
     inline VkExtent2D extent2D() { return VkExtent2D((u32)mViewportSize.x, (u32)mViewportSize.y); }
     inline VkExtent3D extent3D() { return VkExtent3D((u32)mViewportSize.x, (u32)mViewportSize.y, 1); }
     inline u32        extentW() { return (u32)mViewportSize.x; }
     inline u32        extentH() { return (u32)mViewportSize.y; }
     inline u32        extentD() { return 1; }
+
+    //-------
+
+    size_t paddedSizeUBO(size_t inSize)
+    {
+        size_t const min = mProperties.limits.minUniformBufferOffsetAlignment;
+        return (min > 0) ? (inSize + min - 1) & ~(min - 1) : inSize;
+    }
+
+    //-------
 
     // PER FRAME
     FrameData mFrames[sFlightFrames];
@@ -72,15 +88,17 @@ private:
     vk::Queue mTransfer = {};
 
     // IDSM : INSTANCE, DEVICE, SURFACE
-    VkInstance               mInstance       = VK_NULL_HANDLE;  // Vulkan library handle
-    VkDebugUtilsMessengerEXT mDebugMessenger = VK_NULL_HANDLE;  // Vulkan debug output handle
-    VkPhysicalDevice         mChosenGPU      = VK_NULL_HANDLE;  // GPU chosen as the default device
-    VkDevice                 mDevice         = VK_NULL_HANDLE;  // Vulkan device for commands
-    VkSurfaceKHR             mSurface        = VK_NULL_HANDLE;  // Vulkan window surface
+    VkInstance                 mInstance       = VK_NULL_HANDLE;  // Vulkan library handle
+    VkDebugUtilsMessengerEXT   mDebugMessenger = VK_NULL_HANDLE;  // Vulkan debug output handle
+    VkPhysicalDevice           mChosenGPU      = VK_NULL_HANDLE;  // GPU chosen as the default device
+    VkDevice                   mDevice         = VK_NULL_HANDLE;  // Vulkan device for commands
+    VkSurfaceKHR               mSurface        = VK_NULL_HANDLE;  // Vulkan window surface
+    VkPhysicalDeviceProperties mProperties     = {};
 
     // MEMORY
-    btm::ds::DeletionQueue mDeletionQueue = {};
-    VmaAllocator           mAllocator     = VK_NULL_HANDLE;  // Memory Allocator - AMD lib
+    btm::ds::DeletionQueue mSwapchainDeletionQueue = {};
+    btm::ds::DeletionQueue mMainDeletionQueue      = {};
+    VmaAllocator           mAllocator              = VK_NULL_HANDLE;  // Memory Allocator - AMD lib
 
     // SWAPCHAIN
     VkSwapchainKHR           mSwapchain            = VK_NULL_HANDLE;           // Vulkan swapchain
@@ -104,6 +122,10 @@ private:
     // GEOMETRY
     std::unordered_map<std::string, MeshGroup>                 mMeshMap = {};
     std::unordered_map<std::string, std::vector<RenderObject>> mScenes  = {};
+
+    // DESCRIPTORS
+    VkDescriptorSetLayout mDescSetLayout;
+    VkDescriptorPool      mDescPool;
 };
 
 }  // namespace btm::vk

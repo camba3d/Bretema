@@ -7,14 +7,22 @@ layout (location = 3) in vec4 vTanget;
 
 layout (location = 0) out vec3 fColor;
 
-layout(push_constant) uniform constants
+layout(set = 0, binding = 0) uniform Camera
 {
-	mat4 N;
-	mat4 MVP;
+	mat4 view;
+	mat4 proj;
+	mat4 viewproj;
 } uCam;
+
+layout(push_constant) uniform Constants
+{
+	mat4 normal;
+	mat4 model;
+} uConsts;
 
 void main()
 {
-	gl_Position = uCam.MVP * vec4(vPosition, 1.0);
+	mat4 MVP = uCam.viewproj * uConsts.model;
+	gl_Position = MVP * vec4(vPosition, 1.0);
 	fColor = vNormal;
 }

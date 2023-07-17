@@ -10,7 +10,8 @@ constexpr i32 BTM_VK_MAJOR_VERSION = 1;
 constexpr i32 BTM_VK_MINOR_VERSION = 2;
 #define BTM_VK_VER BTM_VK_MAJOR_VERSION, BTM_VK_MINOR_VERSION
 
-#define TO_DESTROY(code__) mDeletionQueue.add([=, this]() { code__; })
+#define ADD_DESTROY(code__)           mMainDeletionQueue.add([=, this]() { code__; })
+#define ADD_DESTROY_SWAPCHAIN(code__) mMainDeletionQueue.add([=, this]() { code__; })
 
 //-----------------------------------------------------------------------------
 
@@ -25,7 +26,7 @@ Renderer::Renderer(sPtr<btm::Window> window) : btm::BaseRenderer(window)
     initCommands();
     initSyncStructures();
 
-    // initDescriptors();
+    initDescriptors();
 
     initMaterials();
     initMeshes();
@@ -44,13 +45,23 @@ void Renderer::draw(Camera const &cam)
 {
     // Wait for GPU (1 second timeout)
     VK_CHECK(vkWaitForFences(mDevice, 1, &frame().renderFence, true, sOneSec));
-    VK_CHECK(vkResetFences(mDevice, 1, &frame().renderFence));
 
     // Request image from the swapchain (1 second timeout)
-    u32 swapchainImageIndex;
-    VK_CHECK(vkAcquireNextImageKHR(mDevice, mSwapchain, sOneSec, frame().presentSemaphore, nullptr, &swapchainImageIndex));
+    u32  swapchainImgIdx = 0;
+    auto resAcquire      = vkAcquireNextImageKHR(mDevice, mSwapchain, sOneSec, frame().presentSemaphore, nullptr, &swapchainImgIdx);
 
-    // Reset command buffer
+    if (resAcquire == VK_ERROR_OUT_OF_DATE_KHR)
+    {
+        // recreateSwapchain();
+        return;
+    }
+    else if (resAcquire != VK_SUCCESS && resAcquire != VK_SUBOPTIMAL_KHR)
+    {
+        BTM_ABORTF("{} : {}", btm::vk::str::Result.at(resAcquire), "vkAcquireNextImageKHR presentSemaphore");
+    }
+
+    // Reset(s) on valid image
+    VK_CHECK(vkResetFences(mDevice, 1, &frame().renderFence));
     VK_CHECK(vkResetCommandBuffer(frame().graphics.cmd, 0));
 
     // Begin the command buffer recording.
@@ -76,7 +87,7 @@ void Renderer::draw(Camera const &cam)
     renderpassBI.renderArea.offset.x   = 0;
     renderpassBI.renderArea.offset.y   = 0;
     renderpassBI.renderArea.extent     = extent2D();
-    renderpassBI.framebuffer           = mFramebuffers[swapchainImageIndex];
+    renderpassBI.framebuffer           = mFramebuffers[swapchainImgIdx];
     renderpassBI.clearValueCount       = (u32)clears.size();
     renderpassBI.pClearValues          = clears.data();
 
@@ -120,8 +131,18 @@ void Renderer::draw(Camera const &cam)
     presentInfo.swapchainCount     = 1;
     presentInfo.pWaitSemaphores    = &frame().renderSemaphore;
     presentInfo.waitSemaphoreCount = 1;
-    presentInfo.pImageIndices      = &swapchainImageIndex;
-    VK_CHECK(vkQueuePresentKHR(mGraphics.queue, &presentInfo));
+    presentInfo.pImageIndices      = &swapchainImgIdx;
+    auto resPresent                = vkQueuePresentKHR(mGraphics.queue, &presentInfo);
+
+    if (resPresent == VK_ERROR_OUT_OF_DATE_KHR || resPresent == VK_SUBOPTIMAL_KHR)
+    {
+        // recreateSwapchain();
+        return;
+    }
+    else if (resPresent != VK_SUCCESS)
+    {
+        BTM_ABORTF("{} : {}", btm::vk::str::Result.at(resAcquire), "vkQueuePresentKHR renderSemaphore");
+    }
 
     // Increase the number of frames drawn
     mFrameNumber++;
@@ -136,12 +157,15 @@ void Renderer::cleanup()
         return;
     }
 
+    vkDeviceWaitIdle(mDevice);
+
     for (u64 i = 0; i < sFlightFrames; i++)
     {
         vkWaitForFences(mDevice, 1, &mFrames[i].renderFence, true, sOneSec * 4);
     }
 
-    mDeletionQueue.flush();
+    mSwapchainDeletionQueue.flush();
+    mMainDeletionQueue.flush();
 
     vmaDestroyAllocator(mAllocator);
 
@@ -196,7 +220,8 @@ void Renderer::initVulkan()
     auto vkbDevice = vkbDeviceResult.value();
 
     // Device
-    mDevice = vkbDevice.device;
+    mDevice     = vkbDevice.device;
+    mProperties = vkbDevice.physical_device.properties;
 
     // Initialize the memory allocator
     VmaAllocatorCreateInfo allocatorInfo = {};
@@ -215,7 +240,7 @@ void Renderer::initVulkan()
 
 //-----------------------------------------------------------------------------
 
-void Renderer::initSwapchain()
+void Renderer::initSwapchain(VkSwapchainKHR prev)
 {
     BTM_ASSERT_X(mViewportSize.x > 0 && mViewportSize.y > 0, "Invalid viewport size");
 
@@ -228,6 +253,7 @@ void Renderer::initSwapchain()
                                 .set_desired_extent((u32)mViewportSize.x, (u32)mViewportSize.y)
                                 .use_default_image_usage_flags()
                                 .set_desired_min_image_count(sInFlight)
+                                .set_old_swapchain(prev)
                                 .build();
 
     VKB_CHECK(vkbSwapchainResult);
@@ -249,7 +275,7 @@ void Renderer::initSwapchain()
     mViewportSize         = { vkbSwapchain.extent.width, vkbSwapchain.extent.height };
 
     // Swapchain deletion-queue
-    mDeletionQueue.add([this]() { vkDestroySwapchainKHR(mDevice, mSwapchain, nullptr); });
+    ADD_DESTROY_SWAPCHAIN(vkDestroySwapchainKHR(mDevice, mSwapchain, nullptr));
 
     // === DEPTH BUFFER ===
 
@@ -263,13 +289,13 @@ void Renderer::initSwapchain()
 
     // allocate and create the image
     vmaCreateImage(mAllocator, &imgInfo, &imgAllocInfo, &mDepthImage.image, &mDepthImage.allocation, nullptr);
-    TO_DESTROY(vmaDestroyImage(mAllocator, mDepthImage.image, mDepthImage.allocation));
+    ADD_DESTROY_SWAPCHAIN(vmaDestroyImage(mAllocator, mDepthImage.image, mDepthImage.allocation));
 
     // build an image-view for the depth image to use for rendering
     auto const viewInfo = vk::CreateInfo::ImageView(sDepthFormat, mDepthImage.image, VK_IMAGE_ASPECT_DEPTH_BIT);
 
     VK_CHECK(vkCreateImageView(mDevice, &viewInfo, nullptr, &mDepthImageView));
-    TO_DESTROY(vkDestroyImageView(mDevice, mDepthImageView, nullptr));
+    ADD_DESTROY_SWAPCHAIN(vkDestroyImageView(mDevice, mDepthImageView, nullptr));
 }
 
 //-----------------------------------------------------------------------------
@@ -284,7 +310,7 @@ void Renderer::initCommands()
 
         auto const cpInfo = vk::CreateInfo::CommandPool(q->family, flags);
         VK_CHECK(vkCreateCommandPool(mDevice, &cpInfo, nullptr, &qc.pool));
-        TO_DESTROY(vkDestroyCommandPool(mDevice, qc.pool, nullptr));
+        ADD_DESTROY(vkDestroyCommandPool(mDevice, qc.pool, nullptr));
 
         auto const cbAllocInfo = vk::AllocInfo::CommandBuffer(qc.pool);
         VK_CHECK(vkAllocateCommandBuffers(mDevice, &cbAllocInfo, &qc.cmd));
@@ -374,7 +400,7 @@ void Renderer::initDefaultRenderPass()
     renderpassCI.pDependencies          = deps.data();
 
     VK_CHECK(vkCreateRenderPass(mDevice, &renderpassCI, nullptr, &mDefaultRenderPass));
-    TO_DESTROY(vkDestroyRenderPass(mDevice, mDefaultRenderPass, nullptr));
+    ADD_DESTROY(vkDestroyRenderPass(mDevice, mDefaultRenderPass, nullptr));
 }
 
 //-----------------------------------------------------------------------------
@@ -404,8 +430,8 @@ void Renderer::initFramebuffers()
         framebufferCI.pAttachments    = atts.data();
 
         VK_CHECK(vkCreateFramebuffer(mDevice, &framebufferCI, nullptr, &mFramebuffers[i]));
-        TO_DESTROY(vkDestroyFramebuffer(mDevice, mFramebuffers[i], nullptr));
-        TO_DESTROY(vkDestroyImageView(mDevice, mSwapchainImageViews[i], nullptr));
+        ADD_DESTROY(vkDestroyFramebuffer(mDevice, mFramebuffers[i], nullptr));
+        ADD_DESTROY(vkDestroyImageView(mDevice, mSwapchainImageViews[i], nullptr));
     }
 }
 
@@ -420,19 +446,91 @@ void Renderer::initSyncStructures()
         auto      &fd          = mFrames[i];
 
         VK_CHECK(vkCreateFence(mDevice, &fenceCI, nullptr, &fd.renderFence));
-        TO_DESTROY(vkDestroyFence(mDevice, fd.renderFence, nullptr));
+        ADD_DESTROY(vkDestroyFence(mDevice, fd.renderFence, nullptr));
 
         VK_CHECK(vkCreateSemaphore(mDevice, &semaphoreCI, nullptr, &fd.presentSemaphore));
-        TO_DESTROY(vkDestroySemaphore(mDevice, fd.presentSemaphore, nullptr));
+        ADD_DESTROY(vkDestroySemaphore(mDevice, fd.presentSemaphore, nullptr));
 
         VK_CHECK(vkCreateSemaphore(mDevice, &semaphoreCI, nullptr, &fd.renderSemaphore));
-        TO_DESTROY(vkDestroySemaphore(mDevice, fd.renderSemaphore, nullptr));
+        ADD_DESTROY(vkDestroySemaphore(mDevice, fd.renderSemaphore, nullptr));
     }
 }
 
 //-----------------------------------------------------------------------------
 
-void Renderer::initDescriptors() {}
+void Renderer::initDescriptors()
+{
+    // CREATE GLOBAL DESCRIPTOR SET LAYOUT
+
+    VkDescriptorSetLayoutBinding camera = {};
+    camera.binding                      = 0;
+    camera.descriptorCount              = 1;
+    camera.descriptorType               = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;  // it's a uniform buffer binding
+    camera.stageFlags                   = VK_SHADER_STAGE_VERTEX_BIT;         // we use it from the vertex shader
+
+    VkDescriptorSetLayoutCreateInfo setCI = {};
+    setCI.sType                           = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+    setCI.pNext                           = nullptr;
+    setCI.bindingCount                    = 1;        // we are going to have 1 binding
+    setCI.flags                           = 0;        // no flags
+    setCI.pBindings                       = &camera;  // point to the camera buffer binding
+
+    VK_CHECK(vkCreateDescriptorSetLayout(mDevice, &setCI, nullptr, &mDescSetLayout));
+    ADD_DESTROY(vkDestroyDescriptorSetLayout(mDevice, mDescSetLayout, nullptr));
+
+    // CREATE GLOBAL DESCRIPTOR POOL
+
+    std::vector<VkDescriptorPoolSize> sizes { { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 10 } };
+
+    VkDescriptorPoolCreateInfo poolCI = {};
+    poolCI.sType                      = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+    poolCI.flags                      = 0;
+    poolCI.maxSets                    = 10;
+    poolCI.poolSizeCount              = (u32)sizes.size();
+    poolCI.pPoolSizes                 = sizes.data();
+
+    VK_CHECK(vkCreateDescriptorPool(mDevice, &poolCI, nullptr, &mDescPool));
+    ADD_DESTROY(vkDestroyDescriptorPool(mDevice, mDescPool, nullptr));
+
+    // CREATE AND ALLOCATE DESCRIPTOR SETS PER FRAME
+    auto const descSetLayouts = std::array { mDescSetLayout };
+
+    for (u64 i = 0; i < sFlightFrames; ++i)
+    {
+        auto &fd = mFrames[i];
+
+        // Create
+        fd.camera = createBuffer(sizeof(CameraData), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT);
+
+        // Allocate
+        VkDescriptorSetAllocateInfo descAI = {};
+        descAI.pNext                       = nullptr;
+        descAI.sType                       = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+        descAI.descriptorPool              = mDescPool;                   // using the pool we just set
+        descAI.descriptorSetCount          = (u32)descSetLayouts.size();  // only 1 descriptor
+        descAI.pSetLayouts                 = descSetLayouts.data();       // using the global data layout
+
+        VK_CHECK(vkAllocateDescriptorSets(mDevice, &descAI, &fd.descSet));
+
+        // Populate
+
+        VkDescriptorBufferInfo descBI;
+        descBI.buffer = fd.camera.buffer;
+        descBI.offset = 0;                   // at 0 offset
+        descBI.range  = sizeof(CameraData);  // of the size of a camera data struct
+
+        VkWriteDescriptorSet descSetW = {};
+        descSetW.sType                = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        descSetW.pNext                = nullptr;
+        descSetW.dstBinding           = 0;                                  // we are going to write into binding number 0
+        descSetW.dstSet               = fd.descSet;                         // of the frame descriptor set
+        descSetW.descriptorCount      = 1;
+        descSetW.descriptorType       = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;  // and the type is uniform buffer
+        descSetW.pBufferInfo          = &descBI;
+
+        vkUpdateDescriptorSets(mDevice, 1, &descSetW, 0, nullptr);
+    }
+}
 
 //-----------------------------------------------------------------------------
 
@@ -454,17 +552,20 @@ void Renderer::initMaterials()
 
     mPipelineLayouts = std::vector<VkPipelineLayout>(100, VK_NULL_HANDLE);
 
-    auto const infoTri = vk::CreateInfo::PipelineLayout();
-    VK_CHECK(vkCreatePipelineLayout(mDevice, &infoTri, nullptr, &mPipelineLayouts[0]));
+    auto const triInfoPL = vk::CreateInfo::PipelineLayout();
+    VK_CHECK(vkCreatePipelineLayout(mDevice, &triInfoPL, nullptr, &mPipelineLayouts[0]));
 
-    VkPushConstantRange push_constant = { VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(Matrices) };
-    auto                infoMesh      = vk::CreateInfo::PipelineLayout();
-    infoMesh.pPushConstantRanges      = &push_constant;
-    infoMesh.pushConstantRangeCount   = 1;
+    VkPushConstantRange push_constant = { VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(ModelData) };
 
-    VK_CHECK(vkCreatePipelineLayout(mDevice, &infoMesh, nullptr, &mPipelineLayouts[1]));
+    auto meshInfoPL                   = vk::CreateInfo::PipelineLayout();
+    meshInfoPL.pPushConstantRanges    = &push_constant;
+    meshInfoPL.pushConstantRangeCount = 1;
+    meshInfoPL.setLayoutCount         = 1;
+    meshInfoPL.pSetLayouts            = &mDescSetLayout;
 
-    TO_DESTROY(for (auto L : mPipelineLayouts) if (L) vkDestroyPipelineLayout(mDevice, L, nullptr));
+    VK_CHECK(vkCreatePipelineLayout(mDevice, &meshInfoPL, nullptr, &mPipelineLayouts[1]));
+
+    ADD_DESTROY(for (auto L : mPipelineLayouts) if (L) vkDestroyPipelineLayout(mDevice, L, nullptr));
 
     //=====
 
@@ -507,7 +608,7 @@ void Renderer::initMaterials()
     mPipelines.push_back(vk::Create::Pipeline(pb, mDevice, mDefaultRenderPass));
     createMaterial(mPipelines.back(), mPipelineLayouts[1], "default");
 
-    TO_DESTROY(for (auto P : mPipelines) if (P) vkDestroyPipeline(mDevice, P, nullptr));
+    ADD_DESTROY(for (auto P : mPipelines) if (P) vkDestroyPipeline(mDevice, P, nullptr));
 }
 
 //-----------------------------------------------------------------------------
@@ -520,23 +621,10 @@ void Renderer::initMeshes()  // todo : this have to come from user-land
     static auto const sGeometryPath = runtime::exepath() + "/Assets/Geometry";
 #endif
 
-#if 1
     auto const addMesh = [this](auto const &name, auto const &path) { mMeshMap[name] = createMesh(btm::parseGltf(path)); };
 
     addMesh("monkey", sGeometryPath + "/suzanne_donut.glb");
     addMesh("cube", sGeometryPath + "/cube2.glb");
-#else
-    auto const        scenes        = {
-        runtime::exepath() + "/Assets/Geometry/suzanne_donut.glb",  //
-        // "./Assets/Geometry/cube2.glb",          //
-    };
-
-    for (auto const &path : scenes)
-    {
-        auto const mg = createMesh(btm::parseGltf(path));
-        mMeshes.insert(mMeshes.end(), mg.begin(), mg.end());
-    }
-#endif
 }
 
 //-----------------------------------------------------------------------------
@@ -562,31 +650,16 @@ void Renderer::initTestScene()
 
 //-----------------------------------------------------------------------------
 
-void Renderer::executeImmediately(VkCommandPool pool, VkQueue queue, const std::function<void(VkCommandBuffer cb)> &fn)
+void Renderer::recreateSwapchain()
 {
-    // Allocate
-    VkCommandBuffer cb;
-    auto const      cbAllocInfo = AllocInfo::CommandBuffer(pool);
-    vkAllocateCommandBuffers(mDevice, &cbAllocInfo, &cb);
+    vkDeviceWaitIdle(mDevice);
 
-    // Record
-    VkCommandBufferBeginInfo cbBeginInfo {};
-    cbBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-    cbBeginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-    vkBeginCommandBuffer(cb, &cbBeginInfo);
-    fn(cb);
-    vkEndCommandBuffer(cb);
+    VkSwapchainKHR prev = mSwapchain;
 
-    // Submit
-    VkSubmitInfo submitInfo {};
-    submitInfo.sType              = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-    submitInfo.commandBufferCount = 1;
-    submitInfo.pCommandBuffers    = &cb;
-    vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE);
-    vkQueueWaitIdle(queue);  // There is some room to improve using 'vkWaitForFences'-logic
+    mSwapchainDeletionQueue.flush();
 
-    // Free
-    vkFreeCommandBuffers(mDevice, pool, 1, &cb);
+    initSwapchain(prev);
+    initFramebuffers();
 }
 
 //-----------------------------------------------------------------------------
@@ -597,8 +670,6 @@ void Renderer::executeImmediately(VkCommandPool pool, VkQueue queue, const std::
 
 AllocatedBuffer Renderer::createBuffer(u64 bytes, VkBufferUsageFlags usage, VkMemoryPropertyFlags memProps, bool addToDelQueue)
 {
-    AllocatedBuffer b;
-
     VkBufferCreateInfo info = {};
     info.sType              = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
     info.size               = bytes;
@@ -609,10 +680,12 @@ AllocatedBuffer Renderer::createBuffer(u64 bytes, VkBufferUsageFlags usage, VkMe
     allocInfo.usage                   = VMA_MEMORY_USAGE_UNKNOWN;
     allocInfo.requiredFlags           = memProps;
 
+    AllocatedBuffer b;
+
     VK_CHECK(vmaCreateBuffer(mAllocator, &info, &allocInfo, &b.buffer, &b.allocation, nullptr));
 
     if (addToDelQueue)
-        TO_DESTROY(vmaDestroyBuffer(mAllocator, b.buffer, b.allocation));
+        ADD_DESTROY(vmaDestroyBuffer(mAllocator, b.buffer, b.allocation));
 
     return b;
 }
@@ -621,7 +694,7 @@ AllocatedBuffer Renderer::createBuffer(u64 bytes, VkBufferUsageFlags usage, VkMe
 
 AllocatedBuffer Renderer::createBufferStaging(void const *data, u64 bytes, VkBufferUsageFlags usage)
 {
-    AllocatedBuffer b;
+    //-----
 
     // Create host
     auto const hostUsage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
@@ -633,13 +706,15 @@ AllocatedBuffer Renderer::createBufferStaging(void const *data, u64 bytes, VkBuf
     auto const devProps = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
     auto       devBuff  = createBuffer(bytes, devUsage, devProps);
 
+    //-----
+
     // Populate host
     void *hostMap;
-    vmaMapMemory(mAllocator, hostBuff.allocation, &hostMap);
+    VK_CHECK(vmaMapMemory(mAllocator, hostBuff.allocation, &hostMap));
     memcpy(hostMap, data, bytes);
     vmaUnmapMemory(mAllocator, hostBuff.allocation);
 
-    // Populate dev from host
+    // Populate dev (from host)
     executeImmediately(
       frame().transfer.pool,
       mTransfer.queue,
@@ -649,8 +724,12 @@ AllocatedBuffer Renderer::createBufferStaging(void const *data, u64 bytes, VkBuf
           vkCmdCopyBuffer(cb, hostBuff.buffer, devBuff.buffer, 1, &copyRegion);
       });
 
+    //-----
+
     // Host is no longer needed
     vmaDestroyBuffer(mAllocator, hostBuff.buffer, hostBuff.allocation);
+
+    //-----
 
     return devBuff;
 }
@@ -690,45 +769,101 @@ Material *Renderer::createMaterial(VkPipeline pipeline, VkPipelineLayout layout,
 
 void Renderer::drawScene(std::string const &name, Camera const &cam)
 {
-    //===============
+    //-----
 
-    glm::mat4 const &view       = cam.V();  // glm::translate(glm::mat4(1.f), { 0.f, 0.f, -4.f });
-    glm::mat4 const &projection = cam.P();  // glm::perspective(glm::radians(70.f), mViewportSize.x / mViewportSize.y, 0.1f, 200.0f);
+    bool const sceneExists = mScenes.count(name) > 0;
 
-    Matrices matrices;
+    if (!sceneExists)
+    {
+        return;
+    }
 
-    //===============
+    //-----
 
-    bool const  sceneExists = mScenes.count(name) > 0;
-    auto const &scene       = sceneExists ? mScenes[name] : std::vector<RenderObject> {};
-    // BTM_INFOF("SCENE: IS VALID? {}, IS EMPTY? {}", sceneExists, scene.empty());
+    CameraData uCam;
+    uCam.proj     = cam.P();
+    uCam.view     = cam.V();
+    uCam.viewproj = uCam.proj * uCam.view;
 
-    //===============
+    void *map;
+    VK_CHECK(vmaMapMemory(mAllocator, frame().camera.allocation, &map));
+    memcpy(map, &uCam, sizeof(CameraData));
+    vmaUnmapMemory(mAllocator, frame().camera.allocation);
+
+    ModelData model;
 
     Mesh     *lastMesh     = nullptr;
     Material *lastMaterial = nullptr;
 
-    for (auto const &ro : scene)
+    //-----
+
+    for (auto const &ro : mScenes[name])
     {
         // update push-constant
-        matrices.N   = glm::transpose(glm::inverse(ro.transform));
-        matrices.MVP = projection * view * ro.transform;
-        vkCmdPushConstants(frame().graphics.cmd, mPipelineLayouts[1], VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(Matrices), &matrices);
+        model.normal = glm::transpose(glm::inverse(ro.transform));
+        model.model  = ro.transform;
+        vkCmdPushConstants(frame().graphics.cmd, mPipelineLayouts[1], VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(ModelData), &model);
+
         // only bind the pipeline if it doesn't match with the already bound one
         if (ro.material != lastMaterial)
         {
             ro.material->bind(frame().graphics.cmd);
             lastMaterial = ro.material;
+
+            vkCmdBindDescriptorSets(
+              frame().graphics.cmd,
+              VK_PIPELINE_BIND_POINT_GRAPHICS,
+              ro.material->pipelineLayout,
+              0,
+              1,
+              &frame().descSet,
+              0,
+              nullptr);
         }
+
         // only bind the mesh if it's a different one from last bind
         if (ro.mesh != lastMesh)
         {
             ro.mesh->bind(frame().graphics.cmd);
             lastMesh = ro.mesh;
         }
+
         // draw
         ro.mesh->draw(frame().graphics.cmd);
     }
+}
+
+//-----------------------------------------------------------------------------
+
+//--- CMD HELPERS ---------------------
+
+//-----------------------------------------------------------------------------
+
+void Renderer::executeImmediately(VkCommandPool pool, VkQueue queue, const std::function<void(VkCommandBuffer cb)> &fn)
+{
+    // Allocate
+    VkCommandBuffer cb;
+    auto const      cbAllocInfo = AllocInfo::CommandBuffer(pool);
+    vkAllocateCommandBuffers(mDevice, &cbAllocInfo, &cb);
+
+    // Record
+    VkCommandBufferBeginInfo cbBeginInfo {};
+    cbBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+    cbBeginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+    vkBeginCommandBuffer(cb, &cbBeginInfo);
+    fn(cb);
+    vkEndCommandBuffer(cb);
+
+    // Submit
+    VkSubmitInfo submitInfo {};
+    submitInfo.sType              = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+    submitInfo.commandBufferCount = 1;
+    submitInfo.pCommandBuffers    = &cb;
+    vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE);
+    vkQueueWaitIdle(queue);  // There is some room to improve using 'vkWaitForFences'-logic
+
+    // Free
+    vkFreeCommandBuffers(mDevice, pool, 1, &cb);
 }
 
 //-----------------------------------------------------------------------------
