@@ -281,8 +281,13 @@ inline VkShaderModule ShaderModule(VkDevice device, std::string const &name, VkS
     return shaderModule;
 }
 
-VkPipeline Pipeline(vk::PipelineBuilder pb, VkDevice device, VkRenderPass pass)
+VkPipeline Pipeline(vk::PipelineBuilder pb, VkDevice device, VkRenderPass pass, std::vector<VkDynamicState> dynamicStates)
 {
+    VkPipelineDynamicStateCreateInfo dynamicState {};
+    dynamicState.sType             = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
+    dynamicState.dynamicStateCount = (u32)dynamicStates.size();
+    dynamicState.pDynamicStates    = dynamicStates.data();
+
     // make viewport state from our stored viewport and scissor.
     // at the moment we won't support multiple viewports or scissors
     VkPipelineViewportStateCreateInfo viewportState {};
@@ -316,6 +321,7 @@ VkPipeline Pipeline(vk::PipelineBuilder pb, VkDevice device, VkRenderPass pass)
     info.pRasterizationState = &pb.rasterizer;
     info.pMultisampleState   = &pb.multisampling;
     info.pColorBlendState    = &colorBlending;
+    info.pDynamicState       = &dynamicState;
     info.layout              = pb.pipelineLayout;
     info.renderPass          = pass;
     info.subpass             = 0;

@@ -95,6 +95,8 @@ void Renderer::draw(Camera const &cam)
 
     //===========
 
+    BTM_INFOF("AAAAAAAAAAAAAAAAAAAAAAAA => ( {}, {} )", renderpassBI.renderArea.extent.width, renderpassBI.renderArea.extent.height);
+
     drawScene("test", cam);
 
     //===========
@@ -134,9 +136,8 @@ void Renderer::draw(Camera const &cam)
     presentInfo.pImageIndices      = &swapchainImgIdx;
     auto resPresent                = vkQueuePresentKHR(mGraphics.queue, &presentInfo);
 
-    if (resPresent == VK_ERROR_OUT_OF_DATE_KHR || resPresent == VK_SUBOPTIMAL_KHR || mWindow->resized())
+    if (resPresent == VK_ERROR_OUT_OF_DATE_KHR || resPresent == VK_SUBOPTIMAL_KHR || !windowSizeMatch())
     {
-        mWindow->resizedDone();
         recreateSwapchain();
         return;
     }
@@ -188,7 +189,7 @@ void Renderer::initVulkan()
         vkbInstanceBuilder.enable_extension(ext);
     }
 
-    auto vkbInstanceResult = vkbInstanceBuilder.set_app_name("Bretema Default Engine")
+    auto vkbInstanceResult = vkbInstanceBuilder.set_app_name("Bretema Engine")
                                .request_validation_layers(true)
                                .require_api_version(BTM_VK_VER, 0)
                                .use_default_debug_messenger()
@@ -243,7 +244,9 @@ void Renderer::initVulkan()
 
 void Renderer::initSwapchain(VkSwapchainKHR prev)
 {
-    BTM_ASSERT_X(mWindow->size().x > 0 && mWindow->size().y > 0, "Invalid viewport size");
+    windowSizeSync();
+
+    BTM_ASSERT_X(w() > 0 && h() > 0, "Invalid viewport size");
 
     // === SWAP CHAIN ===
 
@@ -273,7 +276,6 @@ void Renderer::initSwapchain(VkSwapchainKHR prev)
 
     // Swapchain image-format and viewport
     mSwapchainImageFormat = vkbSwapchain.image_format;
-    // mViewportSize         = { vkbSwapchain.extent.width, vkbSwapchain.extent.height };
 
     // Swapchain deletion-queue
     ADD_DESTROY_SWAPCHAIN(vkDestroySwapchainKHR(mDevice, mSwapchain, nullptr));
@@ -570,6 +572,10 @@ void Renderer::initMaterials()
 
     //=====
 
+    static auto const sDynamicStates = { VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR };
+
+    //=====
+
     PipelineBuilder pb;
 
     // Pipeline 1
@@ -592,7 +598,7 @@ void Renderer::initMaterials()
     pb.pipelineLayout       = mPipelineLayouts[0];
     pb.depthStencil         = vk::CreateInfo::DepthStencil(true, true, VK_COMPARE_OP_LESS_OR_EQUAL);
 
-    mPipelines.push_back(vk::Create::Pipeline(pb, mDevice, mDefaultRenderPass));
+    mPipelines.push_back(vk::Create::Pipeline(pb, mDevice, mDefaultRenderPass, sDynamicStates));
     createMaterial(mPipelines.back(), mPipelineLayouts[0], "flat");
 
     // Pipeline 2
@@ -606,7 +612,7 @@ void Renderer::initMaterials()
     pb.multisampling   = vk::CreateInfo::MultisamplingState(Samples::_1);  // Must match with renderpass ...
     pb.pipelineLayout  = mPipelineLayouts[1];
 
-    mPipelines.push_back(vk::Create::Pipeline(pb, mDevice, mDefaultRenderPass));
+    mPipelines.push_back(vk::Create::Pipeline(pb, mDevice, mDefaultRenderPass, sDynamicStates));
     createMaterial(mPipelines.back(), mPipelineLayouts[1], "default");
 
     ADD_DESTROY(for (auto P : mPipelines) if (P) vkDestroyPipeline(mDevice, P, nullptr));
@@ -653,6 +659,8 @@ void Renderer::initTestScene()
 
 void Renderer::recreateSwapchain()
 {
+    static i32 count = 1;
+    BTM_INFOF("Recreating Swapchain : {}", count++);
     vkDeviceWaitIdle(mDevice);
 
     VkSwapchainKHR prev = mSwapchain;
@@ -811,15 +819,22 @@ void Renderer::drawScene(std::string const &name, Camera const &cam)
             ro.material->bind(frame().graphics.cmd);
             lastMaterial = ro.material;
 
-            vkCmdBindDescriptorSets(
-              frame().graphics.cmd,
-              VK_PIPELINE_BIND_POINT_GRAPHICS,
-              ro.material->pipelineLayout,
-              0,
-              1,
-              &frame().descSet,
-              0,
-              nullptr);
+            static auto const sGraphicsBP = VK_PIPELINE_BIND_POINT_GRAPHICS;
+            vkCmdBindDescriptorSets(frame().graphics.cmd, sGraphicsBP, ro.material->pipelineLayout, 0, 1, &frame().descSet, 0, nullptr);
+
+            VkViewport viewport {};
+            viewport.x        = 0.0f;
+            viewport.y        = 0.0f;
+            viewport.width    = w();
+            viewport.height   = h();
+            viewport.minDepth = 0.0f;
+            viewport.maxDepth = 1.0f;
+            vkCmdSetViewport(frame().graphics.cmd, 0, 1, &viewport);
+
+            VkRect2D scissor {};
+            scissor.offset = { 0, 0 };
+            scissor.extent = extent2D();
+            vkCmdSetScissor(frame().graphics.cmd, 0, 1, &scissor);
         }
 
         // only bind the mesh if it's a different one from last bind
@@ -851,9 +866,9 @@ void Renderer::executeImmediately(VkCommandPool pool, VkQueue queue, const std::
     VkCommandBufferBeginInfo cbBeginInfo {};
     cbBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
     cbBeginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-    vkBeginCommandBuffer(cb, &cbBeginInfo);
+    VK_CHECK(vkBeginCommandBuffer(cb, &cbBeginInfo));
     fn(cb);
-    vkEndCommandBuffer(cb);
+    VK_CHECK((vkEndCommandBuffer(cb));
 
     // Submit
     VkSubmitInfo submitInfo {};

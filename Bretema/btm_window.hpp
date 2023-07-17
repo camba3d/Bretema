@@ -49,9 +49,6 @@ public:
     inline bool focus() { return mFocus; }
     inline void focus(bool f) { mFocus = f; }
 
-    inline bool resized() { return mResized; }
-    inline void resizedDone() { mResized = false; }
-
     static inline std::vector<char const *> extensions() { return sExtensions; }
 
 private:
@@ -66,7 +63,6 @@ private:
     std::string mTitleInfo = "";
 
     bool mFocus   = false;
-    bool mResized = false;
 
     static inline std::vector<char const *> sExtensions                 = {};
     static inline bool                      sIsWindowContextInitialized = false;

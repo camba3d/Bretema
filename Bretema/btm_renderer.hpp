@@ -125,32 +125,36 @@ public:
     // PROPS
     inline bool isInitialized() { return mInit; }
 
-    inline float w()
+    inline float winW()
     {
         BTM_ASSERT(mWindow);
         return mWindow ? mWindow->size().x : 1;
     }
-    inline float h()
+    inline float winH()
     {
         BTM_ASSERT(mWindow);
         return mWindow ? mWindow->size().y : 1;
     }
+    inline float w() { return mSize.x; }
+    inline float h() { return mSize.y; }
 
     // ACTIONS
     virtual void update()                = 0;
     virtual void draw(Camera const &cam) = 0;
     virtual void cleanup()               = 0;
 
+    bool windowSizeMatch() { return mSize == winSize(); }
+    void windowSizeSync() { mSize = winSize(); }
+
 protected:
     inline void markAsInit() { mInit = true; }
 
-    i32 mFrameNumber = 0;
+    glm::vec2 winSize() { return mWindow ? mWindow->size() : ONE2; }
 
-    bool mInit = false;
-    // void     *mWindowHandle = nullptr;
-    // glm::vec2 mViewportSize = { 1280, 720 };
-
-    sPtr<btm::Window> mWindow = nullptr;
+    bool              mInit        = false;
+    i32               mFrameNumber = 0;
+    glm::vec2         mSize        = { 1280, 720 };
+    sPtr<btm::Window> mWindow      = nullptr;
 };
 
 //===========================
