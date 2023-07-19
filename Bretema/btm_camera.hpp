@@ -184,7 +184,11 @@ private:
     Mode        mMode   = Mode::Fly;
 
     // Dynamic
-    bool movU, movD, movF, movB, movR, movL, rotR, rotL, rotU, rotD;
+    bool movU = false, movD = false, 
+         movF = false, movB = false, 
+         movR = false, movL = false, 
+         rotR = false, rotL = false, 
+         rotU = false, rotD = false;
 
     glm::mat4 mV { 1.f };
     glm::mat4 mP { 1.f };

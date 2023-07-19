@@ -1,18 +1,6 @@
 #pragma once
 
 //===========================
-//= DLL MACROS
-//===========================
-
-#ifdef _MSC_VER
-#    define DLL_EXPORT _declspec((dllexport))
-#    define DLL_IMPORT _declspec((dllimport))
-#else
-#    define DLL_EXPORT __attribute__((dllexport))
-#    define DLL_IMPORT __attribute__((dllimport))
-#endif
-
-//===========================
 //= FORCE DISCRETE GPU
 //===========================
 
@@ -54,16 +42,15 @@
 #include <unordered_map>
 #include <unordered_set>
 
-// Glm
-#define GLM_FORCE_INLINE
-#define GLM_ENABLE_EXPERIMENTAL
+#include <source_location>
 
 // #define GLM_FORCE_SSE
 // #define GLM_FORCE_DEFAULT_ALIGNED_GENTYPES
-
+// Glm
+#define GLM_FORCE_INLINE
+#define GLM_ENABLE_EXPERIMENTAL
 #define GLM_FORCE_SWIZZLE
 #define GLM_FORCE_SILENT_WARNINGS
-
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_LEFT_HANDED
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
@@ -131,25 +118,22 @@ using uset = std::unordered_set<T>;
 
 // Logging w/o Format
 
-auto const TrimStr = [](auto const &s, i32 nChars) -> std::string_view
-{
-    std::string_view const sv = s;
-
-    if (nChars < 1)
-        return sv;
-
-    size_t const n = static_cast<size_t>(nChars);
-    return sv.substr(sv.length() >= n ? sv.length() - n : 0);
-};
+//auto const TrimStr = [](auto const &s, i32 nChars) -> std::string_view
+//{
+//    std::string_view const sv = s;
+//    if (nChars < 1) { return sv; }
+//    size_t const n = static_cast<size_t>(nChars);
+//    return sv.substr(sv.length() >= n ? sv.length() - n : 0);
+//};
 
 #if 0  // verbose
 #    define BTM_INFO(msg) fmt::print("[I] - ({}:{})\n → {}\n", __FILE__, __LINE__, msg)
 #    define BTM_WARN(msg) fmt::print("[W] - ({}:{})\n → {}\n", __FILE__, __LINE__, msg)
 #    define BTM_ERR(msg)  fmt::print("[E] - ({}:{})\n → {}\n", __FILE__, __LINE__, msg)
 #else
-#    define BTM_INFO(msg) fmt::print("[I] (...{}:{}) - {}\n", TrimStr(__FILE__, 20), __LINE__, msg)
-#    define BTM_WARN(msg) fmt::print("[W] (...{}:{}) - {}\n", TrimStr(__FILE__, 20), __LINE__, msg)
-#    define BTM_ERR(msg)  fmt::print("[E] (...{}:{}) - {}\n", TrimStr(__FILE__, 20), __LINE__, msg)
+#    define BTM_INFO(msg) fmt::print("[I] - {}\n", msg)
+#    define BTM_WARN(msg) fmt::print("[W] - {}\n", msg)
+#    define BTM_ERR(msg)  fmt::print("[E] - {}\n", msg)
 #endif
 
 // Logging w/ Format
@@ -157,6 +141,13 @@ auto const TrimStr = [](auto const &s, i32 nChars) -> std::string_view
 #define BTM_INFOF(msg, ...) BTM_INFO(BTM_FMT(msg, __VA_ARGS__))
 #define BTM_WARNF(msg, ...) BTM_WARN(BTM_FMT(msg, __VA_ARGS__))
 #define BTM_ERRF(msg, ...)  BTM_ERR(BTM_FMT(msg, __VA_ARGS__))
+
+inline void BTM_TRACE(std::source_location const &location = std::source_location::current())
+{
+    auto const file_line = BTM_FMT("{}:{}", location.file_name(), location.line());
+    fmt::print("[Trace] - {}\n", location.function_name());
+}
+
 
 // Custom Assert
 #ifndef NDEBUG
@@ -521,7 +512,7 @@ public:
     {
         if (!mKeys)
             return false;
-        auto const K = *mKeys;
+        auto const &K = *mKeys;
         return K.count(k) > 0 ? (K.at(k) == State::Press or (!ignoreHold and K.at(k) == State::Hold)) : false;
     }
 
@@ -529,7 +520,7 @@ public:
     {
         if (!mMouse)
             return false;
-        auto const M = *mMouse;
+        auto const &M = *mMouse;
         return M.count(m) > 0 ? (M.at(m) == State::Press or (!ignoreHold and M.at(m) == State::Hold)) : false;
     }
 

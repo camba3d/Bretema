@@ -96,8 +96,8 @@ private:
     VkPhysicalDeviceProperties mProperties     = {};
 
     // MEMORY
-    btm::ds::DeletionQueue mSwapchainDeletionQueue = {};
-    btm::ds::DeletionQueue mMainDeletionQueue      = {};
+    btm::ds::DeletionQueue mDqSwapchain = {};
+    btm::ds::DeletionQueue mDqMain      = {};
     VmaAllocator           mAllocator              = VK_NULL_HANDLE;  // Memory Allocator - AMD lib
 
     // SWAPCHAIN

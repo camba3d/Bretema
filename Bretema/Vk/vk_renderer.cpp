@@ -10,13 +10,15 @@ constexpr i32 BTM_VK_MAJOR_VERSION = 1;
 constexpr i32 BTM_VK_MINOR_VERSION = 2;
 #define BTM_VK_VER BTM_VK_MAJOR_VERSION, BTM_VK_MINOR_VERSION
 
-#define ADD_DESTROY(code__)           mMainDeletionQueue.add([=, this]() { code__; })
-#define ADD_DESTROY_SWAPCHAIN(code__) mMainDeletionQueue.add([=, this]() { code__; })
+#define ADD_DESTROY(code__)           mDqMain.add([=, this]() { code__; })
+#define ADD_DESTROY_SWAPCHAIN(code__) mDqSwapchain.add([=, this]() { code__; })
 
 //-----------------------------------------------------------------------------
 
 Renderer::Renderer(sPtr<btm::Window> window) : btm::BaseRenderer(window)
 {
+    BTM_TRACE();
+
     // * https://github.com/charles-lunarg/vk-bootstrap/blob/master/docs/getting_started.md
 
     initVulkan();
@@ -32,9 +34,7 @@ Renderer::Renderer(sPtr<btm::Window> window) : btm::BaseRenderer(window)
     initMeshes();
     initTestScene();
 
-    // init_pipelines();
     // load_images();
-    // init_scene();
 
     markAsInit();
 }
@@ -43,6 +43,8 @@ Renderer::Renderer(sPtr<btm::Window> window) : btm::BaseRenderer(window)
 
 void Renderer::draw(Camera const &cam)
 {
+    //BTM_TRACE();
+
     // Wait for GPU (1 second timeout)
     VK_CHECK(vkWaitForFences(mDevice, 1, &frame().renderFence, true, sOneSec));
 
@@ -73,7 +75,7 @@ void Renderer::draw(Camera const &cam)
 
     // Make a clear-color from frame number.
     // This will flash with a 120*pi frame period.
-    VkClearValue clearColor, clearDepth;
+    VkClearValue clearColor {}, clearDepth {};
     clearColor.color              = { { 0.0f, 0.0f, float(abs(sin(mFrameNumber / 120.f))), 1.0f } };
     clearDepth.depthStencil.depth = 1.f;
     auto const clears             = std::array { clearColor, clearDepth };
@@ -94,8 +96,6 @@ void Renderer::draw(Camera const &cam)
     vkCmdBeginRenderPass(frame().graphics.cmd, &renderpassBI, VK_SUBPASS_CONTENTS_INLINE);
 
     //===========
-
-    BTM_INFOF("AAAAAAAAAAAAAAAAAAAAAAAA => ( {}, {} )", renderpassBI.renderArea.extent.width, renderpassBI.renderArea.extent.height);
 
     drawScene("test", cam);
 
@@ -136,7 +136,7 @@ void Renderer::draw(Camera const &cam)
     presentInfo.pImageIndices      = &swapchainImgIdx;
     auto resPresent                = vkQueuePresentKHR(mGraphics.queue, &presentInfo);
 
-    if (resPresent == VK_ERROR_OUT_OF_DATE_KHR || resPresent == VK_SUBOPTIMAL_KHR || !windowSizeMatch())
+    if (resPresent == VK_ERROR_OUT_OF_DATE_KHR || resPresent == VK_SUBOPTIMAL_KHR || !  windowSizeMatch())
     {
         recreateSwapchain();
         return;
@@ -154,6 +154,8 @@ void Renderer::draw(Camera const &cam)
 
 void Renderer::cleanup()
 {
+    BTM_TRACE();
+
     if (!isInitialized())
     {
         return;
@@ -166,8 +168,8 @@ void Renderer::cleanup()
         vkWaitForFences(mDevice, 1, &mFrames[i].renderFence, true, sOneSec * 4);
     }
 
-    mSwapchainDeletionQueue.flush();
-    mMainDeletionQueue.flush();
+    mDqMain.flush();
+    mDqSwapchain.flush();
 
     vmaDestroyAllocator(mAllocator);
 
@@ -179,8 +181,21 @@ void Renderer::cleanup()
 
 //-----------------------------------------------------------------------------
 
+void Renderer::recreateSwapchain()
+{
+    BTM_TRACE();
+    vkDeviceWaitIdle(mDevice);
+    mDqSwapchain.flush();
+    initSwapchain();
+    initFramebuffers();
+}
+ 
+//-----------------------------------------------------------------------------
+
 void Renderer::initVulkan()
 {
+    BTM_TRACE();
+
     // vkb : Create a instance with some setup
     auto vkbInstanceBuilder = vkb::InstanceBuilder {};
 
@@ -195,7 +210,7 @@ void Renderer::initVulkan()
                                .use_default_debug_messenger()
                                .build();
     VKB_CHECK(vkbInstanceResult);
-    auto vkbInstance = vkbInstanceResult.value();
+    auto &vkbInstance = vkbInstanceResult.value();
 
     // Instance
     mInstance = vkbInstance.instance;
@@ -210,7 +225,7 @@ void Renderer::initVulkan()
     auto vkbGpuSelector = vkb::PhysicalDeviceSelector { vkbInstance };
     auto vkbGpuResult   = vkbGpuSelector.set_minimum_version(BTM_VK_VER).set_surface(mSurface).select();
     VKB_CHECK(vkbGpuResult);
-    auto vkbGpu = vkbGpuResult.value();
+    auto &vkbGpu = vkbGpuResult.value();
 
     // Physical Device  (GPU)
     mChosenGPU = vkbGpu.physical_device;
@@ -219,7 +234,7 @@ void Renderer::initVulkan()
     auto vkbDeviceBuilder = vkb::DeviceBuilder { vkbGpu };
     auto vkbDeviceResult  = vkbDeviceBuilder.build();
     VKB_CHECK(vkbDeviceResult);
-    auto vkbDevice = vkbDeviceResult.value();
+    auto &vkbDevice = vkbDeviceResult.value();
 
     // Device
     mDevice     = vkbDevice.device;
@@ -244,6 +259,8 @@ void Renderer::initVulkan()
 
 void Renderer::initSwapchain(VkSwapchainKHR prev)
 {
+    BTM_TRACE();
+
     windowSizeSync();
 
     BTM_ASSERT_X(w() > 0 && h() > 0, "Invalid viewport size");
@@ -258,11 +275,13 @@ void Renderer::initSwapchain(VkSwapchainKHR prev)
                                 .use_default_image_usage_flags()
                                 .set_desired_min_image_count(sInFlight)
                                 .set_old_swapchain(prev)
+                                .set_clipped(true)
                                 .build();
 
     VKB_CHECK(vkbSwapchainResult);
-    auto vkbSwapchain = vkbSwapchainResult.value();
-    mSwapchain        = vkbSwapchain.swapchain;
+    auto &vkbSwapchain = vkbSwapchainResult.value();
+    mSwapchain         = vkbSwapchain.swapchain;
+    ADD_DESTROY_SWAPCHAIN(vkDestroySwapchainKHR(mDevice, mSwapchain, nullptr));
 
     // Swapchain images
     auto vkbSwapchainImagesResult = vkbSwapchain.get_images();
@@ -277,9 +296,6 @@ void Renderer::initSwapchain(VkSwapchainKHR prev)
     // Swapchain image-format and viewport
     mSwapchainImageFormat = vkbSwapchain.image_format;
 
-    // Swapchain deletion-queue
-    ADD_DESTROY_SWAPCHAIN(vkDestroySwapchainKHR(mDevice, mSwapchain, nullptr));
-
     // === DEPTH BUFFER ===
 
     static auto const depthBit = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
@@ -289,7 +305,7 @@ void Renderer::initSwapchain(VkSwapchainKHR prev)
     VmaAllocationCreateInfo imgAllocInfo = {};
     imgAllocInfo.usage                   = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
     imgAllocInfo.requiredFlags           = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
-
+        
     // allocate and create the image
     vmaCreateImage(mAllocator, &imgInfo, &imgAllocInfo, &mDepthImage.image, &mDepthImage.allocation, nullptr);
     ADD_DESTROY_SWAPCHAIN(vmaDestroyImage(mAllocator, mDepthImage.image, mDepthImage.allocation));
@@ -305,6 +321,8 @@ void Renderer::initSwapchain(VkSwapchainKHR prev)
 
 void Renderer::initCommands()
 {
+    BTM_TRACE();
+
     auto const initCommandsByFamily = [this](vk::QueueCmd &qc, vk::Queue *q)
     {
         auto const flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
@@ -333,6 +351,8 @@ void Renderer::initCommands()
 
 void Renderer::initDefaultRenderPass()
 {
+    BTM_TRACE();
+
     // == ATTACHMENT(s) ==
     // att0 : Color
     VkAttachmentDescription color0  = {};
@@ -410,6 +430,8 @@ void Renderer::initDefaultRenderPass()
 
 void Renderer::initFramebuffers()
 {
+    BTM_TRACE();
+
     // Create the framebuffers for the swapchain images.
     // This will connect the render-pass to the images for rendering
     VkFramebufferCreateInfo framebufferCI = {};
@@ -422,6 +444,7 @@ void Renderer::initFramebuffers()
     framebufferCI.layers                  = 1;
 
     // Grab how many images we have in the swapchain
+    mFramebuffers.clear();
     mFramebuffers = decltype(mFramebuffers)(mSwapchainImages.size());
 
     // Create framebuffers for each of the swapchain image views
@@ -433,8 +456,8 @@ void Renderer::initFramebuffers()
         framebufferCI.pAttachments    = atts.data();
 
         VK_CHECK(vkCreateFramebuffer(mDevice, &framebufferCI, nullptr, &mFramebuffers[i]));
-        ADD_DESTROY(vkDestroyFramebuffer(mDevice, mFramebuffers[i], nullptr));
-        ADD_DESTROY(vkDestroyImageView(mDevice, mSwapchainImageViews[i], nullptr));
+        ADD_DESTROY_SWAPCHAIN(vkDestroyImageView(mDevice, mSwapchainImageViews[i], nullptr));
+        ADD_DESTROY_SWAPCHAIN(vkDestroyFramebuffer(mDevice, mFramebuffers[i], nullptr));
     }
 }
 
@@ -442,6 +465,8 @@ void Renderer::initFramebuffers()
 
 void Renderer::initSyncStructures()
 {
+    BTM_TRACE();
+
     for (u64 i = 0; i < sFlightFrames; i++)
     {
         auto const fenceCI     = vk::CreateInfo::Fence();
@@ -463,6 +488,8 @@ void Renderer::initSyncStructures()
 
 void Renderer::initDescriptors()
 {
+    BTM_TRACE();
+
     // CREATE GLOBAL DESCRIPTOR SET LAYOUT
 
     VkDescriptorSetLayoutBinding camera = {};
@@ -517,7 +544,7 @@ void Renderer::initDescriptors()
 
         // Populate
 
-        VkDescriptorBufferInfo descBI;
+        VkDescriptorBufferInfo descBI {};
         descBI.buffer = fd.camera.buffer;
         descBI.offset = 0;                   // at 0 offset
         descBI.range  = sizeof(CameraData);  // of the size of a camera data struct
@@ -539,6 +566,8 @@ void Renderer::initDescriptors()
 
 void Renderer::initMaterials()
 {
+    BTM_TRACE();
+
     // Shader - tri
     auto vs_tri = vk::Create::ShaderModule(mDevice, "tri", VK_SHADER_STAGE_VERTEX_BIT);
     BTM_DEFER(vkDestroyShaderModule(mDevice, vs_tri, nullptr));
@@ -622,6 +651,8 @@ void Renderer::initMaterials()
 
 void Renderer::initMeshes()  // todo : this have to come from user-land
 {
+    BTM_TRACE();
+
 #ifdef _MSC_VER
     static auto const sGeometryPath = runtime::exepath() + "/../Assets/Geometry";
 #else
@@ -638,6 +669,8 @@ void Renderer::initMeshes()  // todo : this have to come from user-land
 
 void Renderer::initTestScene()
 {
+    BTM_TRACE();
+     
     auto &testScene = mScenes["test"];
 
     RenderObject ro { mesh0("monkey"), material("default") };
@@ -653,22 +686,6 @@ void Renderer::initTestScene()
             testScene.push_back(ro);
         }
     }
-}
-
-//-----------------------------------------------------------------------------
-
-void Renderer::recreateSwapchain()
-{
-    static i32 count = 1;
-    BTM_INFOF("Recreating Swapchain : {}", count++);
-    vkDeviceWaitIdle(mDevice);
-
-    VkSwapchainKHR prev = mSwapchain;
-
-    mSwapchainDeletionQueue.flush();
-
-    initSwapchain(prev);
-    initFramebuffers();
 }
 
 //-----------------------------------------------------------------------------
@@ -718,7 +735,7 @@ AllocatedBuffer Renderer::createBufferStaging(void const *data, u64 bytes, VkBuf
     //-----
 
     // Populate host
-    void *hostMap;
+    void *hostMap = nullptr;
     VK_CHECK(vmaMapMemory(mAllocator, hostBuff.allocation, &hostMap));
     memcpy(hostMap, data, bytes);
     vmaUnmapMemory(mAllocator, hostBuff.allocation);
@@ -789,17 +806,17 @@ void Renderer::drawScene(std::string const &name, Camera const &cam)
 
     //-----
 
-    CameraData uCam;
+    CameraData uCam {};
     uCam.proj     = cam.P();
     uCam.view     = cam.V();
     uCam.viewproj = uCam.proj * uCam.view;
 
-    void *map;
+    void *map = nullptr;
     VK_CHECK(vmaMapMemory(mAllocator, frame().camera.allocation, &map));
     memcpy(map, &uCam, sizeof(CameraData));
     vmaUnmapMemory(mAllocator, frame().camera.allocation);
 
-    ModelData model;
+    ModelData model {};
 
     Mesh     *lastMesh     = nullptr;
     Material *lastMaterial = nullptr;
@@ -808,6 +825,11 @@ void Renderer::drawScene(std::string const &name, Camera const &cam)
 
     for (auto const &ro : mScenes[name])
     {
+        if (!ro.mesh && !ro.material)
+        {
+            continue;
+        }
+
         // update push-constant
         model.normal = glm::transpose(glm::inverse(ro.transform));
         model.model  = ro.transform;
@@ -845,7 +867,7 @@ void Renderer::drawScene(std::string const &name, Camera const &cam)
         }
 
         // draw
-        ro.mesh->draw(frame().graphics.cmd);
+            ro.mesh->draw(frame().graphics.cmd);
     }
 }
 
@@ -868,7 +890,7 @@ void Renderer::executeImmediately(VkCommandPool pool, VkQueue queue, const std::
     cbBeginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
     VK_CHECK(vkBeginCommandBuffer(cb, &cbBeginInfo));
     fn(cb);
-    VK_CHECK((vkEndCommandBuffer(cb));
+    VK_CHECK(vkEndCommandBuffer(cb));
 
     // Submit
     VkSubmitInfo submitInfo {};

@@ -147,16 +147,16 @@ struct QueueCmd
 
 struct PipelineBuilder
 {
-    std::vector<VkPipelineShaderStageCreateInfo> shaderStages;
-    VkPipelineVertexInputStateCreateInfo         vertexInputInfo;
-    VkPipelineInputAssemblyStateCreateInfo       inputAssembly;
-    VkViewport                                   viewport;
-    VkRect2D                                     scissor;
-    VkPipelineRasterizationStateCreateInfo       rasterizer;
-    VkPipelineColorBlendAttachmentState          colorBlendAttachment;
-    VkPipelineMultisampleStateCreateInfo         multisampling;
-    VkPipelineLayout                             pipelineLayout;
-    VkPipelineDepthStencilStateCreateInfo        depthStencil;
+    std::vector<VkPipelineShaderStageCreateInfo> shaderStages {};
+    VkPipelineVertexInputStateCreateInfo         vertexInputInfo {};
+    VkPipelineInputAssemblyStateCreateInfo       inputAssembly {};
+    VkViewport                                   viewport {};
+    VkRect2D                                     scissor {};
+    VkPipelineRasterizationStateCreateInfo       rasterizer {};
+    VkPipelineColorBlendAttachmentState          colorBlendAttachment {};
+    VkPipelineMultisampleStateCreateInfo         multisampling {};
+    VkPipelineLayout                             pipelineLayout {};
+    VkPipelineDepthStencilStateCreateInfo        depthStencil {};
 };
 
 //-----------------------------------------------------------------------------
