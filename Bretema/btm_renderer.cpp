@@ -17,8 +17,8 @@ namespace btm
 BaseRenderer::BaseRenderer(sPtr<btm::Window> window)
 {
     mWindow = window;
-    BTM_ASSERT_X(mWindow->handle(), "Invalid window handle");
-    BTM_ASSERT_X(w() > 0 && h() > 0, "Invalid viewport size");
+    BTM_ASSERT(mWindow->handle(), "Invalid window handle");
+    BTM_ASSERT(w() > 0 && h() > 0, "Invalid viewport size");
 }
 
 //=========================================================
@@ -28,8 +28,7 @@ BaseRenderer::BaseRenderer(sPtr<btm::Window> window)
 template<typename T>
 auto gatherMeshData(tinygltf::Model const &model, i32 accessorIdx)
 {
-    if (accessorIdx < 0)
-        return ds::view((T *)nullptr, 0);
+    if (accessorIdx < 0) return ds::view((T *)nullptr, 0);
 
     auto const &accessor   = model.accessors[accessorIdx];
     auto const &bufferView = model.bufferViews[accessor.bufferView];
@@ -50,8 +49,7 @@ std::vector<Mesh> parseGltf(tinygltf::Model const &model)
 
         for (const auto &primitive : mesh.primitives)
         {
-            if (primitive.mode != TINYGLTF_MODE_TRIANGLES)
-                continue;
+            if (primitive.mode != TINYGLTF_MODE_TRIANGLES) continue;
 
             auto const &p   = primitive;
             auto        idx = [&p](const char *name) { return p.attributes.count(name) > 0 ? p.attributes.at(name) : -1; };
@@ -65,29 +63,24 @@ std::vector<Mesh> parseGltf(tinygltf::Model const &model)
             {
                 auto const dataView = gatherMeshData<glm::vec3>(model, idx("POSITION"));
 
-                if (outMesh.vertices.empty())
-                    outMesh.vertices.resize(dataView.size());
+                if (outMesh.vertices.empty()) outMesh.vertices.resize(dataView.size());
 
-                for (size_t i = 0; i < dataView.size(); ++i)
-                    outMesh.vertices[i].pos = dataView[i];
+                for (size_t i = 0; i < dataView.size(); ++i) outMesh.vertices[i].pos = dataView[i];
             }
             // UV0
             {
                 auto const dataView = gatherMeshData<glm::vec2>(model, idx("TEXCOORD_Ø"));
-                for (size_t i = 0; i < dataView.size(); ++i)
-                    outMesh.vertices[i].uv0 = dataView[i];
+                for (size_t i = 0; i < dataView.size(); ++i) outMesh.vertices[i].uv0 = dataView[i];
             }
             // NORMAL
             {
                 auto const dataView = gatherMeshData<glm::vec3>(model, idx("NORMAL"));
-                for (size_t i = 0; i < dataView.size(); ++i)
-                    outMesh.vertices[i].normal = dataView[i];
+                for (size_t i = 0; i < dataView.size(); ++i) outMesh.vertices[i].normal = dataView[i];
             }
             // TANGENT
             {
                 auto const dataView = gatherMeshData<glm::vec4>(model, idx("TANGENT"));
-                for (size_t i = 0; i < dataView.size(); ++i)
-                    outMesh.vertices[i].tangent = dataView[i];
+                for (size_t i = 0; i < dataView.size(); ++i) outMesh.vertices[i].tangent = dataView[i];
             }
 
             meshes.push_back(outMesh);
@@ -106,17 +99,13 @@ std::vector<Mesh> parseGltf(bool isBin, std::string const &filepath, std::span<u
     bool const ok = isBin ? ctx.LoadBinaryFromMemory(&model, &err, &warn, bin.data(), (u32)bin.size())
                           : ctx.LoadASCIIFromFile(&model, &err, &warn, filepath);
 
-    if (!err.empty())
-        BTM_ERRF("Loading GLTF {}: {}", filepath, err);
+    if (!err.empty()) BTM_ERRF("Loading GLTF {}: {}", filepath, err);
 
-    if (!warn.empty())
-        BTM_WARNF("Loading GLTF {}: {}", filepath, warn);
+    if (!warn.empty()) BTM_WARNF("Loading GLTF {}: {}", filepath, warn);
 
-    if (!ok and (err.empty() or warn.empty()))
-        BTM_ERRF("Loading GLTF {}: Undefined error", filepath);
+    if (!ok and (err.empty() or warn.empty())) BTM_ERRF("Loading GLTF {}: Undefined error", filepath);
 
-    if (!ok or !err.empty() or !warn.empty())
-        return {};
+    if (!ok or !err.empty() or !warn.empty()) return {};
 
     return parseGltf(model);
 }

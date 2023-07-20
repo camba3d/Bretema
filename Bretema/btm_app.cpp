@@ -9,7 +9,7 @@ namespace btm
 
 App::App(std::string name, RenderAPI renderAPI) : mName(std::move(name)), mRenderAPI(renderAPI)
 {
-    BTM_ABORTF_IF(
+    BTM_ABORT_IF(
       mMainWindow || mRenderer,
       "Initialization fiasco... Window({}) or Renderer({}) already exists!",
       BTM_PTRSTR(mMainWindow),
@@ -50,8 +50,7 @@ void App::run()
             auto const &mainCamera = mCameras.at(0);
             RENDERER(draw(mainCamera));
 
-            if (close)
-                window->destroy();  // WARNING : This should trigger something on 'SelectedRenderer' ??
+            if (close) window->destroy();  // WARNING : This should trigger something on 'SelectedRenderer' ??
 
             isAnyWindowOpen |= !close;
         }
@@ -98,8 +97,7 @@ void App::cursor(glm::vec2 cursor)
 
     bool const validEvent = ui.pressed(UI::Mouse::Left) or ui.pressed(UI::Mouse::Right) or ui.pressed(UI::Mouse::Middle);
 
-    if (validEvent)
-        onInputChange(ui);
+    if (validEvent) onInputChange(ui);
 }
 
 void App::wheel(glm::vec2 wheel)
@@ -126,8 +124,7 @@ UI::Info App::genInputInfo(glm::vec2 displ, glm::vec2 wheel)
 
 void App::onInputChange(UI::Info const &ui)
 {
-    for (auto &camera : mCameras)
-        camera.onInputChange(ui);
+    for (auto &camera : mCameras) camera.onInputChange(ui);
 }
 
 }  // namespace btm

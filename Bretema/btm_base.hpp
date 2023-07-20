@@ -118,79 +118,27 @@ using uset = std::unordered_set<T>;
 
 // Logging w/o Format
 
-//auto const TrimStr = [](auto const &s, i32 nChars) -> std::string_view
+// auto const TrimStr = [](auto const &s, i32 nChars) -> std::string_view
 //{
-//    std::string_view const sv = s;
-//    if (nChars < 1) { return sv; }
-//    size_t const n = static_cast<size_t>(nChars);
-//    return sv.substr(sv.length() >= n ? sv.length() - n : 0);
-//};
+//     std::string_view const sv = s;
+//     if (nChars < 1) { return sv; }
+//     size_t const n = static_cast<size_t>(nChars);
+//     return sv.substr(sv.length() >= n ? sv.length() - n : 0);
+// };
 
-#if 0  // verbose
-#    define BTM_INFO(msg) fmt::print("[I] - ({}:{})\n → {}\n", __FILE__, __LINE__, msg)
-#    define BTM_WARN(msg) fmt::print("[W] - ({}:{})\n → {}\n", __FILE__, __LINE__, msg)
-#    define BTM_ERR(msg)  fmt::print("[E] - ({}:{})\n → {}\n", __FILE__, __LINE__, msg)
-#else
-#    define BTM_INFO(msg) fmt::print("[I] - {}\n", msg)
-#    define BTM_WARN(msg) fmt::print("[W] - {}\n", msg)
-#    define BTM_ERR(msg)  fmt::print("[E] - {}\n", msg)
-#endif
-
-// Logging w/ Format
-#define BTM_FMT(msg, ...)   fmt::format(msg, __VA_ARGS__)
-#define BTM_INFOF(msg, ...) BTM_INFO(BTM_FMT(msg, __VA_ARGS__))
-#define BTM_WARNF(msg, ...) BTM_WARN(BTM_FMT(msg, __VA_ARGS__))
-#define BTM_ERRF(msg, ...)  BTM_ERR(BTM_FMT(msg, __VA_ARGS__))
-
-inline void BTM_TRACE(std::source_location const &location = std::source_location::current())
-{
-    auto const file_line = BTM_FMT("{}:{}", location.file_name(), location.line());
-    fmt::print("[Trace] - {}\n", location.function_name());
-}
-
-
-// Custom Assert
-#ifndef NDEBUG
-#    define BTM_ASSERT(cond) assert(cond)
-#    define BTM_ASSERT_X(cond, msg) \
-        do                          \
-        {                           \
-            if (!(cond))            \
-            {                       \
-                BTM_ERR(msg);       \
-                assert(cond);       \
-            }                       \
-        } while (0)
-#else
-#    define BTM_ASSERT(cond)
-#    define BTM_ASSERT_X(cond, msg)
-#endif
-
-// Custom Abort
-#define BTM_ABORT(msg) \
-    do                 \
-    {                  \
-        BTM_ERR(msg);  \
-        abort();       \
-    } while (0)
-#define BTM_ABORTF(msg, ...)        \
-    do                              \
-    {                               \
-        BTM_ERRF(msg, __VA_ARGS__); \
-        abort();                    \
-    } while (0)
-#define BTM_ABORT_IF(cond, msg)                  \
-    do                                           \
-    {                                            \
-        if (cond)                                \
-            BTM_ABORTF("{} --> {}", #cond, msg); \
-    } while (0)
-#define BTM_ABORTF_IF(cond, msg, ...)                                      \
-    do                                                                     \
-    {                                                                      \
-        if (cond)                                                          \
-            BTM_ABORTF("{} --> {}", #cond, fmt::format(msg, __VA_ARGS__)); \
-    } while (0)
+// clang-format off
+MBU inline auto BTM_FMT      = [](std::string const &msg, auto... args) { return fmt::format(msg, args...); };
+MBU inline auto BTM_INFO     = [](std::string const &msg, auto... args) { fmt::print("[I] - {}\n", BTM_FMT(msg, args...)); };
+MBU inline auto BTM_INFOF    = [](std::string const &msg, auto... args) { fmt::print("[I] - {}\n", BTM_FMT(msg, args...)); };
+MBU inline auto BTM_WARN     = [](std::string const &msg, auto... args) { fmt::print("[W] - {}\n", BTM_FMT(msg, args...)); };
+MBU inline auto BTM_WARNF    = [](std::string const &msg, auto... args) { fmt::print("[W] - {}\n", BTM_FMT(msg, args...)); };
+MBU inline auto BTM_ERR      = [](std::string const &msg, auto... args) { fmt::print("[E] - {}\n", BTM_FMT(msg, args...)); };
+MBU inline auto BTM_ERRF     = [](std::string const &msg, auto... args) { fmt::print("[E] - {}\n", BTM_FMT(msg, args...)); };
+MBU inline auto BTM_TRACE    = [](std::source_location const &sl = std::source_location::current()) { fmt::print("[*] - {}\n", sl.function_name()); };
+MBU inline auto BTM_ASSERT   = [](auto b, std::string const &msg="") { if (!(!!b)) { BTM_ERR(msg); assert(false); } };
+MBU inline auto BTM_ABORT    = [](std::string const &msg="", auto... args) { BTM_ERR(msg, args...); abort(); };
+#define BTM_ABORT_IF(cond, msg, ...) do { if (cond) BTM_ABORT("{} --> {}", #cond, fmt::format(msg, __VA_ARGS__)); } while (0)
+// clang-format on
 
 // C++ Contiguous container to C raw data
 #define BTM_SIZEOF(type, v) static_cast<type>((v.empty() ? 0u : v.size() * sizeof(v[0])))
@@ -510,16 +458,14 @@ public:
 
     inline bool pressed(Key k, bool ignoreHold = false) const
     {
-        if (!mKeys)
-            return false;
+        if (!mKeys) return false;
         auto const &K = *mKeys;
         return K.count(k) > 0 ? (K.at(k) == State::Press or (!ignoreHold and K.at(k) == State::Hold)) : false;
     }
 
     inline bool pressed(Mouse m, bool ignoreHold = false) const
     {
-        if (!mMouse)
-            return false;
+        if (!mMouse) return false;
         auto const &M = *mMouse;
         return M.count(m) > 0 ? (M.at(m) == State::Press or (!ignoreHold and M.at(m) == State::Hold)) : false;
     }

@@ -43,7 +43,7 @@ Renderer::Renderer(sPtr<btm::Window> window) : btm::BaseRenderer(window)
 
 void Renderer::draw(Camera const &cam)
 {
-    //BTM_TRACE();
+    // BTM_TRACE();
 
     // Wait for GPU (1 second timeout)
     VK_CHECK(vkWaitForFences(mDevice, 1, &frame().renderFence, true, sOneSec));
@@ -59,7 +59,7 @@ void Renderer::draw(Camera const &cam)
     }
     else if (resAcquire != VK_SUCCESS && resAcquire != VK_SUBOPTIMAL_KHR)
     {
-        BTM_ABORTF("{} : {}", btm::vk::str::Result.at(resAcquire), "vkAcquireNextImageKHR presentSemaphore");
+        BTM_ABORT("{} : {}", btm::vk::str::Result.at(resAcquire), "vkAcquireNextImageKHR presentSemaphore");
     }
 
     // Reset(s) on valid image
@@ -136,14 +136,14 @@ void Renderer::draw(Camera const &cam)
     presentInfo.pImageIndices      = &swapchainImgIdx;
     auto resPresent                = vkQueuePresentKHR(mGraphics.queue, &presentInfo);
 
-    if (resPresent == VK_ERROR_OUT_OF_DATE_KHR || resPresent == VK_SUBOPTIMAL_KHR || !  windowSizeMatch())
+    if (resPresent == VK_ERROR_OUT_OF_DATE_KHR || resPresent == VK_SUBOPTIMAL_KHR || !windowSizeMatch())
     {
         recreateSwapchain();
         return;
     }
     else if (resPresent != VK_SUCCESS)
     {
-        BTM_ABORTF("{} : {}", btm::vk::str::Result.at(resAcquire), "vkQueuePresentKHR renderSemaphore");
+        BTM_ABORT("{} : {}", btm::vk::str::Result.at(resAcquire), "vkQueuePresentKHR renderSemaphore");
     }
 
     // Increase the number of frames drawn
@@ -189,7 +189,7 @@ void Renderer::recreateSwapchain()
     initSwapchain();
     initFramebuffers();
 }
- 
+
 //-----------------------------------------------------------------------------
 
 void Renderer::initVulkan()
@@ -263,7 +263,7 @@ void Renderer::initSwapchain(VkSwapchainKHR prev)
 
     windowSizeSync();
 
-    BTM_ASSERT_X(w() > 0 && h() > 0, "Invalid viewport size");
+    BTM_ASSERT(w() > 0 && h() > 0, "Invalid viewport size");
 
     // === SWAP CHAIN ===
 
@@ -305,7 +305,7 @@ void Renderer::initSwapchain(VkSwapchainKHR prev)
     VmaAllocationCreateInfo imgAllocInfo = {};
     imgAllocInfo.usage                   = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
     imgAllocInfo.requiredFlags           = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
-        
+
     // allocate and create the image
     vmaCreateImage(mAllocator, &imgInfo, &imgAllocInfo, &mDepthImage.image, &mDepthImage.allocation, nullptr);
     ADD_DESTROY_SWAPCHAIN(vmaDestroyImage(mAllocator, mDepthImage.image, mDepthImage.allocation));
@@ -670,7 +670,7 @@ void Renderer::initMeshes()  // todo : this have to come from user-land
 void Renderer::initTestScene()
 {
     BTM_TRACE();
-     
+
     auto &testScene = mScenes["test"];
 
     RenderObject ro { mesh0("monkey"), material("default") };
@@ -710,8 +710,7 @@ AllocatedBuffer Renderer::createBuffer(u64 bytes, VkBufferUsageFlags usage, VkMe
 
     VK_CHECK(vmaCreateBuffer(mAllocator, &info, &allocInfo, &b.buffer, &b.allocation, nullptr));
 
-    if (addToDelQueue)
-        ADD_DESTROY(vmaDestroyBuffer(mAllocator, b.buffer, b.allocation));
+    if (addToDelQueue) ADD_DESTROY(vmaDestroyBuffer(mAllocator, b.buffer, b.allocation));
 
     return b;
 }
@@ -867,7 +866,7 @@ void Renderer::drawScene(std::string const &name, Camera const &cam)
         }
 
         // draw
-            ro.mesh->draw(frame().graphics.cmd);
+        ro.mesh->draw(frame().graphics.cmd);
     }
 }
 

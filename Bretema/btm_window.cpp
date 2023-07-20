@@ -58,8 +58,7 @@ Window::Window(i32 w, i32 h, std::string const &title, App *app) : mW(w), mH(h),
     sHandleToWindow[mHandle] = this;
 
     // Store main window object
-    if (!sMainWindow)
-        sMainWindow = mHandle;
+    if (!sMainWindow) sMainWindow = mHandle;
 
     // clang-format off
 
@@ -127,8 +126,7 @@ void *Window::handle() const
 
 void Window::refreshTitle()
 {
-    if (mHandle)
-        glfwSetWindowTitle(mHandle, (BTM_APP(mHandle).name() + " :: " + mTitle + " :: " + mTitleInfo).c_str());
+    if (mHandle) glfwSetWindowTitle(mHandle, (BTM_APP(mHandle).name() + " :: " + mTitle + " :: " + mTitleInfo).c_str());
 }
 
 void Window::title(std::string title)

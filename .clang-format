@@ -5,7 +5,6 @@ Standard: Latest
 
 DisableFormat: false
 BasedOnStyle: Mozilla
-BreakBeforeBraces: Allman 
 
 UseTab: Never
 TabWidth: 4
@@ -30,8 +29,8 @@ AllowShortCaseLabelsOnASingleLine: true
 AllowShortLambdasOnASingleLine: All
 AllowShortFunctionsOnASingleLine: Inline
 
-AllowShortLoopsOnASingleLine: false
-AllowShortIfStatementsOnASingleLine: Never
+AllowShortLoopsOnASingleLine: true
+AllowShortIfStatementsOnASingleLine: AllIfsAndElse
 
 # ========================================================
 
@@ -81,7 +80,7 @@ AlwaysBreakAfterReturnType: None
 AlwaysBreakBeforeMultilineStrings: false
 AlwaysBreakTemplateDeclarations: true
 
-BreakBeforeBraces: Allman
+BreakBeforeBraces: Allman #Attach
 
 # BreakBeforeBraces: Custom
 # BraceWrapping:
