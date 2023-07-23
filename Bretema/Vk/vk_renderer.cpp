@@ -73,12 +73,28 @@ void Renderer::draw(Camera const &cam)
     cbBeginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
     VK_CHECK(vkBeginCommandBuffer(frame().graphics.cmd, &cbBeginInfo));
 
+    // Calculations...
+    int const   frameIdx   = mFrameNumber % sFlightFrames;
+    float const frameWave  = (mFrameNumber / 120.f);
+    float const frameSin   = sin(frameWave);
+    float const frameCos   = cos(frameWave);
+    float const frameSin01 = abs(frameSin);
+    float const frameCos01 = abs(frameCos);
+
     // Make a clear-color from frame number.
     // This will flash with a 120*pi frame period.
     VkClearValue clearColor {}, clearDepth {};
-    clearColor.color              = { { 0.0f, 0.0f, float(abs(sin(mFrameNumber / 120.f))), 1.0f } };
+    clearColor.color              = { { .3f, .1f, .6f, 1.0f } };
     clearDepth.depthStencil.depth = 1.f;
     auto const clears             = std::array { clearColor, clearDepth };
+
+    // Scene data stuff
+    mSceneData.ambientColor = { frameSin01, 0.f, frameCos01, 1.f };
+    char *sceneData;
+    vmaMapMemory(mAllocator, mSceneDataBuff.allocation, (void **)&sceneData);
+    sceneData += mSceneDataPaddedSize * frameIdx;
+    memcpy(sceneData, &mSceneData, sizeof(SceneData));
+    vmaUnmapMemory(mAllocator, mSceneDataBuff.allocation);
 
     // Start the main renderpass.
     // We will use the clear color from above, and the framebuffer of the index the swapchain gave us
@@ -491,74 +507,68 @@ void Renderer::initDescriptors()
     BTM_TRACE();
 
     // CREATE GLOBAL DESCRIPTOR SET LAYOUT
-
-    VkDescriptorSetLayoutBinding camera = {};
-    camera.binding                      = 0;
-    camera.descriptorCount              = 1;
-    camera.descriptorType               = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;  // it's a uniform buffer binding
-    camera.stageFlags                   = VK_SHADER_STAGE_VERTEX_BIT;         // we use it from the vertex shader
-
-    VkDescriptorSetLayoutCreateInfo setCI = {};
-    setCI.sType                           = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-    setCI.pNext                           = nullptr;
-    setCI.bindingCount                    = 1;        // we are going to have 1 binding
-    setCI.flags                           = 0;        // no flags
-    setCI.pBindings                       = &camera;  // point to the camera buffer binding
-
-    VK_CHECK(vkCreateDescriptorSetLayout(mDevice, &setCI, nullptr, &mDescSetLayout));
-    ADD_DESTROY(vkDestroyDescriptorSetLayout(mDevice, mDescSetLayout, nullptr));
-
-    // CREATE GLOBAL DESCRIPTOR POOL
-
-    std::vector<VkDescriptorPoolSize> sizes { { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 10 } };
-
-    VkDescriptorPoolCreateInfo poolCI = {};
-    poolCI.sType                      = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-    poolCI.flags                      = 0;
-    poolCI.maxSets                    = 10;
-    poolCI.poolSizeCount              = (u32)sizes.size();
-    poolCI.pPoolSizes                 = sizes.data();
-
-    VK_CHECK(vkCreateDescriptorPool(mDevice, &poolCI, nullptr, &mDescPool));
-    ADD_DESTROY(vkDestroyDescriptorPool(mDevice, mDescPool, nullptr));
-
-    // CREATE AND ALLOCATE DESCRIPTOR SETS PER FRAME
+    {
+        mDescSetLayout = Create::DescSetLayout(
+          mDevice,
+          {
+            { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT, 0 },                                        //
+            { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 1 }  //
+          });
+        ADD_DESTROY(vkDestroyDescriptorSetLayout(mDevice, mDescSetLayout, nullptr));
+    }
     auto const descSetLayouts = std::array { mDescSetLayout };
 
+    // CREATE GLOBAL DESCRIPTOR POOL
+    {
+        std::vector<VkDescriptorPoolSize> sizes { { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 10 } };
+
+        VkDescriptorPoolCreateInfo poolCI = {};
+        poolCI.sType                      = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+        poolCI.flags                      = 0;
+        poolCI.maxSets                    = 10;
+        poolCI.poolSizeCount              = (u32)sizes.size();
+        poolCI.pPoolSizes                 = sizes.data();
+
+        VK_CHECK(vkCreateDescriptorPool(mDevice, &poolCI, nullptr, &mDescPool));
+        ADD_DESTROY(vkDestroyDescriptorPool(mDevice, mDescPool, nullptr));
+    }
+
+    // SCENE DATA
+    mSceneDataBuff = createBuffer(
+      mSceneDataPaddedSize * sFlightFrames,
+      VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+      VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
+      VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+
+    // PER FRAME
     for (u64 i = 0; i < sFlightFrames; ++i)
     {
         auto &fd = mFrames[i];
 
-        // Create
-        fd.camera = createBuffer(sizeof(CameraData), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT);
+        // CAMERA DATA
+        fd.camera = createBuffer(
+          sizeof(CameraData),
+          VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+          VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
+          VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
-        // Allocate
-        VkDescriptorSetAllocateInfo descAI = {};
-        descAI.pNext                       = nullptr;
-        descAI.sType                       = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-        descAI.descriptorPool              = mDescPool;                   // using the pool we just set
-        descAI.descriptorSetCount          = (u32)descSetLayouts.size();  // only 1 descriptor
-        descAI.pSetLayouts                 = descSetLayouts.data();       // using the global data layout
-
-        VK_CHECK(vkAllocateDescriptorSets(mDevice, &descAI, &fd.descSet));
+        // Allocate DESC SET
+        VkDescriptorSetAllocateInfo descSetAllocInfo = {};
+        descSetAllocInfo.pNext                       = nullptr;
+        descSetAllocInfo.sType                       = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+        descSetAllocInfo.descriptorPool              = mDescPool;                   // using the pool we just set
+        descSetAllocInfo.descriptorSetCount          = (u32)descSetLayouts.size();  // only 1 descriptor
+        descSetAllocInfo.pSetLayouts                 = descSetLayouts.data();       // using the global data layout
+        VK_CHECK(vkAllocateDescriptorSets(mDevice, &descSetAllocInfo, &fd.descSet));
 
         // Populate
-
-        VkDescriptorBufferInfo descBI {};
-        descBI.buffer = fd.camera.buffer;
-        descBI.offset = 0;                   // at 0 offset
-        descBI.range  = sizeof(CameraData);  // of the size of a camera data struct
-
-        VkWriteDescriptorSet descSetW = {};
-        descSetW.sType                = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        descSetW.pNext                = nullptr;
-        descSetW.dstBinding           = 0;                                  // we are going to write into binding number 0
-        descSetW.dstSet               = fd.descSet;                         // of the frame descriptor set
-        descSetW.descriptorCount      = 1;
-        descSetW.descriptorType       = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;  // and the type is uniform buffer
-        descSetW.pBufferInfo          = &descBI;
-
-        vkUpdateDescriptorSets(mDevice, 1, &descSetW, 0, nullptr);
+        static auto const sUboType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        Update::DescSets(
+          mDevice,
+          {
+            { sUboType, mFrames[i].descSet, 0, fd.camera.buffer, 0, sizeof(CameraData) },
+            { sUboType, mFrames[i].descSet, 1, mSceneDataBuff.buffer, mSceneDataPaddedSize * i, sizeof(SceneData) },
+          });
     }
 }
 
@@ -694,7 +704,12 @@ void Renderer::initTestScene()
 
 //-----------------------------------------------------------------------------
 
-AllocatedBuffer Renderer::createBuffer(u64 bytes, VkBufferUsageFlags usage, VkMemoryPropertyFlags memProps, bool addToDelQueue)
+AllocatedBuffer Renderer::createBuffer(
+  u64                   bytes,
+  VkBufferUsageFlags    usage,
+  VkMemoryPropertyFlags reqFlags,
+  VkMemoryPropertyFlags prefFlags,
+  bool                  addToDelQueue)
 {
     VkBufferCreateInfo info = {};
     info.sType              = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
@@ -704,7 +719,9 @@ AllocatedBuffer Renderer::createBuffer(u64 bytes, VkBufferUsageFlags usage, VkMe
 
     VmaAllocationCreateInfo allocInfo = {};
     allocInfo.usage                   = VMA_MEMORY_USAGE_UNKNOWN;
-    allocInfo.requiredFlags           = memProps;
+    allocInfo.requiredFlags           = reqFlags;
+
+    if (prefFlags != 0) allocInfo.preferredFlags = prefFlags;
 
     AllocatedBuffer b;
 
@@ -724,7 +741,7 @@ AllocatedBuffer Renderer::createBufferStaging(void const *data, u64 bytes, VkBuf
     // Create host
     auto const hostUsage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
     auto const hostProps = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
-    auto       hostBuff  = createBuffer(bytes, hostUsage, hostProps, false);
+    auto       hostBuff  = createBuffer(bytes, hostUsage, hostProps, 0, false);
 
     // Create dev
     auto const devUsage = VK_BUFFER_USAGE_TRANSFER_DST_BIT | usage;

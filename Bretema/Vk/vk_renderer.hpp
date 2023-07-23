@@ -45,7 +45,12 @@ private:
 
     void executeImmediately(VkCommandPool pool, VkQueue queue, const std::function<void(VkCommandBuffer cb)> &fn);
 
-    AllocatedBuffer createBuffer(u64 byteSize, VkBufferUsageFlags usage, VkMemoryPropertyFlags memProps, bool addToDelQueue = true);
+    AllocatedBuffer createBuffer(
+      u64                   byteSize,
+      VkBufferUsageFlags    usage,
+      VkMemoryPropertyFlags reqFlags,
+      VkMemoryPropertyFlags prefFlags     = 0,
+      bool                  addToDelQueue = true);
     AllocatedBuffer createBufferStaging(void const *data, u64 bytes, VkBufferUsageFlags usage);
 
     MeshGroup createMesh(btm::MeshGroup const &meshes);
@@ -70,22 +75,14 @@ private:
 
     //-------
 
-    size_t paddedSizeUBO(size_t inSize)
+    template<typename T>
+    size_t paddedSizeUBO()
     {
         size_t const min = mProperties.limits.minUniformBufferOffsetAlignment;
-        return (min > 0) ? (inSize + min - 1) & ~(min - 1) : inSize;
+        return (min > 0) ? (sizeof(T) + min - 1) / min * min : sizeof(T);
     }
 
     //-------
-
-    // PER FRAME
-    FrameData mFrames[sFlightFrames];
-
-    // QUEUEs
-    vk::Queue mGraphics = {};
-    vk::Queue mPresent  = {};
-    vk::Queue mCompute  = {};
-    vk::Queue mTransfer = {};
 
     // IDSM : INSTANCE, DEVICE, SURFACE
     VkInstance                 mInstance       = VK_NULL_HANDLE;  // Vulkan library handle
@@ -95,10 +92,16 @@ private:
     VkSurfaceKHR               mSurface        = VK_NULL_HANDLE;  // Vulkan window surface
     VkPhysicalDeviceProperties mProperties     = {};
 
+    // QUEUEs
+    vk::Queue mGraphics = {};
+    vk::Queue mPresent  = {};
+    vk::Queue mCompute  = {};
+    vk::Queue mTransfer = {};
+
     // MEMORY
     btm::ds::DeletionQueue mDqSwapchain = {};
     btm::ds::DeletionQueue mDqMain      = {};
-    VmaAllocator           mAllocator              = VK_NULL_HANDLE;  // Memory Allocator - AMD lib
+    VmaAllocator           mAllocator   = VK_NULL_HANDLE;  // Memory Allocator - AMD lib
 
     // SWAPCHAIN
     VkSwapchainKHR           mSwapchain            = VK_NULL_HANDLE;           // Vulkan swapchain
@@ -114,6 +117,9 @@ private:
     // FBOs
     std::vector<VkFramebuffer> mFramebuffers = {};
 
+    // FRAMEs
+    FrameData mFrames[sFlightFrames];
+
     // MATERIALs
     std::vector<VkPipelineLayout>             mPipelineLayouts = {};  // Bucket of pipeline-layouts
     std::vector<VkPipeline>                   mPipelines       = {};  // Bucket of pipelines
@@ -126,6 +132,11 @@ private:
     // DESCRIPTORS
     VkDescriptorSetLayout mDescSetLayout;
     VkDescriptorPool      mDescPool;
+
+    // DATA
+    SceneData       mSceneData;
+    AllocatedBuffer mSceneDataBuff;
+    size_t          mSceneDataPaddedSize = paddedSizeUBO<SceneData>();
 };
 
 }  // namespace btm::vk

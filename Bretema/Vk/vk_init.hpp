@@ -280,7 +280,7 @@ inline VkShaderModule ShaderModule(VkDevice device, std::string const &name, VkS
     return shaderModule;
 }
 
-VkPipeline Pipeline(vk::PipelineBuilder pb, VkDevice device, VkRenderPass pass, std::vector<VkDynamicState> dynamicStates)
+inline VkPipeline Pipeline(vk::PipelineBuilder pb, VkDevice device, VkRenderPass pass, std::vector<VkDynamicState> dynamicStates)
 {
     VkPipelineDynamicStateCreateInfo dynamicState {};
     dynamicState.sType             = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
@@ -339,6 +339,79 @@ VkPipeline Pipeline(vk::PipelineBuilder pb, VkDevice device, VkRenderPass pass, 
     return pipeline;
 }
 
+struct DescSetLayoutBinding_t
+{
+    VkDescriptorType   type    = VK_DESCRIPTOR_TYPE_MAX_ENUM;
+    VkShaderStageFlags stages  = VK_SHADER_STAGE_FLAG_BITS_MAX_ENUM;
+    uint32_t           binding = 0;  // Should we use UINT32_MAX instead?
+};
+inline auto
+  DescSetLayout(VkDevice device, std::vector<DescSetLayoutBinding_t> inLayoutBindings, VkDescriptorSetLayoutCreateFlags flags = 0)
+{
+    VkDescriptorSetLayout descSetLayout;
+
+    std::vector<VkDescriptorSetLayoutBinding> layoutBindings;
+    for (auto const &in : inLayoutBindings)
+    {
+        VkDescriptorSetLayoutBinding out = {};
+        out.binding                      = in.binding;
+        out.descriptorCount              = 1;
+        out.descriptorType               = in.type;
+        out.pImmutableSamplers           = nullptr;
+        out.stageFlags                   = in.stages;
+        layoutBindings.push_back(out);
+    }
+
+    VkDescriptorSetLayoutCreateInfo CI = {};
+    CI.bindingCount                    = (u32)layoutBindings.size();
+    CI.flags                           = flags;
+    CI.pNext                           = nullptr;
+    CI.sType                           = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+    CI.pBindings                       = layoutBindings.data();
+
+    VK_CHECK(vkCreateDescriptorSetLayout(device, &CI, nullptr, &descSetLayout));
+
+    return descSetLayout;
+}
+
 }  // namespace Create
+
+namespace Update
+{
+
+struct WriteDescSet_t
+{
+    VkDescriptorType type    = VK_DESCRIPTOR_TYPE_MAX_ENUM;
+    VkDescriptorSet  dstSet  = VK_NULL_HANDLE;
+    uint32_t         binding = 0;  // Should we use UINT32_MAX instead?
+    VkBuffer         buffer  = VK_NULL_HANDLE;
+    VkDeviceSize     offset  = 0;
+    VkDeviceSize     range   = 0;
+};
+
+inline auto DescSets(VkDevice dev, std::vector<WriteDescSet_t> inWriteDescSets)
+{
+    std::vector<VkDescriptorBufferInfo> buffInfo;
+    std::vector<VkWriteDescriptorSet>   writeDescSets;
+
+    for (auto const &in : inWriteDescSets)
+    {
+        buffInfo.emplace_back(in.buffer, in.offset, in.range);
+
+        VkWriteDescriptorSet out = {};
+        out.sType                = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        out.pNext                = nullptr;
+        out.dstBinding           = in.binding;
+        out.dstSet               = in.dstSet;
+        out.descriptorCount      = 1;
+        out.descriptorType       = in.type;
+        out.pBufferInfo          = &buffInfo.back();
+        writeDescSets.push_back(out);
+    }
+
+    vkUpdateDescriptorSets(dev, (u32)writeDescSets.size(), writeDescSets.data(), 0, nullptr);
+}
+
+}  // namespace Update
 
 }  // namespace btm::vk
