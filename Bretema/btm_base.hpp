@@ -42,6 +42,8 @@
 #include <unordered_map>
 #include <unordered_set>
 
+#include <typeinfo>
+
 #include <source_location>
 
 // #define GLM_FORCE_SSE
@@ -125,6 +127,12 @@ using uset = std::unordered_set<T>;
 //     size_t const n = static_cast<size_t>(nChars);
 //     return sv.substr(sv.length() >= n ? sv.length() - n : 0);
 // };
+
+template<typename T>
+inline std::string BTM_TYPE_NAME()
+{
+    return typeid(T).name();
+};
 
 // clang-format off
 MBU inline auto BTM_FMT      = [](std::string const &msg, auto... args) { return fmt::format(msg, args...); };

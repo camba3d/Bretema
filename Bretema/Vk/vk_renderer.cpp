@@ -256,6 +256,9 @@ void Renderer::initVulkan()
     mDevice     = vkbDevice.device;
     mProperties = vkbDevice.physical_device.properties;
 
+    // Initialize data dependant of device properties
+    mSceneDataPaddedSize = paddedSizeUBO<SceneData>();
+
     // Initialize the memory allocator
     VmaAllocatorCreateInfo allocatorInfo = {};
     allocatorInfo.physicalDevice         = mChosenGPU;
@@ -511,8 +514,8 @@ void Renderer::initDescriptors()
         mDescSetLayout = Create::DescSetLayout(
           mDevice,
           {
-            { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT, 0 },                                        //
-            { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 1 }  //
+            { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT, 0 },                                //
+            { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 1 }  //
           });
         ADD_DESTROY(vkDestroyDescriptorSetLayout(mDevice, mDescSetLayout, nullptr));
     }

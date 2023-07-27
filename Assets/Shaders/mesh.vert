@@ -24,5 +24,5 @@ void main()
 {
 	mat4 MVP = uCam.viewproj * uConsts.model;
 	gl_Position = MVP * vec4(vPosition, 1.0);
-	fColor = vNormal;
+	fColor = vec3(0.3,0.3,0.3);
 }

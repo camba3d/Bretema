@@ -345,8 +345,7 @@ struct DescSetLayoutBinding_t
     VkShaderStageFlags stages  = VK_SHADER_STAGE_FLAG_BITS_MAX_ENUM;
     uint32_t           binding = 0;  // Should we use UINT32_MAX instead?
 };
-inline auto
-  DescSetLayout(VkDevice device, std::vector<DescSetLayoutBinding_t> inLayoutBindings, VkDescriptorSetLayoutCreateFlags flags = 0)
+inline auto DescSetLayout(VkDevice device, std::vector<DescSetLayoutBinding_t> inLayoutBindings, VkDescriptorSetLayoutCreateFlags flags = 0)
 {
     VkDescriptorSetLayout descSetLayout;
 
@@ -391,13 +390,17 @@ struct WriteDescSet_t
 
 inline auto DescSets(VkDevice dev, std::vector<WriteDescSet_t> inWriteDescSets)
 {
-    std::vector<VkDescriptorBufferInfo> buffInfo;
-    std::vector<VkWriteDescriptorSet>   writeDescSets;
-
+    std::vector<VkDescriptorBufferInfo> buffInfos;
     for (auto const &in : inWriteDescSets)
     {
-        buffInfo.emplace_back(in.buffer, in.offset, in.range);
+        buffInfos.emplace_back(in.buffer, in.offset, in.range);
+    }
 
+    int i = 0;
+
+    std::vector<VkWriteDescriptorSet> writeDescSets = {};
+    for (auto const &in : inWriteDescSets)
+    {
         VkWriteDescriptorSet out = {};
         out.sType                = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
         out.pNext                = nullptr;
@@ -405,9 +408,12 @@ inline auto DescSets(VkDevice dev, std::vector<WriteDescSet_t> inWriteDescSets)
         out.dstSet               = in.dstSet;
         out.descriptorCount      = 1;
         out.descriptorType       = in.type;
-        out.pBufferInfo          = &buffInfo.back();
+        out.pBufferInfo          = &buffInfos[i++];
         writeDescSets.push_back(out);
     }
+
+    auto const &bi = writeDescSets[0].pBufferInfo[0];
+    BTM_INFOF("FFFFF =>> {} {} {}", BTM_PTRSTR(bi.buffer), bi.offset, bi.range);
 
     vkUpdateDescriptorSets(dev, (u32)writeDescSets.size(), writeDescSets.data(), 0, nullptr);
 }

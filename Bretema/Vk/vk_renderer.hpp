@@ -79,7 +79,9 @@ private:
     size_t paddedSizeUBO()
     {
         size_t const min = mProperties.limits.minUniformBufferOffsetAlignment;
-        return (min > 0) ? (sizeof(T) + min - 1) / min * min : sizeof(T);
+        size_t const padded = (min > 0) ? (sizeof(T) + min - 1) / min * min : sizeof(T);
+        BTM_INFOF("Gathering PaddedSizeUBO of {} -> {} : {} : {}", BTM_TYPE_NAME<T>(), min, sizeof(T), padded);
+        return padded;
     }
 
     //-------
@@ -136,7 +138,7 @@ private:
     // DATA
     SceneData       mSceneData;
     AllocatedBuffer mSceneDataBuff;
-    size_t          mSceneDataPaddedSize = paddedSizeUBO<SceneData>();
+    size_t          mSceneDataPaddedSize = 0;
 };
 
 }  // namespace btm::vk
