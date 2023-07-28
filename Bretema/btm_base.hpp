@@ -500,6 +500,59 @@ glm::vec3 const Cyan         = { 0.f, 1.f, 1.f };
 glm::vec3 const Lime         = { .5f, 1.f, 0.f };
 glm::vec3 const Orange       = { 1.f, .3f, 0.f };
 glm::vec3 const StrongYellow = { 1.f, .5f, 0.f };
+
+inline glm::vec3 const hex2gl(std::string hexStr)
+{
+    //--- Safe input ------------------
+
+    BTM_INFOF("HEX TO GL (IN) ===>> {}", hexStr);
+
+    if (hexStr.empty())
+    {
+        return { 0.f, 0.f, 0.f };
+    }
+
+    if (hexStr.substr(0,1) == "#")
+    {
+        hexStr.erase(0, 1);
+    }
+
+    bool const oneCharPerChannel = hexStr.size() == 3 or hexStr.size() == 4;
+    bool const twoCharPerChannel = hexStr.size() == 6 or hexStr.size() == 8;
+    bool const hasAlpha          = hexStr.size() == 4 or hexStr.size() == 8;
+
+    if (!oneCharPerChannel and !twoCharPerChannel)
+    {
+        return { 0.f, 0.f, 0.f };
+    }
+
+    if (oneCharPerChannel)
+    {
+        std::string const r = hexStr.substr(0, 1);
+        std::string const g = hexStr.substr(1, 1);
+        std::string const b = hexStr.substr(2, 1);
+        std::string const a = hasAlpha ? hexStr.substr(4, 1) : "";
+
+        hexStr = r + r + g + g + b + b + a + a;
+    }
+
+    hexStr = "0x" + hexStr;
+
+    BTM_INFOF("HEX TO GL (OUT) ===>> {} ", hexStr);
+
+    //--- Calculation -----------------
+
+    u32 const   hex = std::stoul(hexStr, nullptr, 16);
+    float const r   = ((hex >> 16) & 0xFF) / 255.f;
+    float const g   = ((hex >> 8) & 0xFF) / 255.f;
+    float const b   = ((hex)&0xFF) / 255.f;
+    return { r, g, b };
+}
+inline glm::vec4 const hex2gl(std::string const &hex_, float alpha)
+{
+    return glm::vec4(hex2gl(hex_), alpha);
+}
+
 }  // namespace Color
 
 inline i32 constexpr sMaxFloatPrint = 3;  // fmt:glm float precission
