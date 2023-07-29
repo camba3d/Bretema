@@ -78,7 +78,7 @@ private:
     template<typename T>
     size_t paddedSizeUBO()
     {
-        size_t const min = mProperties.limits.minUniformBufferOffsetAlignment;
+        size_t const min    = mProperties.limits.minUniformBufferOffsetAlignment;
         size_t const padded = (min > 0) ? (sizeof(T) + min - 1) / min * min : sizeof(T);
         BTM_INFOF("Gathering PaddedSizeUBO of {} -> {} : {} : {}", BTM_TYPE_NAME<T>(), min, sizeof(T), padded);
         return padded;
@@ -106,8 +106,9 @@ private:
     VmaAllocator           mAllocator   = VK_NULL_HANDLE;  // Memory Allocator - AMD lib
 
     // SWAPCHAIN
-    VkSwapchainKHR           mSwapchain            = VK_NULL_HANDLE;           // Vulkan swapchain
-    VkFormat                 mSwapchainImageFormat = VK_FORMAT_B8G8R8A8_SRGB;  // Image format expected by window
+    VkSwapchainKHR           mSwapchain            = VK_NULL_HANDLE;  // Vulkan swapchain
+    // VkFormat                 mSwapchainImageFormat = VK_FORMAT_B8G8R8A8_SRGB;  // Image format expected by window
+    VkFormat                 mSwapchainImageFormat = VK_FORMAT_B8G8R8A8_UINT;  // Image format expected by window
     std::vector<VkImage>     mSwapchainImages      = {};                       // List of images from the swapchain
     std::vector<VkImageView> mSwapchainImageViews  = {};                       // List of image-views from the swapchain
 

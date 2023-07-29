@@ -501,20 +501,44 @@ glm::vec3 const Lime         = { .5f, 1.f, 0.f };
 glm::vec3 const Orange       = { 1.f, .3f, 0.f };
 glm::vec3 const StrongYellow = { 1.f, .5f, 0.f };
 
+inline glm::vec3 srgb_to_linear(glm::vec3 const &srgbColor)
+{
+    static glm::vec3 const invGamma { 2.23f };
+    return glm::pow(srgbColor, invGamma);
+}
+// inline float srgb_to_linear(float f)
+// {
+//     return f < 0.04045f ? f * (1.0f / 12.92f) : glm::pow((f + 0.055f) * (float)(1.0 / (1.0 + 0.055)), 2.4f);
+// }
+// inline glm::vec3 srgb_to_linear(glm::vec3 const &c)
+// {
+//     return { srgb_to_linear(c.r), srgb_to_linear(c.g), srgb_to_linear(c.b) };
+// }
+inline float linear_to_srgb(float f)
+{
+    return f < 0.0031308f ? 12.92f * f : (1.0f + 0.055f) * glm::pow(f, 1.0f / 2.4f) - 0.055f;
+}
+inline glm::vec3 linear_to_srgb(glm::vec3 const &c)
+{
+    return { linear_to_srgb(c.r), linear_to_srgb(c.g), linear_to_srgb(c.b) };
+}
+
 inline glm::vec3 const hex2gl(std::string hexStr)
 {
     //--- Safe input ------------------
-
-    BTM_INFOF("HEX TO GL (IN) ===>> {}", hexStr);
 
     if (hexStr.empty())
     {
         return { 0.f, 0.f, 0.f };
     }
 
-    if (hexStr.substr(0,1) == "#")
+    if (hexStr.starts_with("#"))
     {
         hexStr.erase(0, 1);
+    }
+    if (hexStr.starts_with("0x"))
+    {
+        hexStr.erase(0, 2);
     }
 
     bool const oneCharPerChannel = hexStr.size() == 3 or hexStr.size() == 4;
@@ -538,15 +562,19 @@ inline glm::vec3 const hex2gl(std::string hexStr)
 
     hexStr = "0x" + hexStr;
 
-    BTM_INFOF("HEX TO GL (OUT) ===>> {} ", hexStr);
-
     //--- Calculation -----------------
 
-    u32 const   hex = std::stoul(hexStr, nullptr, 16);
-    float const r   = ((hex >> 16) & 0xFF) / 255.f;
-    float const g   = ((hex >> 8) & 0xFF) / 255.f;
-    float const b   = ((hex)&0xFF) / 255.f;
-    return { r, g, b };
+    u32 const hex = std::stoul(hexStr, nullptr, 16);
+
+    u32 const r255 = ((hex >> 16) & 0xFF);
+    u32 const g255 = ((hex >> 8) & 0xFF);
+    u32 const b255 = ((hex)&0xFF);
+
+    float const r = r255 / 255.f;
+    float const g = g255 / 255.f;
+    float const b = b255 / 255.f;
+
+    return srgb_to_linear({ r, g, b });
 }
 inline glm::vec4 const hex2gl(std::string const &hex_, float alpha)
 {
