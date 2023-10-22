@@ -38,15 +38,15 @@
 // #endif
 
 // . Validate api calls
-#define VK_CHECK(x)                                                                                      \
-    do {                                                                                                 \
-        if (VkResult res = x; res != VK_SUCCESS) BTM_ABORT("{} : {}", btm::vk::str::Result.at(res), #x); \
+#define VK_CHECK(x)                                                                                       \
+    do {                                                                                                  \
+        if (VkResult res = x; res != VK_SUCCESS) BTM_ABORTF("{} : {}", btm::vk::str::Result.at(res), #x); \
     } while (0)
 
-#define VKB_CHECK(x)                                                                      \
-    do {                                                                                  \
-        if (!x.has_value())                                                               \
-            if (auto err = x.error().message(); err != "") BTM_ABORT("{} : {}", err, #x); \
+#define VKB_CHECK(x)                                                                       \
+    do {                                                                                   \
+        if (!x.has_value())                                                                \
+            if (auto err = x.error().message(); err != "") BTM_ABORTF("{} : {}", err, #x); \
     } while (0)
 
 // . Get instance functions

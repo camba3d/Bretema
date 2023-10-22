@@ -17,8 +17,8 @@ namespace btm
 BaseRenderer::BaseRenderer(sPtr<btm::Window> window)
 {
     mWindow = window;
-    BTM_ASSERT(mWindow->handle(), "Invalid window handle");
-    BTM_ASSERT(w() > 0 && h() > 0, "Invalid viewport size");
+    BTM_ASSERT_X(mWindow->handle(), "Invalid window handle");
+    BTM_ASSERT_X(w() > 0 && h() > 0, "Invalid viewport size");
 }
 
 //=========================================================

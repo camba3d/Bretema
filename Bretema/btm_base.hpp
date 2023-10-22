@@ -118,34 +118,61 @@ using uset = std::unordered_set<T>;
 // Ptr as Str
 #define BTM_PTRSTR(p) fmt::format("{}", fmt::ptr(p))
 
-// Logging w/o Format
-
-// auto const TrimStr = [](auto const &s, i32 nChars) -> std::string_view
-//{
-//     std::string_view const sv = s;
-//     if (nChars < 1) { return sv; }
-//     size_t const n = static_cast<size_t>(nChars);
-//     return sv.substr(sv.length() >= n ? sv.length() - n : 0);
-// };
-
+// TypeName
 template<typename T>
 inline std::string BTM_TYPE_NAME()
 {
     return typeid(T).name();
 };
 
+auto const TrimStr = [](auto const &s, i32 nChars) -> std::string_view
+{
+    std::string_view const sv = s;
+
+    if (nChars < 1) return sv;
+
+    size_t const n = static_cast<size_t>(nChars);
+    return sv.substr(sv.length() >= n ? sv.length() - n : 0);
+};
+
+// Logging w/o Format
+#if 0  // verbose
+#    define BTM_INFO(msg) fmt::print("[I] - ({}:{})\n → {}\n", __FILE__, __LINE__, msg)
+#    define BTM_WARN(msg) fmt::print("[W] - ({}:{})\n → {}\n", __FILE__, __LINE__, msg)
+#    define BTM_ERR(msg)  fmt::print("[E] - ({}:{})\n → {}\n", __FILE__, __LINE__, msg)
+#else
+#    define BTM_INFO(msg) fmt::print("[I] (...{}:{}) - {}\n", TrimStr(__FILE__, 20), __LINE__, msg)
+#    define BTM_WARN(msg) fmt::print("[W] (...{}:{}) - {}\n", TrimStr(__FILE__, 20), __LINE__, msg)
+#    define BTM_ERR(msg)  fmt::print("[E] (...{}:{}) - {}\n", TrimStr(__FILE__, 20), __LINE__, msg)
+#endif
+
+// Logging w/ Format
+#define BTM_FMT(msg, ...)   fmt::format(msg, __VA_ARGS__)
+#define BTM_INFOF(msg, ...) BTM_INFO(BTM_FMT(msg, __VA_ARGS__))
+#define BTM_WARNF(msg, ...) BTM_WARN(BTM_FMT(msg, __VA_ARGS__))
+#define BTM_ERRF(msg, ...)  BTM_ERR(BTM_FMT(msg, __VA_ARGS__))
+
+// Trace
+MBU inline auto BTM_TRACE = [](std::source_location const &sl = std::source_location::current())
+{ fmt::print("[*] - {}\n", sl.function_name()); };
+
+// Custom Assert
 // clang-format off
-MBU inline auto BTM_FMT      = [](std::string const &msg, auto... args) { return fmt::format(msg, args...); };
-MBU inline auto BTM_INFO     = [](std::string const &msg, auto... args) { fmt::print("[I] - {}\n", BTM_FMT(msg, args...)); };
-MBU inline auto BTM_INFOF    = [](std::string const &msg, auto... args) { fmt::print("[I] - {}\n", BTM_FMT(msg, args...)); };
-MBU inline auto BTM_WARN     = [](std::string const &msg, auto... args) { fmt::print("[W] - {}\n", BTM_FMT(msg, args...)); };
-MBU inline auto BTM_WARNF    = [](std::string const &msg, auto... args) { fmt::print("[W] - {}\n", BTM_FMT(msg, args...)); };
-MBU inline auto BTM_ERR      = [](std::string const &msg, auto... args) { fmt::print("[E] - {}\n", BTM_FMT(msg, args...)); };
-MBU inline auto BTM_ERRF     = [](std::string const &msg, auto... args) { fmt::print("[E] - {}\n", BTM_FMT(msg, args...)); };
-MBU inline auto BTM_TRACE    = [](std::source_location const &sl = std::source_location::current()) { fmt::print("[*] - {}\n", sl.function_name()); };
-MBU inline auto BTM_ASSERT   = [](auto b, std::string const &msg="") { if (!(!!b)) { BTM_ERR(msg); assert(false); } };
-MBU inline auto BTM_ABORT    = [](std::string const &msg="", auto... args) { BTM_ERR(msg, args...); abort(); };
-#define BTM_ABORT_IF(cond, msg, ...) do { if (cond) BTM_ABORT("{} --> {}", #cond, fmt::format(msg, __VA_ARGS__)); } while (0)
+#ifndef NDEBUG
+#    define BTM_ASSERT(cond) assert(cond)
+#    define BTM_ASSERT_X(cond, msg) do { if (!(cond)) { BTM_ERR(msg); assert(cond); } } while (0)
+#else
+#    define BTM_ASSERT(cond)
+#    define BTM_ASSERT_X(cond, msg)
+#endif
+// clang-format on
+
+// Custom Abort
+// clang-format off
+#define BTM_ABORT(msg) do { BTM_ERR(msg); abort(); } while (0)
+#define BTM_ABORTF(msg, ...) do { BTM_ERRF(msg, __VA_ARGS__); abort(); } while (0)
+#define BTM_ABORT_IF(cond, msg) do { if (cond) BTM_ABORTF("{} --> {}", #cond, msg); } while (0)
+#define BTM_ABORTF_IF(cond, msg, ...) do { if (cond) BTM_ABORTF("{} --> {}", #cond, fmt::format(msg, __VA_ARGS__)); } while (0)
 // clang-format on
 
 // C++ Contiguous container to C raw data
@@ -155,11 +182,11 @@ MBU inline auto BTM_ABORT    = [](std::string const &msg="", auto... args) { BTM
 #define BTM_SIZEu32(v)      BTM_SIZE(u32, v)
 #define BTM_DATA(type, v)   reinterpret_cast<type>(v.data())
 
-// clang-format off
-// . Defer
+// Defer
 // This allow you to call things like file.close(), right after file.open(),
 //   to be sure that we don't forget to call it at the end of the function
 //   and ensure that it's called even if an exception is thrown
+// clang-format off
 #define BTM_CONCAT_(a, b) a##b
 #define BTM_CONCAT(a, b) BTM_CONCAT_(a,b)
 using   BTM_DEFER_PTR = std::unique_ptr<void,std::function<void(void*)>>;
@@ -568,7 +595,7 @@ inline glm::vec3 const hex2gl(std::string hexStr)
 
     u32 const r255 = ((hex >> 16) & 0xFF);
     u32 const g255 = ((hex >> 8) & 0xFF);
-    u32 const b255 = ((hex)&0xFF);
+    u32 const b255 = ((hex) & 0xFF);
 
     float const r = r255 / 255.f;
     float const g = g255 / 255.f;

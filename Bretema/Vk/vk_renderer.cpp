@@ -59,7 +59,7 @@ void Renderer::draw(Camera const &cam)
     }
     else if (resAcquire != VK_SUCCESS && resAcquire != VK_SUBOPTIMAL_KHR)
     {
-        BTM_ABORT("{} : {}", btm::vk::str::Result.at(resAcquire), "vkAcquireNextImageKHR presentSemaphore");
+        BTM_ABORTF("{} : {}", btm::vk::str::Result.at(resAcquire), "vkAcquireNextImageKHR presentSemaphore");
     }
 
     // Reset(s) on valid image
@@ -161,7 +161,7 @@ void Renderer::draw(Camera const &cam)
     }
     else if (resPresent != VK_SUCCESS)
     {
-        BTM_ABORT("{} : {}", btm::vk::str::Result.at(resAcquire), "vkQueuePresentKHR renderSemaphore");
+        BTM_ABORTF("{} : {}", btm::vk::str::Result.at(resAcquire), "vkQueuePresentKHR renderSemaphore");
     }
 
     // Increase the number of frames drawn
@@ -284,7 +284,7 @@ void Renderer::initSwapchain(VkSwapchainKHR prev)
 
     windowSizeSync();
 
-    BTM_ASSERT(w() > 0 && h() > 0, "Invalid viewport size");
+    BTM_ASSERT_X(w() > 0 && h() > 0, "Invalid viewport size");
 
     // === SWAP CHAIN ===
 
@@ -386,7 +386,7 @@ void Renderer::initDefaultRenderPass()
     color0.initialLayout            = VK_IMAGE_LAYOUT_UNDEFINED;         // Let it as undefined on init
     color0.finalLayout              = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;   // Ready to display on renderpass end
     VkAttachmentReference refColor0 = {};
-    refColor0.attachment            = 0;                                 // Attachment idx in the renderpass
+    refColor0.attachment            = 0;  // Attachment idx in the renderpass
     refColor0.layout                = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
     // att1 : Depth (@notsure: could not be also on 0????)
     VkAttachmentDescription depth0  = {};

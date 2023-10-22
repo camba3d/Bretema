@@ -9,7 +9,7 @@ namespace btm
 
 App::App(std::string name, RenderAPI renderAPI) : mName(std::move(name)), mRenderAPI(renderAPI)
 {
-    BTM_ABORT_IF(
+    BTM_ABORTF_IF(
       mMainWindow || mRenderer,
       "Initialization fiasco... Window({}) or Renderer({}) already exists!",
       BTM_PTRSTR(mMainWindow),
