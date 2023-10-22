@@ -183,14 +183,22 @@ MBU inline auto BTM_TRACE = [](std::source_location const &sl = std::source_loca
 #define BTM_DATA(type, v)   reinterpret_cast<type>(v.data())
 
 // Defer
-// This allow you to call things like file.close(), right after file.open(),
+// This calls the code right after the scope-ends
+//   allowing us to call things like file.close(), right after file.open(),
 //   to be sure that we don't forget to call it at the end of the function
-//   and ensure that it's called even if an exception is thrown
+//   and ensure that it's called even if an exception is thrown.
 // clang-format off
 #define BTM_CONCAT_(a, b) a##b
-#define BTM_CONCAT(a, b) BTM_CONCAT_(a,b)
-using   BTM_DEFER_PTR = std::unique_ptr<void,std::function<void(void*)>>;
-#define BTM_DEFER_(name, fn) auto name = BTM_DEFER_PTR([](){static int a=0; return &a;}(), [&](void*){fn;})
+#define BTM_CONCAT(a, b)  BTM_CONCAT_(a, b)
+using BTM_DEFER_PTR = std::unique_ptr<void, std::function<void(void *)>>;
+#define BTM_DEFER_(name, fn)   \
+    auto name = BTM_DEFER_PTR( \
+      []()                     \
+      {                        \
+          static int a = 0;    \
+          return &a;           \
+      }(),                     \
+      [&](void *) {  fn; })
 #define BTM_DEFER(fn) BTM_DEFER_(BTM_CONCAT(__defer__, __LINE__), fn)
 // clang-format on
 
