@@ -165,7 +165,7 @@ list(APPEND EXTRA_HEADERS
     ${SRC}/btm_app.hpp
     ${SRC}/btm_base.hpp
     ${SRC}/btm_renderer.hpp
-    ${SRC}/btm_tools.hpp
+    ${SRC}/btm_utils.hpp
     ${SRC}/btm_window.hpp
     ${SRC}/btm_transform.hpp
     ${SRC}/btm_camera.hpp

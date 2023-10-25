@@ -1,7 +1,7 @@
 #pragma once
 
 #include "../btm_base.hpp"
-#include "../btm_tools.hpp"
+#include "../btm_utils.hpp"
 
 #include "vk_base.hpp"
 #include "vk_types.hpp"
@@ -413,7 +413,7 @@ inline auto DescSets(VkDevice dev, std::vector<WriteDescSet_t> inWriteDescSets)
     }
 
     auto const &bi = writeDescSets[0].pBufferInfo[0];
-    BTM_INFOF("FFFFF =>> {} {} {}", BTM_PTRSTR(bi.buffer), bi.offset, bi.range);
+    BTM_INFOF("FFFFF =>> {} {} {}", BTM_STR_PTR(bi.buffer), bi.offset, bi.range);
 
     vkUpdateDescriptorSets(dev, (u32)writeDescSets.size(), writeDescSets.data(), 0, nullptr);
 }

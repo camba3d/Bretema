@@ -7,7 +7,7 @@
 // ^^^ Include the <vk/dx/gl/mt/wg>-Renderer files before the BaseRenderer
 
 #include "../btm_base.hpp"
-#include "../btm_tools.hpp"
+#include "../btm_utils.hpp"
 #include "../btm_renderer.hpp"
 
 #include <vma/vk_mem_alloc.h>
@@ -80,7 +80,7 @@ private:
     {
         size_t const min    = mProperties.limits.minUniformBufferOffsetAlignment;
         size_t const padded = (min > 0) ? (sizeof(T) + min - 1) / min * min : sizeof(T);
-        BTM_INFOF("Gathering PaddedSizeUBO of {} -> {} : {} : {}", BTM_TYPE_NAME<T>(), min, sizeof(T), padded);
+        BTM_INFOF("Gathering PaddedSizeUBO of {} -> {} : {} : {}", BTM_STR_TYPE<T>(), min, sizeof(T), padded);
         return padded;
     }
 

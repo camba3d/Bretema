@@ -1,5 +1,5 @@
 #include "btm_renderer.hpp"
-#include "btm_tools.hpp"
+#include "btm_utils.hpp"
 
 #define TINYGLTF_IMPLEMENTATION
 #define STB_IMAGE_IMPLEMENTATION

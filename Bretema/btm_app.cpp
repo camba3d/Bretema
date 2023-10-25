@@ -12,8 +12,8 @@ App::App(std::string name, RenderAPI renderAPI) : mName(std::move(name)), mRende
     BTM_ABORTF_IF(
       mMainWindow || mRenderer,
       "Initialization fiasco... Window({}) or Renderer({}) already exists!",
-      BTM_PTRSTR(mMainWindow),
-      BTM_PTRSTR(mRenderer));
+      BTM_STR_PTR(mMainWindow),
+      BTM_STR_PTR(mRenderer));
 
     // Init window
     mMainWindow = sNew<Window>(1920, 1080, "Default Window", this);

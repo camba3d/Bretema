@@ -11,7 +11,6 @@ namespace btm
 //=====================================
 // TIMER
 //=====================================
-
 template<typename TimeUnit, bool Scoped>
 class Timer
 {
@@ -21,8 +20,7 @@ public:
     Timer(std::string const &msg = "") : mMsg(msg) {}
     ~Timer()
     {
-        if (Scoped)
-            showElapsed();
+        if (Scoped) showElapsed();
     }
 
     inline void reset(std::string const &msg = "")
@@ -51,7 +49,6 @@ private:
     Clock::time_point mBegin = Clock::now();
     std::string       mMsg   = "";
 };
-
 using Timer_Ms       = Timer<std::chrono::milliseconds, false>;
 using Timer_Ns       = Timer<std::chrono::nanoseconds, false>;
 using ScopedTimer_Ms = Timer<std::chrono::milliseconds, true>;
@@ -69,8 +66,7 @@ inline std::string replace(std::string str, std::string const &from, std::string
     {
         str.replace(pos, from.length(), to);
 
-        if (onlyFirstMatch)
-            break;
+        if (onlyFirstMatch) break;
     }
 
     return str;
@@ -145,8 +141,7 @@ auto view(T const *src, size_t len, size_t offset = 0) -> std::span<T const>
 template<typename T>
 auto merge(auto &dst, std::span<T> src) -> void
 {
-    if (!src.data() || src.empty())
-        return;
+    if (!src.data() || src.empty()) return;
 
     dst.reserve(dst.size() + src.size());
     dst.insert(dst.end(), src.begin(), src.end());
@@ -209,8 +204,7 @@ inline auto read(std::string const &path) -> std::vector<u8>
 template<typename T>
 auto checkMagic(std::span<const T> bin, std::vector<T> const &magic) -> bool
 {
-    if (magic.empty() || bin.size() < magic.size())
-        return false;
+    if (magic.empty() || bin.size() < magic.size()) return false;
 
     bool match = true;
     for (size_t i = 0; i < magic.size(); ++i)
@@ -248,18 +242,10 @@ inline std::string exepath()
     return std::string(result, (count > 0) ? count : 0);
 }
 #endif
-
 }  // namespace runtime
 
 }  // namespace btm
 
-//
-//
-//
-//
-//
-//
-//
 //
 //
 //
@@ -278,10 +264,8 @@ struct fmt::formatter<std::span<T const>>
     auto format(std::span<T const> dataView, FormatContext &ctx) const -> decltype(ctx.out())
     {
         std::string s = "";
-        for (auto const &v : dataView)
-            s += BTM_FMT("{}, ", v);
-        if (!dataView.empty())
-            s.erase(s.end() - 2, s.end());
+        for (auto const &v : dataView) s += BTM_FMT("{}, ", v);
+        if (!dataView.empty()) s.erase(s.end() - 2, s.end());
 
         return fmt::format_to(ctx.out(), "{}", s);
     }
