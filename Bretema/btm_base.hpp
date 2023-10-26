@@ -130,13 +130,12 @@ inline std::string BTM_STR_TYPE()
 auto const BTM_STR_TRIM = [](auto const &s, i32 nChars) -> std::string_view
 {
     std::string_view const sv = s;
-    if (nChars < 1) return sv;
+    if (nChars < 1)
+        return sv;
     size_t const n = static_cast<size_t>(nChars);
     return sv.substr(sv.length() >= n ? sv.length() - n : 0);
 };
 //---------------------------------------------------------
-
-// clang-format off
 
 //--- LOG (without format) --------------------------------
 // #define BTM_FULL_LENGTH_LOG
@@ -152,17 +151,21 @@ auto const BTM_STR_TRIM = [](auto const &s, i32 nChars) -> std::string_view
 //---------------------------------------------------------
 
 //--- LOG (with format) -----------------------------------
-#define BTM_FMT(msg, ...) fmt::format(msg, __VA_ARGS__)
+#define BTM_FMT(msg, ...)   fmt::format(msg, __VA_ARGS__)
 #define BTM_INFOF(msg, ...) BTM_INFO(BTM_FMT(msg, __VA_ARGS__))
 #define BTM_WARNF(msg, ...) BTM_WARN(BTM_FMT(msg, __VA_ARGS__))
-#define BTM_ERRF(msg, ...) BTM_ERR(BTM_FMT(msg, __VA_ARGS__))
+#define BTM_ERRF(msg, ...)  BTM_ERR(BTM_FMT(msg, __VA_ARGS__))
 //---------------------------------------------------------
 
 //--- TRACE ----------------------------------------------
-MBU inline auto BTM_TRACE = [](std::source_location const &sl = std::source_location::current()) { 
-    fmt::print("[*] - {}\n", sl.function_name());
+inline void BTM_TRACE(std::source_location const &sl = std::source_location::current())
+{
+    auto const name = sl.function_name();
+    fmt::print("[*] - {}\n", name);
 };
 //---------------------------------------------------------
+
+// clang-format off
 
 //--- ASSERT ----------------------------------------------
 #ifndef NDEBUG
@@ -179,14 +182,6 @@ MBU inline auto BTM_TRACE = [](std::source_location const &sl = std::source_loca
 #define BTM_ABORTF(msg, ...) do { BTM_ERRF(msg, __VA_ARGS__); abort(); } while (0)
 #define BTM_ABORT_IF(cond, msg) do { if (cond) BTM_ABORTF("{} --> {}", #cond, msg); } while (0)
 #define BTM_ABORTF_IF(cond, msg, ...) do { if (cond) BTM_ABORTF("{} --> {}", #cond, fmt::format(msg, __VA_ARGS__)); } while (0)
-//---------------------------------------------------------
-
-//--- TO RAW DATA -----------------------------------------
-#define BTM_SIZEOF(type, v) static_cast<type>((v.empty() ? 0u : v.size() * sizeof(v[0])))
-#define BTM_SIZEOFu32(v)    BTM_SIZEOF(u32, v)
-#define BTM_SIZE(type, v)   static_cast<type>(v.size())
-#define BTM_SIZEu32(v)      BTM_SIZE(u32, v)
-#define BTM_DATA(type, v)   reinterpret_cast<type>(v.data())
 //---------------------------------------------------------
 
 //--- CONCAT ----------------------------------------------
@@ -270,54 +265,8 @@ inline glm::vec4 const XYZW4   = { 1, 1, 1, 1 };
 inline float const     PI      = 3.14159265359f;
 inline float const     TAU     = 2.f * PI;
 inline float const     HALF_PI = PI * 0.5f;
-inline float const     EPSILON = 0.00001f;  // std::numeric_limits<float>::epsilon();
-
-// VOID PTR WITH DATA
-struct CoolPtr
-{
-    u32         bytes = 0;
-    u32         count = 0;
-    void const *data  = nullptr;  // @dani : const ??
-};
-template<typename T>
-inline CoolPtr asCoolPtr(std::vector<T> const &v)
-{
-    return { BTM_SIZEOFu32(v), BTM_SIZEu32(v), BTM_DATA(void const *, v) };
-}
-
-// MATHS
-inline float clampRot(float angle)
-{
-    auto turns = floorf(angle / 360.f);
-    return angle - 360.f * turns;
-}
-inline bool fuzzyCmp(float f1, float f2, float threshold = 0.01f)
-{
-    auto const diff = abs(f1 - f2);
-    auto const isEq = diff <= threshold;
-    return isEq;
-}
-inline bool fuzzyCmp(glm::vec2 const &v1, glm::vec2 const &v2, float t = 0.01f)
-{
-    return fuzzyCmp(v1.x, v2.x, t) && fuzzyCmp(v1.y, v2.y, t);
-}
-inline bool fuzzyCmp(glm::vec3 const &v1, glm::vec3 const &v2, float t = 0.01f)
-{
-    return fuzzyCmp(v1.x, v2.x, t) && fuzzyCmp(v1.y, v2.y, t) && fuzzyCmp(v1.z, v2.z, t);
-}
-inline bool fuzzyCmp(glm::vec4 const &v1, glm::vec4 const &v2, float t = 0.01f)
-{
-    return fuzzyCmp(v1.x, v2.x, t) && fuzzyCmp(v1.y, v2.y, t) && fuzzyCmp(v1.z, v2.z, t) && fuzzyCmp(v1.w, v2.w, t);
-}
-template<typename T>
-inline bool isAligned(T const &a, T const &b, float margin = 0.f)
-{
-    return abs(glm::dot(glm::normalize(a), glm::normalize(b))) >= (1.f - 0.0001f - margin);
-}
-inline float map(float v, float c, float C, float o, float O)
-{
-    return o + (O - o) * (v - c) / (C - c);
-}
+// inline float const     EPSILON = 0.00001f;  // std::numeric_limits<float>::epsilon();
+inline float const     EPSILON = std::numeric_limits<float>::epsilon();
 
 // USER INPUT
 namespace UI
@@ -507,14 +456,16 @@ public:
 
     inline bool pressed(Key k, bool ignoreHold = false) const
     {
-        if (!mKeys) return false;
+        if (!mKeys)
+            return false;
         auto const &K = *mKeys;
         return K.count(k) > 0 ? (K.at(k) == State::Press or (!ignoreHold and K.at(k) == State::Hold)) : false;
     }
 
     inline bool pressed(Mouse m, bool ignoreHold = false) const
     {
-        if (!mMouse) return false;
+        if (!mMouse)
+            return false;
         auto const &M = *mMouse;
         return M.count(m) > 0 ? (M.at(m) == State::Press or (!ignoreHold and M.at(m) == State::Hold)) : false;
     }

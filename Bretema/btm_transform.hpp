@@ -101,11 +101,11 @@ private:
     glm::vec3 &safeRot() const
     {
         if (mRot.x < 0.f || mRot.x > 360.f)
-            mRot.x = clampRot(mRot.x);
+            mRot.x = math::clampAngle(mRot.x);
         if (mRot.y < 0.f || mRot.y > 360.f)
-            mRot.y = clampRot(mRot.y);
+            mRot.y = math::clampAngle(mRot.y);
         if (mRot.z < 0.f || mRot.z > 360.f)
-            mRot.z = clampRot(mRot.z);
+            mRot.z = math::clampAngle(mRot.z);
 
         return mRot;
     }

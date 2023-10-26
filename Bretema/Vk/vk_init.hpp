@@ -271,8 +271,8 @@ inline VkShaderModule ShaderModule(VkDevice device, std::string const &name, VkS
     VkShaderModuleCreateInfo info {};
     info.sType    = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
     info.pNext    = nullptr;
-    info.codeSize = BTM_SIZEu32(code);
-    info.pCode    = BTM_DATA(const u32 *, code);
+    info.codeSize = BMVK_COUNT(code);
+    info.pCode    = BMVK_DATAC(u32, code);
 
     VkShaderModule shaderModule;
     if (vkCreateShaderModule(device, &info, nullptr, &shaderModule) != VK_SUCCESS) return VK_NULL_HANDLE;
@@ -327,7 +327,7 @@ inline VkPipeline Pipeline(vk::PipelineBuilder pb, VkDevice device, VkRenderPass
     info.pDepthStencilState  = &pb.depthStencil;
     info.basePipelineHandle  = VK_NULL_HANDLE;
 
-    // it's easy to error out on create graphics pipeline, so we handle it a bit better than the common VK_CHECK case
+    // it's easy to error out on create graphics pipeline, so we handle it a bit better than the common BMVK_CHECK case
     VkPipeline pipeline;
 
     if (vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &info, nullptr, &pipeline) != VK_SUCCESS)
@@ -368,7 +368,7 @@ inline auto DescSetLayout(VkDevice device, std::vector<DescSetLayoutBinding_t> i
     CI.sType                           = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
     CI.pBindings                       = layoutBindings.data();
 
-    VK_CHECK(vkCreateDescriptorSetLayout(device, &CI, nullptr, &descSetLayout));
+    BMVK_CHECK(vkCreateDescriptorSetLayout(device, &CI, nullptr, &descSetLayout));
 
     return descSetLayout;
 }

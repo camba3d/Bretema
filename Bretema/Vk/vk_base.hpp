@@ -37,24 +37,37 @@
 // #define FADE_VK_GPU_EXTENSIONS VK_KHR_SWAPCHAIN_EXTENSION_NAME
 // #endif
 
-// . Validate api calls
-#define VK_CHECK(x)                                                                                       \
-    do {                                                                                                  \
-        if (VkResult res = x; res != VK_SUCCESS) BTM_ABORTF("{} : {}", btm::vk::str::Result.at(res), #x); \
-    } while (0)
-
+//--- VK BOOTSTRAP ERROR CHECKER --------------------------
 #define VKB_CHECK(x)                                                                       \
     do {                                                                                   \
         if (!x.has_value())                                                                \
             if (auto err = x.error().message(); err != "") BTM_ABORTF("{} : {}", err, #x); \
     } while (0)
+//---------------------------------------------------------
 
-// . Get instance functions
-#define VK_INSTANCE_FN(instance, extName, ...)                                                                   \
+//--- BMVK ERROR CHECKER ----------------------------------
+#define BMVK_CHECK(x)                                                                                     \
+    do {                                                                                                  \
+        if (VkResult res = x; res != VK_SUCCESS) BTM_ABORTF("{} : {}", btm::vk::str::Result.at(res), #x); \
+    } while (0)
+//---------------------------------------------------------
+
+//--- BMVK GET INSTANCE FUNCTION --------------------------
+#define BMVK_INSTANCE_FN(instance, extName, ...)                                                                 \
     do {                                                                                                         \
         if (auto fn = ((PFN_##extName)vkGetInstanceProcAddr(instance, #extName)); fn) fn(instance, __VA_ARGS__); \
         else BTM_ERRF("Function {} is not available", #extName);                                                 \
     } while (0)
+//---------------------------------------------------------
+
+//--- BMVK CONTIGUOUS DATA ACCESS -------------------------
+#define BMVK_DATA(T, v)  reinterpret_cast<T *>(v.data())
+#define BMVK_DATAC(T, v) reinterpret_cast<T const *>(v.data())
+#define BMVK_VOID(v)     reinterpret_cast<void *>(v.data())
+#define BMVK_VOIDC(v)    reinterpret_cast<void const *>(v.data())
+#define BMVK_BYTES(v)    static_cast<u32>((v.empty() ? 0u : v.size() * sizeof(v[0])))
+#define BMVK_COUNT(v)    static_cast<u32>(v.size())
+//---------------------------------------------------------
 
 namespace btm::vk
 {

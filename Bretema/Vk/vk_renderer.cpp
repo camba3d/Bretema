@@ -46,7 +46,7 @@ void Renderer::draw(Camera const &cam)
     // BTM_TRACE();
 
     // Wait for GPU (1 second timeout)
-    VK_CHECK(vkWaitForFences(mDevice, 1, &frame().renderFence, true, sOneSec));
+    BMVK_CHECK(vkWaitForFences(mDevice, 1, &frame().renderFence, true, sOneSec));
 
     // Request image from the swapchain (1 second timeout)
     u32  swapchainImgIdx = 0;
@@ -63,15 +63,15 @@ void Renderer::draw(Camera const &cam)
     }
 
     // Reset(s) on valid image
-    VK_CHECK(vkResetFences(mDevice, 1, &frame().renderFence));
-    VK_CHECK(vkResetCommandBuffer(frame().graphics.cmd, 0));
+    BMVK_CHECK(vkResetFences(mDevice, 1, &frame().renderFence));
+    BMVK_CHECK(vkResetCommandBuffer(frame().graphics.cmd, 0));
 
     // Begin the command buffer recording.
     // We will use this command buffer exactly once, so we want to let Vulkan know that
     VkCommandBufferBeginInfo cbBeginInfo {};
     cbBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
     cbBeginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-    VK_CHECK(vkBeginCommandBuffer(frame().graphics.cmd, &cbBeginInfo));
+    BMVK_CHECK(vkBeginCommandBuffer(frame().graphics.cmd, &cbBeginInfo));
 
     // Calculations...
     int const   frameIdx   = mFrameNumber % sFlightFrames;
@@ -120,7 +120,7 @@ void Renderer::draw(Camera const &cam)
     //===========
 
     vkCmdEndRenderPass(frame().graphics.cmd);
-    VK_CHECK(vkEndCommandBuffer(frame().graphics.cmd));
+    BMVK_CHECK(vkEndCommandBuffer(frame().graphics.cmd));
 
     // Prepare the submission to the queue.
     // We want to wait on the mPresentSemaphore, as that semaphore is signaled when the swapchain is ready
@@ -138,7 +138,7 @@ void Renderer::draw(Camera const &cam)
     submitInfo.commandBufferCount   = 1;
     submitInfo.pCommandBuffers      = &frame().graphics.cmd;
 
-    VK_CHECK(vkQueueSubmit(mGraphics.queue, 1, &submitInfo, frame().renderFence));  // Submit and execute
+    BMVK_CHECK(vkQueueSubmit(mGraphics.queue, 1, &submitInfo, frame().renderFence));  // Submit and execute
     // --> mRenderFence will now block until the graphic commands finish execution
 
     // This will put the image we just rendered into the visible window.
@@ -334,7 +334,7 @@ void Renderer::initSwapchain(VkSwapchainKHR prev)
     // build an image-view for the depth image to use for rendering
     auto const viewInfo = vk::CreateInfo::ImageView(sDepthFormat, mDepthImage.image, VK_IMAGE_ASPECT_DEPTH_BIT);
 
-    VK_CHECK(vkCreateImageView(mDevice, &viewInfo, nullptr, &mDepthImageView));
+    BMVK_CHECK(vkCreateImageView(mDevice, &viewInfo, nullptr, &mDepthImageView));
     ADD_DESTROY_SWAPCHAIN(vkDestroyImageView(mDevice, mDepthImageView, nullptr));
 }
 
@@ -351,11 +351,11 @@ void Renderer::initCommands()
         qc.queue = q;
 
         auto const cpInfo = vk::CreateInfo::CommandPool(q->family, flags);
-        VK_CHECK(vkCreateCommandPool(mDevice, &cpInfo, nullptr, &qc.pool));
+        BMVK_CHECK(vkCreateCommandPool(mDevice, &cpInfo, nullptr, &qc.pool));
         ADD_DESTROY(vkDestroyCommandPool(mDevice, qc.pool, nullptr));
 
         auto const cbAllocInfo = vk::AllocInfo::CommandBuffer(qc.pool);
-        VK_CHECK(vkAllocateCommandBuffers(mDevice, &cbAllocInfo, &qc.cmd));
+        BMVK_CHECK(vkAllocateCommandBuffers(mDevice, &cbAllocInfo, &qc.cmd));
     };
 
     for (u64 i = 0; i < sFlightFrames; i++)
@@ -443,7 +443,7 @@ void Renderer::initDefaultRenderPass()
     renderpassCI.dependencyCount        = (u32)deps.size();
     renderpassCI.pDependencies          = deps.data();
 
-    VK_CHECK(vkCreateRenderPass(mDevice, &renderpassCI, nullptr, &mDefaultRenderPass));
+    BMVK_CHECK(vkCreateRenderPass(mDevice, &renderpassCI, nullptr, &mDefaultRenderPass));
     ADD_DESTROY(vkDestroyRenderPass(mDevice, mDefaultRenderPass, nullptr));
 }
 
@@ -476,7 +476,7 @@ void Renderer::initFramebuffers()
         framebufferCI.attachmentCount = (u32)atts.size();
         framebufferCI.pAttachments    = atts.data();
 
-        VK_CHECK(vkCreateFramebuffer(mDevice, &framebufferCI, nullptr, &mFramebuffers[i]));
+        BMVK_CHECK(vkCreateFramebuffer(mDevice, &framebufferCI, nullptr, &mFramebuffers[i]));
         ADD_DESTROY_SWAPCHAIN(vkDestroyImageView(mDevice, mSwapchainImageViews[i], nullptr));
         ADD_DESTROY_SWAPCHAIN(vkDestroyFramebuffer(mDevice, mFramebuffers[i], nullptr));
     }
@@ -494,13 +494,13 @@ void Renderer::initSyncStructures()
         auto const semaphoreCI = vk::CreateInfo::Semaphore();
         auto      &fd          = mFrames[i];
 
-        VK_CHECK(vkCreateFence(mDevice, &fenceCI, nullptr, &fd.renderFence));
+        BMVK_CHECK(vkCreateFence(mDevice, &fenceCI, nullptr, &fd.renderFence));
         ADD_DESTROY(vkDestroyFence(mDevice, fd.renderFence, nullptr));
 
-        VK_CHECK(vkCreateSemaphore(mDevice, &semaphoreCI, nullptr, &fd.presentSemaphore));
+        BMVK_CHECK(vkCreateSemaphore(mDevice, &semaphoreCI, nullptr, &fd.presentSemaphore));
         ADD_DESTROY(vkDestroySemaphore(mDevice, fd.presentSemaphore, nullptr));
 
-        VK_CHECK(vkCreateSemaphore(mDevice, &semaphoreCI, nullptr, &fd.renderSemaphore));
+        BMVK_CHECK(vkCreateSemaphore(mDevice, &semaphoreCI, nullptr, &fd.renderSemaphore));
         ADD_DESTROY(vkDestroySemaphore(mDevice, fd.renderSemaphore, nullptr));
     }
 }
@@ -534,7 +534,7 @@ void Renderer::initDescriptors()
         poolCI.poolSizeCount              = (u32)sizes.size();
         poolCI.pPoolSizes                 = sizes.data();
 
-        VK_CHECK(vkCreateDescriptorPool(mDevice, &poolCI, nullptr, &mDescPool));
+        BMVK_CHECK(vkCreateDescriptorPool(mDevice, &poolCI, nullptr, &mDescPool));
         ADD_DESTROY(vkDestroyDescriptorPool(mDevice, mDescPool, nullptr));
     }
 
@@ -564,7 +564,7 @@ void Renderer::initDescriptors()
         descSetAllocInfo.descriptorPool              = mDescPool;                   // using the pool we just set
         descSetAllocInfo.descriptorSetCount          = (u32)descSetLayouts.size();  // only 1 descriptor
         descSetAllocInfo.pSetLayouts                 = descSetLayouts.data();       // using the global data layout
-        VK_CHECK(vkAllocateDescriptorSets(mDevice, &descSetAllocInfo, &fd.descSet));
+        BMVK_CHECK(vkAllocateDescriptorSets(mDevice, &descSetAllocInfo, &fd.descSet));
 
         // Populate
         static auto const sUboType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -600,7 +600,7 @@ void Renderer::initMaterials()
     mPipelineLayouts = std::vector<VkPipelineLayout>(100, VK_NULL_HANDLE);
 
     auto const triInfoPL = vk::CreateInfo::PipelineLayout();
-    VK_CHECK(vkCreatePipelineLayout(mDevice, &triInfoPL, nullptr, &mPipelineLayouts[0]));
+    BMVK_CHECK(vkCreatePipelineLayout(mDevice, &triInfoPL, nullptr, &mPipelineLayouts[0]));
 
     VkPushConstantRange push_constant = { VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(ModelData) };
 
@@ -610,7 +610,7 @@ void Renderer::initMaterials()
     meshInfoPL.setLayoutCount         = 1;
     meshInfoPL.pSetLayouts            = &mDescSetLayout;
 
-    VK_CHECK(vkCreatePipelineLayout(mDevice, &meshInfoPL, nullptr, &mPipelineLayouts[1]));
+    BMVK_CHECK(vkCreatePipelineLayout(mDevice, &meshInfoPL, nullptr, &mPipelineLayouts[1]));
 
     ADD_DESTROY(for (auto L : mPipelineLayouts) if (L) vkDestroyPipelineLayout(mDevice, L, nullptr));
 
@@ -730,7 +730,7 @@ AllocatedBuffer Renderer::createBuffer(
 
     AllocatedBuffer b;
 
-    VK_CHECK(vmaCreateBuffer(mAllocator, &info, &allocInfo, &b.buffer, &b.allocation, nullptr));
+    BMVK_CHECK(vmaCreateBuffer(mAllocator, &info, &allocInfo, &b.buffer, &b.allocation, nullptr));
 
     if (addToDelQueue) ADD_DESTROY(vmaDestroyBuffer(mAllocator, b.buffer, b.allocation));
 
@@ -757,7 +757,7 @@ AllocatedBuffer Renderer::createBufferStaging(void const *data, u64 bytes, VkBuf
 
     // Populate host
     void *hostMap = nullptr;
-    VK_CHECK(vmaMapMemory(mAllocator, hostBuff.allocation, &hostMap));
+    BMVK_CHECK(vmaMapMemory(mAllocator, hostBuff.allocation, &hostMap));
     memcpy(hostMap, data, bytes);
     vmaUnmapMemory(mAllocator, hostBuff.allocation);
 
@@ -789,13 +789,13 @@ MeshGroup Renderer::createMesh(btm::MeshGroup const &meshes)
 
     for (auto const &mesh : meshes)
     {
-        auto const iCP = asCoolPtr(mesh.indices);
-        auto const vCP = asCoolPtr(mesh.vertices);
+        auto const &I = mesh.indices;
+        auto const &V = mesh.vertices;
 
-        auto const bI = createBufferStaging(iCP.data, iCP.bytes, VK_BUFFER_USAGE_INDEX_BUFFER_BIT);
-        auto const bV = createBufferStaging(vCP.data, vCP.bytes, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT);
-
-        mg.push_back({ iCP.count, bI, bV });
+        mg.emplace_back(
+          BMVK_COUNT(I),
+          createBufferStaging(BMVK_VOIDC(I), BMVK_BYTES(I), VK_BUFFER_USAGE_INDEX_BUFFER_BIT),
+          createBufferStaging(BMVK_VOIDC(V), BMVK_BYTES(V), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT));
     }
 
     return mg;
@@ -833,7 +833,7 @@ void Renderer::drawScene(std::string const &name, Camera const &cam)
     uCam.viewproj = uCam.proj * uCam.view;
 
     void *map = nullptr;
-    VK_CHECK(vmaMapMemory(mAllocator, frame().camera.allocation, &map));
+    BMVK_CHECK(vmaMapMemory(mAllocator, frame().camera.allocation, &map));
     memcpy(map, &uCam, sizeof(CameraData));
     vmaUnmapMemory(mAllocator, frame().camera.allocation);
 
@@ -909,9 +909,9 @@ void Renderer::executeImmediately(VkCommandPool pool, VkQueue queue, const std::
     VkCommandBufferBeginInfo cbBeginInfo {};
     cbBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
     cbBeginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-    VK_CHECK(vkBeginCommandBuffer(cb, &cbBeginInfo));
+    BMVK_CHECK(vkBeginCommandBuffer(cb, &cbBeginInfo));
     fn(cb);
-    VK_CHECK(vkEndCommandBuffer(cb));
+    BMVK_CHECK(vkEndCommandBuffer(cb));
 
     // Submit
     VkSubmitInfo submitInfo {};

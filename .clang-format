@@ -30,7 +30,7 @@ AllowShortLambdasOnASingleLine: All
 AllowShortFunctionsOnASingleLine: Inline
 
 AllowShortLoopsOnASingleLine: true
-AllowShortIfStatementsOnASingleLine: AllIfsAndElse
+AllowShortIfStatementsOnASingleLine: Never
 
 # ========================================================
 

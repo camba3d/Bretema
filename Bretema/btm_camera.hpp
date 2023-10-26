@@ -1,6 +1,8 @@
 #pragma once
 
 #include "btm_base.hpp"
+
+#include "btm_utils.hpp"
 #include "btm_transform.hpp"
 
 namespace btm
@@ -154,11 +156,15 @@ private:
         auto const auxE = mEye + displEye;
         auto const auxL = mLookAt + displLookAt;
 
-        if (!useOrb() || (useOrb() && !fuzzyCmp(auxE, auxL, sBound)))
+        if (!useOrb() || (useOrb() && !math::fuzzyCmp(auxE, auxL, sBound)))
+        {
             mEye = auxE;
+        }
 
-        if (!isAligned(auxL - mEye, UP) && !fuzzyCmp(mEye, auxL, sBound))
+        if (!math::isAligned(auxL - mEye, UP) && !math::fuzzyCmp(mEye, auxL, sBound))
+        {
             mLookAt = auxL;
+        }
 
         mOrthoOffset = std::max(sBound, mOrthoOffset + orthoInc);
     }
@@ -171,8 +177,10 @@ private:
         satellite       = glm::rotate(satellite - base, rotInc.y, UP) + base;       // Rot Left <-> Right
         auto const next = glm::rotate(satellite - base, rotInc.x, right()) + base;  // Rot Up <-> Down
 
-        if (!isAligned({ next - base }, UP, 0.1f))
+        if (!math::isAligned({ next - base }, UP, 0.01f))
+        {
             satellite = next;
+        }
     }
 
     // To Serialize
@@ -184,11 +192,8 @@ private:
     Mode        mMode   = Mode::Fly;
 
     // Dynamic
-    bool movU = false, movD = false, 
-         movF = false, movB = false, 
-         movR = false, movL = false, 
-         rotR = false, rotL = false, 
-         rotU = false, rotD = false;
+    bool movU = false, movD = false, movF = false, movB = false, movR = false, movL = false, rotR = false, rotL = false, rotU = false,
+         rotD = false;
 
     glm::mat4 mV { 1.f };
     glm::mat4 mP { 1.f };
@@ -206,7 +211,7 @@ class SmoothCamera
 
 }  // namespace btm
 
-   // template<>
+// template<>
 // struct fmt::formatter<btm::Camera>
 // {
 //     constexpr auto parse(format_parse_context &ctx) -> decltype(ctx.begin()) { return ctx.begin(); }

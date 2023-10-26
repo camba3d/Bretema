@@ -20,7 +20,8 @@ public:
     Timer(std::string const &msg = "") : mMsg(msg) {}
     ~Timer()
     {
-        if (Scoped) showElapsed();
+        if (Scoped)
+            showElapsed();
     }
 
     inline void reset(std::string const &msg = "")
@@ -66,7 +67,8 @@ inline std::string replace(std::string str, std::string const &from, std::string
     {
         str.replace(pos, from.length(), to);
 
-        if (onlyFirstMatch) break;
+        if (onlyFirstMatch)
+            break;
     }
 
     return str;
@@ -99,7 +101,7 @@ inline std::vector<std::string> split(const std::string &str, const std::string 
 }  // namespace str
 
 //=====================================
-// DATA STRUCTURES & DATA STRUCTURES TOOLS
+// DATA STRUCTURES + TOOLS
 //=====================================
 namespace ds
 {
@@ -141,7 +143,8 @@ auto view(T const *src, size_t len, size_t offset = 0) -> std::span<T const>
 template<typename T>
 auto merge(auto &dst, std::span<T> src) -> void
 {
-    if (!src.data() || src.empty()) return;
+    if (!src.data() || src.empty())
+        return;
 
     dst.reserve(dst.size() + src.size());
     dst.insert(dst.end(), src.begin(), src.end());
@@ -204,7 +207,8 @@ inline auto read(std::string const &path) -> std::vector<u8>
 template<typename T>
 auto checkMagic(std::span<const T> bin, std::vector<T> const &magic) -> bool
 {
-    if (magic.empty() || bin.size() < magic.size()) return false;
+    if (magic.empty() || bin.size() < magic.size())
+        return false;
 
     bool match = true;
     for (size_t i = 0; i < magic.size(); ++i)
@@ -222,27 +226,85 @@ auto checkMagic(std::span<const T> bin, std::vector<T> const &magic) -> bool
 //=====================================
 namespace runtime
 {
-#ifdef WIN32
+
+/// @return execution path of the program
 inline std::string exepath()
 {
+#ifdef WIN32
     char   result[MAX_PATH];
     size_t found;
     GetModuleFileName(NULL, result, MAX_PATH);
     found = std::string(result).find_last_of("\\");
     return str::replace(std::string(result).substr(0, found), "\\", "/");
-}
 #else
-inline std::string exepath()
-{
     char    result[PATH_MAX];
     size_t  found;
     ssize_t count = readlink("/proc/self/exe", result, PATH_MAX);
     found         = std::string(result).find_last_of("/");
     // return(readlink(result).substr(0,found) + "/");
     return std::string(result, (count > 0) ? count : 0);
-}
 #endif
+}
+
 }  // namespace runtime
+
+//=====================================
+// MATHS
+//=====================================
+namespace math
+{
+
+/// @brief transform a value from a source range to an destination range
+/// @param value the value to transform
+/// @param srcMin source range min
+/// @param srcMax source range max
+/// @param dstMin destination range min
+/// @param dstMax destination range max
+/// @return transformed value
+inline float map(float value, float srcMin, float srcMax, float dstMin, float dstMax)
+{
+    return dstMin + (dstMax - dstMin) * (value - srcMin) / (srcMax - srcMin);
+}
+
+/// @return a clamped angle in the range [0, 360)
+inline float clampAngle(float angle)
+{
+    auto const turns = floorf(angle / 360.f);
+    return angle - 360.f * turns;
+}
+
+// comparation helpers with fuzzy threshold
+inline bool fuzzyCmp(float f1, float f2, float threshold = 0.01f)
+{
+    auto const diff = abs(f1 - f2);
+    auto const isEq = diff <= threshold;
+    return isEq;
+}
+inline bool fuzzyCmp(glm::vec2 const &v1, glm::vec2 const &v2, float t = 0.01f)
+{
+    return fuzzyCmp(v1.x, v2.x, t) && fuzzyCmp(v1.y, v2.y, t);
+}
+inline bool fuzzyCmp(glm::vec3 const &v1, glm::vec3 const &v2, float t = 0.01f)
+{
+    return fuzzyCmp(v1.x, v2.x, t) && fuzzyCmp(v1.y, v2.y, t) && fuzzyCmp(v1.z, v2.z, t);
+}
+inline bool fuzzyCmp(glm::vec4 const &v1, glm::vec4 const &v2, float t = 0.01f)
+{
+    return fuzzyCmp(v1.x, v2.x, t) && fuzzyCmp(v1.y, v2.y, t) && fuzzyCmp(v1.z, v2.z, t) && fuzzyCmp(v1.w, v2.w, t);
+}
+
+/// @tparam T glm::vec2/3/4
+/// @param a first vector
+/// @param b second vector
+/// @param margin threshold to consider it aligned or not
+/// @return True if its aligned, False otherwise.
+template<typename T>
+inline bool isAligned(T const &a, T const &b, float margin = 0.f)
+{
+    return abs(glm::dot(glm::normalize(a), glm::normalize(b))) >= (1.f - EPSILON - margin);
+}
+
+}  // namespace math
 
 }  // namespace btm
 
@@ -265,7 +327,8 @@ struct fmt::formatter<std::span<T const>>
     {
         std::string s = "";
         for (auto const &v : dataView) s += BTM_FMT("{}, ", v);
-        if (!dataView.empty()) s.erase(s.end() - 2, s.end());
+        if (!dataView.empty())
+            s.erase(s.end() - 2, s.end());
 
         return fmt::format_to(ctx.out(), "{}", s);
     }
