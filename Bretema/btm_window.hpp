@@ -23,18 +23,12 @@ class App;
 class Window
 {
 public:
-    // LIFETIME
-
     Window(i32 w, i32 h, std::string const &title, App *app);
-
-    // ACTIONS
 
     void        destroy();
     static void pollEvents();
     static void waitEvents();
     static void terminate();
-
-    // PROPERTIES
 
     void *handle() const;
     bool  isMarkedToClose() const;
@@ -62,7 +56,7 @@ private:
     std::string mTitle     = "";
     std::string mTitleInfo = "";
 
-    bool mFocus   = false;
+    bool mFocus = false;
 
     static inline std::vector<char const *> sExtensions                 = {};
     static inline bool                      sIsWindowContextInitialized = false;

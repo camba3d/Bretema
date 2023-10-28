@@ -4,6 +4,7 @@
 
 #include "btm_utils.hpp"
 #include "btm_transform.hpp"
+#include "btm_userInput.hpp"
 
 namespace btm
 {
@@ -24,12 +25,12 @@ public:
         Ortho
     };
 
-    Camera(std::string name, glm::vec3 eye = FRONT * sInitZ, glm::vec3 lookAt = ZERO3, Mode mode = Mode::Fly) :
-      mName(name),
-      mEye(eye),
-      mLookAt(lookAt),
-      mMode(mode),
-      mOrthoOffset(mEye.z)
+    Camera(std::string name, glm::vec3 eye = FRONT * sInitZ, glm::vec3 lookAt = ZERO3, Mode mode = Mode::Fly)
+      : mName(name)
+      , mEye(eye)
+      , mLookAt(lookAt)
+      , mMode(mode)
+      , mOrthoOffset(mEye.z)
     {
     }
 
@@ -68,12 +69,12 @@ public:
             mP = glm::perspective(-glm::radians(mFOV), ar, sNear, sFar);
     }
 
-    void onInputChange(UI::Info const &ui)
+    void onInputChange(UserInput const &ui)
     {
-        mSpeedMod = ui.pressed(UI::Key::LeftShift) ? 10.f : 1.f;
+        mSpeedMod = ui.pressed(Key::LeftShift) ? 10.f : 1.f;
 
         // Toggle Orbital rotation
-        if (ui.pressed(UI::Key::O, true))
+        if (ui.pressed(Key::O, true))
         {
             if (!useOrb())
             {
@@ -83,7 +84,7 @@ public:
         }
 
         // Toggle Orthographic projection
-        if (ui.pressed(UI::Key::Comma, true))
+        if (ui.pressed(Key::Comma, true))
         {
             if (!isOrtho())
             {
@@ -94,27 +95,27 @@ public:
         }
 
         // Reset
-        if (ui.pressed(UI::Key::R))
+        if (ui.pressed(Key::R))
             reset();
 
         // Movement
-        movU = ui.pressed(UI::Key::Q);
-        movD = ui.pressed(UI::Key::E);
-        movF = ui.pressed(UI::Key::W);
-        movB = ui.pressed(UI::Key::S);
-        movR = ui.pressed(UI::Key::D);
-        movL = ui.pressed(UI::Key::A);
+        movU = ui.pressed(Key::Q);
+        movD = ui.pressed(Key::E);
+        movF = ui.pressed(Key::W);
+        movB = ui.pressed(Key::S);
+        movR = ui.pressed(Key::D);
+        movL = ui.pressed(Key::A);
 
         // Rotation
-        rotU = ui.pressed(UI::Key::I);
-        rotD = ui.pressed(UI::Key::K);
-        rotR = ui.pressed(UI::Key::L);
-        rotL = ui.pressed(UI::Key::J);
+        rotU = ui.pressed(Key::I);
+        rotD = ui.pressed(Key::K);
+        rotR = ui.pressed(Key::L);
+        rotL = ui.pressed(Key::J);
 
         // Zoom / Fov
         auto const fovMod  = ui.wheel().y * speed();
         auto const zoomMod = front() * fovMod;
-        if (ui.pressed(UI::Key::LeftAlt))
+        if (ui.pressed(Key::LeftAlt))
             fov(fovMod);
         else if (isOrtho())
             move(ZERO3, ZERO3, fovMod);
@@ -123,7 +124,7 @@ public:
 
         // Rotation
         auto const rotMod = -ui.displ() * speed() * sMouseSensitivity;
-        if (ui.pressed(UI::Mouse::Left))
+        if (ui.clicked(Mouse::Left))
             rotate({ rotMod.y, rotMod.x, 0.f });
     }
 

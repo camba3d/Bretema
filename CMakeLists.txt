@@ -162,8 +162,10 @@ set(SRC "Bretema")
 
 # file(GLOB EXTRA_HEADERS ${SRC}/*.h)
 list(APPEND EXTRA_HEADERS
-    ${SRC}/btm_app.hpp
     ${SRC}/btm_base.hpp
+    ${SRC}/btm_userInput.hpp
+
+    ${SRC}/btm_app.hpp
     ${SRC}/btm_renderer.hpp
     ${SRC}/btm_utils.hpp
     ${SRC}/btm_window.hpp

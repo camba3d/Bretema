@@ -69,8 +69,8 @@ ConstructorInitializerAllOnOneLineOrOnePerLine: true
 BreakAfterJavaFieldAnnotations: false
 BreakBeforeBinaryOperators: NonAssignment
 
-BreakInheritanceList: AfterColon
-BreakConstructorInitializers: AfterColon
+BreakInheritanceList: BeforeComma
+BreakConstructorInitializers: BeforeComma
 
 BreakStringLiterals: true
 BreakBeforeTernaryOperators: true
@@ -79,6 +79,7 @@ AlwaysBreakAfterDefinitionReturnType: None
 AlwaysBreakAfterReturnType: None
 AlwaysBreakBeforeMultilineStrings: false
 AlwaysBreakTemplateDeclarations: true
+
 
 BreakBeforeBraces: Allman #Attach
 

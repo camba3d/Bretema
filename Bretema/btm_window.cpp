@@ -7,27 +7,28 @@
 namespace btm
 {
 
-using IS = UI::State;
-using IK = UI::Key;
-using IM = UI::Mouse;
-
 static void *sMainWindow = nullptr;
 
 static umap<void *, Window *> sHandleToWindow {};
 
-App &BTM_APP(GLFWwindow *handle)
+App &detail_btm_app(GLFWwindow *handle)
 {
     App *ptApp = ((App *)(glfwGetWindowUserPointer(handle)));
     BTM_ASSERT(ptApp);
     return *ptApp;
 }
-Window &WIN_SELF(GLFWwindow *handle)
+Window &detail_win_self(GLFWwindow *handle)
 {
     BTM_ASSERT(sHandleToWindow.count(handle) > 0);
     Window *ptWin = sHandleToWindow[handle];
     BTM_ASSERT(ptWin);
     return *ptWin;
 }
+
+#define SELF   detail_win_self(p)
+#define APP_CB detail_btm_app(p)
+#define APP    detail_btm_app(mHandle)
+#define UI     detail_btm_app(p).mUserInput
 
 Window::Window(i32 w, i32 h, std::string const &title, App *app) : mW(w), mH(h), mTitle(title)
 {
@@ -58,25 +59,26 @@ Window::Window(i32 w, i32 h, std::string const &title, App *app) : mW(w), mH(h),
     sHandleToWindow[mHandle] = this;
 
     // Store main window object
-    if (!sMainWindow) sMainWindow = mHandle;
+    if (!sMainWindow)
+        sMainWindow = mHandle;
 
     // clang-format off
 
     // Window Events
     // -- Resize
-    glfwSetFramebufferSizeCallback(mHandle, [](GLFWwindow *p, i32 w, i32 h) { WIN_SELF(p).size(w, h); });
+    glfwSetFramebufferSizeCallback(mHandle, [](GLFWwindow *p, i32 w, i32 h) { SELF.size(w, h); });
     // -- Focus
-    glfwSetCursorEnterCallback(mHandle, [](GLFWwindow *p, i32 focus) { WIN_SELF(p).focus((bool)focus); });
+    glfwSetCursorEnterCallback(mHandle, [](GLFWwindow *p, i32 focus) { SELF.focus((bool)focus); });
     // -- On Close
-    glfwSetWindowCloseCallback(mHandle, [](GLFWwindow *p) { if (p == sMainWindow) BTM_APP(p).markToClose(); });
+    glfwSetWindowCloseCallback(mHandle, [](GLFWwindow *p) { if (p == sMainWindow) APP_CB.markToClose(); });
     
     // User-Input Events
     // -- Mouse
-    glfwSetMouseButtonCallback(mHandle, [](GLFWwindow *p, i32 m, i32 s, i32) { BTM_APP(p).mouse((IM)m, (IS)s); });
-    glfwSetCursorPosCallback(mHandle, [](GLFWwindow *p, double x, double y) { BTM_APP(p).cursor({x, y}); });
-    glfwSetScrollCallback(mHandle, [](GLFWwindow *p, double x, double y) { BTM_APP(p).wheel({x, y}); });
+    glfwSetMouseButtonCallback(mHandle, [](GLFWwindow *p, i32 m, i32 s, i32) { UI.click(m, s); });
+    glfwSetCursorPosCallback(mHandle, [](GLFWwindow *p, double x, double y) { UI.cursor({x, y}); });
+    glfwSetScrollCallback(mHandle, [](GLFWwindow *p, double x, double y) { UI.wheel({x, y}); });
     // -- Keyboard
-    glfwSetKeyCallback(mHandle, [](GLFWwindow *p, i32 k, i32, i32 s, i32) { BTM_APP(p).key((IK)k, (IS)s); });
+    glfwSetKeyCallback(mHandle, [](GLFWwindow *p, i32 k, i32, i32 s, i32) { UI.press(k, s); });
 
     // clang-format on
 
@@ -126,7 +128,10 @@ void *Window::handle() const
 
 void Window::refreshTitle()
 {
-    if (mHandle) glfwSetWindowTitle(mHandle, (BTM_APP(mHandle).name() + " :: " + mTitle + " :: " + mTitleInfo).c_str());
+    if (mHandle)
+    {
+        glfwSetWindowTitle(mHandle, (APP.name() + " :: " + mTitle + " :: " + mTitleInfo).c_str());
+    }
 }
 
 void Window::title(std::string title)

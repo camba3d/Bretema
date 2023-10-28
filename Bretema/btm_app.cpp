@@ -50,7 +50,8 @@ void App::run()
             auto const &mainCamera = mCameras.at(0);
             RENDERER(draw(mainCamera));
 
-            if (close) window->destroy();  // WARNING : This should trigger something on 'SelectedRenderer' ??
+            if (close)
+                window->destroy();  // WARNING : This should trigger something on 'SelectedRenderer' ??
 
             isAnyWindowOpen |= !close;
         }
@@ -86,45 +87,6 @@ void App::markToClose()
 bool App::isMarkedToClose() const
 {
     return mClose;
-}
-
-void App::cursor(glm::vec2 cursor)
-{
-    glm::vec2 const displ = cursor - mCursor;
-    mCursor               = std::move(cursor);
-
-    auto const &ui = genInputInfo(std::move(displ), ZERO2);
-
-    bool const validEvent = ui.pressed(UI::Mouse::Left) or ui.pressed(UI::Mouse::Right) or ui.pressed(UI::Mouse::Middle);
-
-    if (validEvent) onInputChange(ui);
-}
-
-void App::wheel(glm::vec2 wheel)
-{
-    onInputChange(genInputInfo(ZERO2, std::move(wheel)));
-}
-
-void App::mouse(UI::Mouse m, UI::State s)
-{
-    mMouse[m] = s;
-    onInputChange(genInputInfo());
-}
-
-void App::key(UI::Key k, UI::State s)
-{
-    mKeys[k] = s;
-    onInputChange(genInputInfo());
-}
-
-UI::Info App::genInputInfo(glm::vec2 displ, glm::vec2 wheel)
-{
-    return UI::Info(std::move(displ), std::move(wheel), mCursor, &mMouse, &mKeys);
-}
-
-void App::onInputChange(UI::Info const &ui)
-{
-    for (auto &camera : mCameras) camera.onInputChange(ui);
 }
 
 }  // namespace btm
