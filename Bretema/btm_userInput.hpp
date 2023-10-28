@@ -188,10 +188,6 @@ public:
         glm::vec2 const displ = cursor - mCursor;
         mCursor               = std::move(cursor);
         mDispl                = displ;
-
-        bool const isClicked = clicked(Mouse::L) or clicked(Mouse::R) or clicked(Mouse::M);
-        mClickedDispl        = displ * float(isClicked);
-
         inputChanged();
     }
 
@@ -217,7 +213,7 @@ public:
 
     bool clicked(Mouse m, bool ignoreHold = false) const
     {
-        if (mMouse.count(m) > 0)
+        if (mMouse.count(m) < 1)
             return false;
 
         State const &s = mMouse.at(m);
@@ -236,7 +232,7 @@ public:
 
     bool pressed(Key k, bool ignoreHold = false) const
     {
-        if (mKeys.count(k) > 0)
+        if (mKeys.count(k) < 1)
             return false;
 
         State const &s = mKeys.at(k);
@@ -246,22 +242,19 @@ public:
 private:
     void inputChanged()
     {
-        BTM_INFO("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa!!");
         if (mOnInputChanged)
         {
-            BTM_INFO("bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb!!");
             mOnInputChanged(this);
         }
 
-        mClickedDispl = mDispl = mWheel = ZERO2;
+        mDispl = mWheel = ZERO2;
     }
 
-    glm::vec2  mDispl        = ZERO2;
-    glm::vec2  mClickedDispl = ZERO2;
-    glm::vec2  mWheel        = ZERO2;
-    glm::vec2  mCursor       = ZERO2;
-    KeyState   mKeys         = {};
-    MouseState mMouse        = {};
+    glm::vec2  mDispl  = ZERO2;
+    glm::vec2  mWheel  = ZERO2;
+    glm::vec2  mCursor = ZERO2;
+    KeyState   mKeys   = {};
+    MouseState mMouse  = {};
 
     std::function<void(UserInput *)> mOnInputChanged = nullptr;
 };
