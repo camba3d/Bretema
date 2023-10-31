@@ -1,54 +1,30 @@
 #pragma once
 
 //===========================
-//= FORCE DISCRETE GPU
+//= INCLUDES
 //===========================
 
-#if defined(_WIN64) && defined(_WIN32) && defined(_MSC_VER)
-#    define BTM_FORCE_DISCRETE_GPU                                                        \
-        extern "C"                                                                        \
-        {                                                                                 \
-            _declspec(dllexport) DWORD NvOptimusEnablement                  = 0x00000001; \
-            _declspec(dllexport) DWORD AmdPowerXpressRequestHighPerformance = 0x00000001; \
-        }
-#elif defined(_WIN64) && defined(_WIN32)
-#    define BTM_FORCE_DISCRETE_GPU                                                   \
-        extern "C"                                                                   \
-        {                                                                            \
-            __attribute__((dllexport)) int NvOptimusEnablement                  = 1; \
-            __attribute__((dllexport)) int AmdPowerXpressRequestHighPerformance = 1; \
-        }
-#endif
-
-//===========================
-//= INCLUDEs
-//===========================
-
-// Std
+//--- C++ -------------------------------------------------
 #include <cmath>
 #include <limits>
 #include <cstdint>
 #include <algorithm>
-
 #include <fstream>
-
 #include <memory>
 #include <functional>
-
 #include <map>
 #include <set>
 #include <array>
 #include <vector>
 #include <unordered_map>
 #include <unordered_set>
-
 #include <typeinfo>
-
 #include <source_location>
+//---------------------------------------------------------
 
+//--- GLM -------------------------------------------------
 // #define GLM_FORCE_SSE
 // #define GLM_FORCE_DEFAULT_ALIGNED_GENTYPES
-// Glm
 #define GLM_FORCE_INLINE
 #define GLM_ENABLE_EXPERIMENTAL
 #define GLM_FORCE_SWIZZLE
@@ -56,7 +32,6 @@
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_LEFT_HANDED
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
-
 #include <glm/glm.hpp>
 #include <glm/gtc/constants.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -67,17 +42,21 @@
 #include <glm/gtx/string_cast.hpp>
 #include <glm/gtx/vec_swizzle.hpp>
 #include <glm/gtx/vector_angle.hpp>
+//---------------------------------------------------------
 
-// Fmt
+//--- FMT -------------------------------------------------
 #include <fmt/format.h>
+//---------------------------------------------------------
 
-// Span
+//--- SPAN ------------------------------------------------
 #if 1
 #    include <span>
 #else
 #    define TCB_SPAN_NAMESPACE_NAME std
 #    include "span.hpp"
 #endif
+
+//---------------------------------------------------------
 
 //===========================
 //= GLOBAL
@@ -118,15 +97,15 @@ using uset = std::unordered_set<T>;
 //---------------------------------------------------------
 
 //--- GLOBAL STR HELPERS ----------------------------------
-// TypeName to String
+/// TypeName to String
 template<typename T>
 inline std::string BTM_STR_TYPE()
 {
     return typeid(T).name();
 }
-// Ptr to String
+/// Ptr to String
 #define BTM_STR_PTR(p) fmt::format("{}", fmt::ptr(p))
-// Trim
+/// Trim
 auto const BTM_STR_TRIM = [](auto const &s, i32 nChars) -> std::string_view
 {
     std::string_view const sv = s;
@@ -205,80 +184,102 @@ inline void BTM_TRACE(std::source_location const &sl = std::source_location::cur
 // clang-format on
 
 //===========================
-//= BRETEMA
+//= FORCE DISCRETE GPU
+//===========================
+
+#if defined(_WIN64) && defined(_WIN32) && defined(_MSC_VER)
+#    define BTM_FORCE_DISCRETE_GPU                                                        \
+        extern "C"                                                                        \
+        {                                                                                 \
+            _declspec(dllexport) DWORD NvOptimusEnablement                  = 0x00000001; \
+            _declspec(dllexport) DWORD AmdPowerXpressRequestHighPerformance = 0x00000001; \
+        }
+#elif defined(_WIN64) && defined(_WIN32)
+#    define BTM_FORCE_DISCRETE_GPU                                                   \
+        extern "C"                                                                   \
+        {                                                                            \
+            __attribute__((dllexport)) int NvOptimusEnablement                  = 1; \
+            __attribute__((dllexport)) int AmdPowerXpressRequestHighPerformance = 1; \
+        }
+#endif
+
+//===========================
+//= BRETEMA CONSTS
 //===========================
 
 namespace btm
 {
 
 // Axis
-inline glm::vec3 const RIGHT   = { 1, 0, 0 };
-inline glm::vec3 const UP      = { 0, 1, 0 };
-inline glm::vec3 const FRONT   = { 0, 0, 1 };
-// Flip axis
-inline glm::vec3 const FLIP_X  = { -1, 1, 1 };
-inline glm::vec3 const FLIP_Y  = { 1, -1, 1 };
-inline glm::vec3 const FLIP_Z  = { 1, 1, -1 };
-// Inf
-inline float const     INF     = std::numeric_limits<float>::infinity();
-inline glm::vec2 const INF2    = { INF, INF };
-inline glm::vec3 const INF3    = { INF, INF, INF };
-inline glm::vec4 const INF4    = { INF, INF, INF, INF };
-// Zero
-inline float const     ZERO    = 0.f;
-inline glm::vec2 const ZERO2   = { 0.f, 0.f };
-inline glm::vec3 const ZERO3   = { 0.f, 0.f, 0.f };
-inline glm::vec4 const ZERO4   = { 0.f, 0.f, 0.f, 0.f };
-// One
-inline float const     ONE     = 1.f;
-inline glm::vec2 const ONE2    = { 1.f, 1.f };
-inline glm::vec3 const ONE3    = { 1.f, 1.f, 1.f };
-inline glm::vec4 const ONE4    = { 1.f, 1.f, 1.f, 1.f };
-// Vec2 Permutations
-inline glm::vec2 const X2      = { 1, 0 };
-inline glm::vec2 const Y2      = { 0, 1 };
-inline glm::vec2 const XY2     = { 1, 1 };
-// Vec3 Permutations
-inline glm::vec3 const X3      = { 1, 0, 0 };
-inline glm::vec3 const Y3      = { 0, 1, 0 };
-inline glm::vec3 const Z3      = { 0, 0, 1 };
-inline glm::vec3 const YZ3     = { 0, 1, 1 };
-inline glm::vec3 const XZ3     = { 1, 0, 1 };
-inline glm::vec3 const XY3     = { 1, 1, 0 };
-inline glm::vec3 const XYZ3    = { 1, 1, 1 };
-// Vec4 Permutations
-inline glm::vec4 const X4      = { 1, 0, 0, 0 };
-inline glm::vec4 const Y4      = { 0, 1, 0, 0 };
-inline glm::vec4 const Z4      = { 0, 0, 1, 0 };
-inline glm::vec4 const YZ4     = { 0, 1, 1, 0 };
-inline glm::vec4 const XZ4     = { 1, 0, 1, 0 };
-inline glm::vec4 const XY4     = { 1, 1, 0, 0 };
-inline glm::vec4 const XW4     = { 1, 0, 0, 1 };
-inline glm::vec4 const YW4     = { 0, 1, 0, 1 };
-inline glm::vec4 const ZW4     = { 0, 0, 1, 1 };
-inline glm::vec4 const XYZ4    = { 1, 1, 1, 0 };
-inline glm::vec4 const XYW4    = { 1, 1, 0, 1 };
-inline glm::vec4 const XZW4    = { 1, 0, 1, 1 };
-inline glm::vec4 const YZW4    = { 0, 1, 1, 1 };
-inline glm::vec4 const XYZW4   = { 1, 1, 1, 1 };
-// Math consts
-inline float const     PI      = 3.14159265359f;
-inline float const     TAU     = 2.f * PI;
-inline float const     HALF_PI = PI * 0.5f;
-// inline float const     EPSILON = 0.00001f;  // std::numeric_limits<float>::epsilon();
-inline float const     EPSILON = std::numeric_limits<float>::epsilon();
+inline glm::vec3 const RIGHT = { 1, 0, 0 };
+inline glm::vec3 const UP    = { 0, 1, 0 };
+inline glm::vec3 const FRONT = { 0, 0, 1 };
 
-inline i32 constexpr MAX_PRINT_DECIMALS = 3;  // fmt:glm float precission
+// Flip axis
+inline glm::vec3 const FLIP_X = { -1, 1, 1 };
+inline glm::vec3 const FLIP_Y = { 1, -1, 1 };
+inline glm::vec3 const FLIP_Z = { 1, 1, -1 };
+
+// Inf
+inline float const     INF  = std::numeric_limits<float>::infinity();
+inline glm::vec2 const INF2 = { INF, INF };
+inline glm::vec3 const INF3 = { INF, INF, INF };
+inline glm::vec4 const INF4 = { INF, INF, INF, INF };
+
+// Zero
+inline float const     ZERO  = 0.f;
+inline glm::vec2 const ZERO2 = { 0.f, 0.f };
+inline glm::vec3 const ZERO3 = { 0.f, 0.f, 0.f };
+inline glm::vec4 const ZERO4 = { 0.f, 0.f, 0.f, 0.f };
+
+// One
+inline float const     ONE  = 1.f;
+inline glm::vec2 const ONE2 = { 1.f, 1.f };
+inline glm::vec3 const ONE3 = { 1.f, 1.f, 1.f };
+inline glm::vec4 const ONE4 = { 1.f, 1.f, 1.f, 1.f };
+
+// Vec2 Permutations
+inline glm::vec2 const X2  = { 1, 0 };
+inline glm::vec2 const Y2  = { 0, 1 };
+inline glm::vec2 const XY2 = { 1, 1 };
+
+// Vec3 Permutations
+inline glm::vec3 const X3   = { 1, 0, 0 };
+inline glm::vec3 const Y3   = { 0, 1, 0 };
+inline glm::vec3 const Z3   = { 0, 0, 1 };
+inline glm::vec3 const YZ3  = { 0, 1, 1 };
+inline glm::vec3 const XZ3  = { 1, 0, 1 };
+inline glm::vec3 const XY3  = { 1, 1, 0 };
+inline glm::vec3 const XYZ3 = { 1, 1, 1 };
+
+// Vec4 Permutations
+inline glm::vec4 const X4    = { 1, 0, 0, 0 };
+inline glm::vec4 const Y4    = { 0, 1, 0, 0 };
+inline glm::vec4 const Z4    = { 0, 0, 1, 0 };
+inline glm::vec4 const YZ4   = { 0, 1, 1, 0 };
+inline glm::vec4 const XZ4   = { 1, 0, 1, 0 };
+inline glm::vec4 const XY4   = { 1, 1, 0, 0 };
+inline glm::vec4 const XW4   = { 1, 0, 0, 1 };
+inline glm::vec4 const YW4   = { 0, 1, 0, 1 };
+inline glm::vec4 const ZW4   = { 0, 0, 1, 1 };
+inline glm::vec4 const XYZ4  = { 1, 1, 1, 0 };
+inline glm::vec4 const XYW4  = { 1, 1, 0, 1 };
+inline glm::vec4 const XZW4  = { 1, 0, 1, 1 };
+inline glm::vec4 const YZW4  = { 0, 1, 1, 1 };
+inline glm::vec4 const XYZW4 = { 1, 1, 1, 1 };
+
+// Math consts
+inline float const PI           = 3.14159265359f;
+inline float const TAU          = 2.f * PI;
+inline float const HALF_PI      = PI * 0.5f;
+inline float const SOFT_EPSILON = 0.00001f;
+inline float const EPSILON      = std::numeric_limits<float>::epsilon();
+
+// Limits
+inline i32 constexpr MAX_PRINT_DECIMALS = 3;
 
 }  // namespace btm
 
-//
-//
-//
-//
-//
-//
-//
 //
 //
 //

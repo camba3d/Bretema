@@ -162,7 +162,7 @@ protected:
 //===========================
 
 MeshGroup parseGltf(std::string const &filepath);
-MeshGroup parseGltf(std::span<u8 const> bin, std::string name = "");
+MeshGroup parseGltf(ds::view<u8> bin, std::string name = "");
 
 }  // namespace btm
 
@@ -191,8 +191,7 @@ struct fmt::formatter<btm::Mesh>
     auto format(const btm::Mesh &mesh, FormatContext &ctx) const -> decltype(ctx.out())
     {
         std::string meshStr = "INDICES:\n";
-        for (auto const &i : mesh.indices)
-            meshStr += BTM_FMT("{}, ", i);
+        for (auto const &i : mesh.indices) meshStr += BTM_FMT("{}, ", i);
 
         if (!mesh.indices.empty())
             meshStr.erase(meshStr.end() - 2, meshStr.end());
@@ -200,8 +199,7 @@ struct fmt::formatter<btm::Mesh>
         meshStr += "\nATTRIBUTES (pos / uv0 / normal / tangent) :\n";
 
         size_t vn = 0;
-        for (auto const &v : mesh.vertices)
-            meshStr += BTM_FMT("{}: {} / {} / {} / {}", vn++, v.pos, v.uv0, v.normal, v.tangent) + "\n";
+        for (auto const &v : mesh.vertices) meshStr += BTM_FMT("{}: {} / {} / {} / {}", vn++, v.pos, v.uv0, v.normal, v.tangent) + "\n";
 
         return fmt::format_to(ctx.out(), "\n{}\n......\n{}", mesh.name, meshStr);
     }
@@ -217,8 +215,7 @@ struct fmt::formatter<btm::MeshGroup>
     auto format(const btm::MeshGroup &meshGroup, FormatContext &ctx) const -> decltype(ctx.out())
     {
         std::string meshGroupStr = "";
-        for (auto const &mesh : meshGroup)
-            meshGroupStr += BTM_FMT("{}", mesh) + "\n";
+        for (auto const &mesh : meshGroup) meshGroupStr += BTM_FMT("{}", mesh) + "\n";
 
         return fmt::format_to(ctx.out(), "\nMESHGROUP\n--------\n{}", meshGroupStr);
     }

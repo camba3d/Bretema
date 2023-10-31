@@ -28,14 +28,15 @@ BaseRenderer::BaseRenderer(sPtr<btm::Window> window)
 template<typename T>
 auto gatherMeshData(tinygltf::Model const &model, i32 accessorIdx)
 {
-    if (accessorIdx < 0) return ds::view((T *)nullptr, 0);
+    if (accessorIdx < 0)
+        return ds::make_view((T *)nullptr, 0);
 
     auto const &accessor   = model.accessors[accessorIdx];
     auto const &bufferView = model.bufferViews[accessor.bufferView];
     auto const &buffer     = model.buffers[bufferView.buffer];
     auto const  offset     = bufferView.byteOffset;
 
-    return ds::view(reinterpret_cast<T const *>(&buffer.data[offset]), accessor.count);
+    return ds::make_view(reinterpret_cast<T const *>(&buffer.data[offset]), accessor.count);
 }
 
 std::vector<Mesh> parseGltf(tinygltf::Model const &model)
@@ -49,7 +50,8 @@ std::vector<Mesh> parseGltf(tinygltf::Model const &model)
 
         for (const auto &primitive : mesh.primitives)
         {
-            if (primitive.mode != TINYGLTF_MODE_TRIANGLES) continue;
+            if (primitive.mode != TINYGLTF_MODE_TRIANGLES)
+                continue;
 
             auto const &p   = primitive;
             auto        idx = [&p](const char *name) { return p.attributes.count(name) > 0 ? p.attributes.at(name) : -1; };
@@ -57,13 +59,14 @@ std::vector<Mesh> parseGltf(tinygltf::Model const &model)
             // INDICES (must read as u16)
             {
                 auto const dataView = gatherMeshData<u16>(model, primitive.indices);
-                ds::merge(outMesh.indices, dataView);
+                ds::merge<u16>(outMesh.indices, dataView);
             }
             // POS
             {
                 auto const dataView = gatherMeshData<glm::vec3>(model, idx("POSITION"));
 
-                if (outMesh.vertices.empty()) outMesh.vertices.resize(dataView.size());
+                if (outMesh.vertices.empty())
+                    outMesh.vertices.resize(dataView.size());
 
                 for (size_t i = 0; i < dataView.size(); ++i) outMesh.vertices[i].pos = dataView[i];
             }
@@ -90,7 +93,7 @@ std::vector<Mesh> parseGltf(tinygltf::Model const &model)
     return meshes;
 }
 
-std::vector<Mesh> parseGltf(bool isBin, std::string const &filepath, std::span<u8 const> bin)
+std::vector<Mesh> parseGltf(bool isBin, std::string const &filepath, ds::view<u8> bin)
 {
     tinygltf::TinyGLTF ctx;
     tinygltf::Model    model;
@@ -99,28 +102,32 @@ std::vector<Mesh> parseGltf(bool isBin, std::string const &filepath, std::span<u
     bool const ok = isBin ? ctx.LoadBinaryFromMemory(&model, &err, &warn, bin.data(), (u32)bin.size())
                           : ctx.LoadASCIIFromFile(&model, &err, &warn, filepath);
 
-    if (!err.empty()) BTM_ERRF("Loading GLTF {}: {}", filepath, err);
+    if (!err.empty())
+        BTM_ERRF("Loading GLTF {}: {}", filepath, err);
 
-    if (!warn.empty()) BTM_WARNF("Loading GLTF {}: {}", filepath, warn);
+    if (!warn.empty())
+        BTM_WARNF("Loading GLTF {}: {}", filepath, warn);
 
-    if (!ok and (err.empty() or warn.empty())) BTM_ERRF("Loading GLTF {}: Undefined error", filepath);
+    if (!ok and (err.empty() or warn.empty()))
+        BTM_ERRF("Loading GLTF {}: Undefined error", filepath);
 
-    if (!ok or !err.empty() or !warn.empty()) return {};
+    if (!ok or !err.empty() or !warn.empty())
+        return {};
 
     return parseGltf(model);
 }
 
 std::vector<Mesh> parseGltf(std::string const &filepath)
 {
-    auto const bin   = btm::bin::read(filepath);
-    bool const isBin = btm::bin::checkMagic(ds::view(bin, 4), { 'g', 'l', 'T', 'F' });
+    auto const bin   = bin::read(filepath);
+    bool const isBin = bin::checkMagic(ds::make_view(bin, 4), { 'g', 'l', 'T', 'F' });
 
-    return parseGltf(isBin, filepath, ds::view(bin, (u32)-1));
+    return parseGltf(isBin, filepath, ds::make_view(bin));
 }
 
-std::vector<Mesh> parseGltf(std::span<u8 const> bin, std::string name)
+std::vector<Mesh> parseGltf(ds::view<u8> bin, std::string name)
 {
-    auto const isBin = btm::bin::checkMagic(bin.subspan(0, 4), { 'g', 'l', 'T', 'F' });
+    auto const isBin = bin::checkMagic(bin.subspan(0, 4), { 'g', 'l', 'T', 'F' });
     BTM_ASSERT(isBin);
 
     return parseGltf(true, name, bin);

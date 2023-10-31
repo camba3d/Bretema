@@ -109,39 +109,59 @@ namespace ds
 class DeletionQueue
 {
 public:
-    void add(std::function<void()> &&function) { deleteFuncs.push_back(function); }
+    using fnType = std::function<void()>;
+
+    void add(fnType const &fn) { mDestroyFuncs.push_back(fn); }
 
     void flush()
     {
-        for (auto it = deleteFuncs.rbegin(); it != deleteFuncs.rend(); it++)
+        for (auto fnIt = mDestroyFuncs.rbegin(); fnIt != mDestroyFuncs.rend(); ++fnIt)
         {
-            (*it)();
+            auto const &fn = *fnIt;
+            if (fn)
+            {
+                fn();
+            }
         }
-
-        deleteFuncs.clear();
+        mDestroyFuncs.clear();
     }
 
 private:
-    std::vector<std::function<void()>> deleteFuncs;
+    std::vector<fnType> mDestroyFuncs;
 };
 
-template<typename T>  // pass len=-1 to use the vector size as len
-auto view(std::vector<T> const &src, size_t len, size_t offset = 0) -> std::span<T const>
+template<typename T, size_t E = static_cast<size_t>(-1)>
+using view = std::span<T const, E>;
+
+// Raw Pointer : Const
+template<typename T, size_t E = static_cast<size_t>(-1)>
+view<T, E> make_view(T const *data, size_t len, size_t offset = 0)
 {
-    size_t const fixedLen    = std::min(src.size(), len);
-    size_t const fixedOffset = offset >= fixedLen ? 0 : offset;
-    return { src.data() + fixedOffset, fixedLen };
-};
+    return { data + offset, len };
+}
+
+// Raw Pointer : No Const
+template<typename T, size_t E = static_cast<size_t>(-1)>
+view<T, E> make_view(T *data, size_t len, size_t offset = 0)
+{
+    return { const_cast<T const *>(data + offset), len };
+}
+
+// Vector : Const
+template<typename T, size_t E = static_cast<size_t>(-1)>
+view<T, E> make_view(std::vector<T> const &v, size_t len = E, size_t offset = 0)
+{
+    return { v.data() + offset, std::min(v.size(), len) };
+}
+// Vector : No Const
+template<typename T, size_t E = static_cast<size_t>(-1)>
+view<T, E> make_view(std::vector<T> &v, size_t len = E, size_t offset = 0)
+{
+    return { const_cast<T const *>(v.data() + offset), std::min(v.size(), len) };
+}
 
 template<typename T>
-auto view(T const *src, size_t len, size_t offset = 0) -> std::span<T const>
-{
-    size_t const fixedOffset = offset > len ? 0 : offset;
-    return std::span<T const>(src + fixedOffset, len);
-};
-
-template<typename T>
-auto merge(auto &dst, std::span<T> src) -> void
+inline void merge(std::vector<T> &dst, view<T> src)
 {
     if (!src.data() || src.empty())
         return;
@@ -162,12 +182,11 @@ inline auto read(std::string const &path) -> std::string
 {
     // Use ::ate to avoid '.seekg(0, std::ios::end)'
     auto file = std::ifstream { path, std::ios::ate | std::ios::binary };
-
     BTM_DEFER(file.close());
 
     if (!file.is_open())
     {
-        BTM_ERRF("Issues opening shader: {}", path);
+        BTM_ERRF("Issues opening: {}", path);
         return "";
     }
 
@@ -187,33 +206,26 @@ inline auto read(std::string const &path) -> std::string
 namespace bin
 {
 
-inline auto read(std::string const &path) -> std::vector<u8>
+inline std::vector<u8> read(std::string const &path)
 {
-    std::ifstream   file { path, std::ios::binary };
-    auto            fileBegin = std::istreambuf_iterator<char>(file);
-    auto            fileEnd   = std::istreambuf_iterator<char>();
-    std::vector<u8> raw { fileBegin, fileEnd };
-
-    // if (raw.empty())
-    // {
-    //     BTM_ERRF("File '{}' empty or invalid", path);
-    //     BTM_ASSERT(0);
-    //     return {};
-    // }
-
-    return raw;
+    std::ifstream file { path, std::ios::binary };
+    auto          fileBegin = std::istreambuf_iterator<char>(file);
+    auto          fileEnd   = std::istreambuf_iterator<char>();
+    return { fileBegin, fileEnd };
 }
 
 template<typename T>
-auto checkMagic(std::span<const T> bin, std::vector<T> const &magic) -> bool
+inline bool checkMagic(ds::view<T> bin, std::vector<T> const &magic)
 {
     if (magic.empty() || bin.size() < magic.size())
+    {
         return false;
+    }
 
     bool match = true;
     for (size_t i = 0; i < magic.size(); ++i)
     {
-        match &= bin[i] == magic[i];
+        match &= (bin[i] == magic[i]);
     }
 
     return match;
@@ -309,7 +321,7 @@ inline bool isAligned(T const &a, T const &b, float margin = 0.f)
 //=====================================
 // COLORS
 //=====================================
-namespace Color
+namespace color
 {
 glm::vec3 const Red          = { 1.f, 0.f, 0.f };
 glm::vec3 const Green        = { 0.f, 1.f, 0.f };
@@ -407,7 +419,7 @@ inline glm::vec4 const hex2gl(std::string const &hex_, float alpha)
     return glm::vec4(hex2gl(hex_), alpha);
 }
 
-}  // namespace Color
+}  // namespace color
 
 }  // namespace btm
 
@@ -419,18 +431,18 @@ inline glm::vec4 const hex2gl(std::string const &hex_, float alpha)
 // PRINT HELPERS
 //=====================================
 
-// SPAN (DS::VIEW)
+// BTM::DS::VIEW
 template<typename T>
-struct fmt::formatter<std::span<T const>>
+struct fmt::formatter<btm::ds::view<T>>
 {
     constexpr auto parse(format_parse_context &ctx) -> decltype(ctx.begin()) { return ctx.begin(); }
 
     template<typename FormatContext>
-    auto format(std::span<T const> dataView, FormatContext &ctx) const -> decltype(ctx.out())
+    auto format(btm::ds::view<T> view, FormatContext &ctx) const -> decltype(ctx.out())
     {
         std::string s = "";
-        for (auto const &v : dataView) s += BTM_FMT("{}, ", v);
-        if (!dataView.empty())
+        for (auto const &v : view) s += BTM_FMT("{}, ", v);
+        if (!view.empty())
             s.erase(s.end() - 2, s.end());
 
         return fmt::format_to(ctx.out(), "{}", s);

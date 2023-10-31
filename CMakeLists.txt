@@ -10,7 +10,7 @@ project(Bretema VERSION 1.0)
 set(CMAKE_CXX_STANDARD 20)
 
 # Configure file
-configure_file(BuildInfo.in BuildInfo.hpp)
+configure_file(BuildInfo.in Bretema/BuildInfo.hpp)
 
 # Export compile commands
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
@@ -235,8 +235,8 @@ endif()
 target_include_directories(${PROJECT_NAME}
     PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}
-    PRIVATE
         Modules
+    PRIVATE
         ${EXTRA_LIB_INCL}
 )
 

@@ -84,8 +84,8 @@ void Renderer::draw(Camera const &cam)
     // Make a clear-color from frame number.
     // This will flash with a 120*pi frame period.
     VkClearValue clearColor {}, clearDepth {};
-    auto const   color            = btm::Color::hex2gl("#ff7d00", 1.f);
-    // auto const   color            = btm::Color::hex2gl("#e07a5f", 1.f);
+    auto const   color            = btm::color::hex2gl("#ff7d00", 1.f);
+    // auto const   color            = btm::color::hex2gl("#e07a5f", 1.f);
     clearColor.color              = { color.r, color.g, color.b, color.a };
     clearDepth.depthStencil.depth = 1.f;
     auto const clears             = std::array { clearColor, clearDepth };
@@ -726,13 +726,15 @@ AllocatedBuffer Renderer::createBuffer(
     allocInfo.usage                   = VMA_MEMORY_USAGE_UNKNOWN;
     allocInfo.requiredFlags           = reqFlags;
 
-    if (prefFlags != 0) allocInfo.preferredFlags = prefFlags;
+    if (prefFlags != 0)
+        allocInfo.preferredFlags = prefFlags;
 
     AllocatedBuffer b;
 
     BMVK_CHECK(vmaCreateBuffer(mAllocator, &info, &allocInfo, &b.buffer, &b.allocation, nullptr));
 
-    if (addToDelQueue) ADD_DESTROY(vmaDestroyBuffer(mAllocator, b.buffer, b.allocation));
+    if (addToDelQueue)
+        ADD_DESTROY(vmaDestroyBuffer(mAllocator, b.buffer, b.allocation));
 
     return b;
 }
