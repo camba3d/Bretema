@@ -275,7 +275,8 @@ inline VkShaderModule ShaderModule(VkDevice device, std::string const &name, VkS
     info.pCode    = BMVK_DATAC(u32, code);
 
     VkShaderModule shaderModule;
-    if (vkCreateShaderModule(device, &info, nullptr, &shaderModule) != VK_SUCCESS) return VK_NULL_HANDLE;
+    if (vkCreateShaderModule(device, &info, nullptr, &shaderModule) != VK_SUCCESS)
+        return VK_NULL_HANDLE;
 
     return shaderModule;
 }

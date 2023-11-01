@@ -85,6 +85,7 @@ void Renderer::draw(Camera const &cam)
     // This will flash with a 120*pi frame period.
     VkClearValue clearColor {}, clearDepth {};
     auto const   color            = btm::color::hex2gl("#ff7d00", 1.f);
+    // BTM_INFOF("COLOOOOOOR: {}", color);
     // auto const   color            = btm::color::hex2gl("#e07a5f", 1.f);
     clearColor.color              = { color.r, color.g, color.b, color.a };
     clearDepth.depthStencil.depth = 1.f;

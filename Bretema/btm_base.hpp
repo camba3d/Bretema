@@ -289,39 +289,21 @@ inline i32 constexpr MAX_PRINT_DECIMALS = 3;
 //=====================================
 
 // GLM
-template<>
-struct fmt::formatter<glm::vec2>
+template<glm::length_t C>
+struct fmt::formatter<glm::vec<C, float, glm::defaultp>>
 {
     constexpr auto parse(format_parse_context &ctx) -> decltype(ctx.begin()) { return ctx.begin(); }
 
     template<typename FormatContext>
-    auto format(const glm::vec2 &v, FormatContext &ctx) const -> decltype(ctx.out())
+    auto format(const glm::vec<C, float, glm::defaultp> &v, FormatContext &ctx) const -> decltype(ctx.out())
     {
-        auto const &fp = btm::MAX_PRINT_DECIMALS;
-        return fmt::format_to(ctx.out(), "({:.{}f},{:.{}f})", v.x, fp, v.y, fp);
-    }
-};
-template<>
-struct fmt::formatter<glm::vec3>
-{
-    constexpr auto parse(format_parse_context &ctx) -> decltype(ctx.begin()) { return ctx.begin(); }
-
-    template<typename FormatContext>
-    auto format(const glm::vec3 &v, FormatContext &ctx) const -> decltype(ctx.out())
-    {
-        auto const &fp = btm::MAX_PRINT_DECIMALS;
-        return fmt::format_to(ctx.out(), "({:.{}f},{:.{}f},{:.{}f})", v.x, fp, v.y, fp, v.z, fp);
-    }
-};
-template<>
-struct fmt::formatter<glm::vec4>
-{
-    constexpr auto parse(format_parse_context &ctx) -> decltype(ctx.begin()) { return ctx.begin(); }
-
-    template<typename FormatContext>
-    auto format(const glm::vec4 &v, FormatContext &ctx) const -> decltype(ctx.out())
-    {
-        auto const &fp = btm::MAX_PRINT_DECIMALS;
-        return fmt::format_to(ctx.out(), "({:.{}f},{:.{}f},{:.{}f},{:.{}f})", v.x, fp, v.y, fp, v.z, fp, v.w, fp);
+        std::string s = "(";
+        for (glm::length_t i = 0; i < C; ++i)
+        {
+            s += fmt::format("{:.{}f},", v[i], btm::MAX_PRINT_DECIMALS);
+        }
+        s.erase(s.end() - 1, s.end());
+        s += ")";
+        return fmt::format_to(ctx.out(), "{}", s);
     }
 };
