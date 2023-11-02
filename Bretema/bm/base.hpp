@@ -4,7 +4,7 @@
 //= INCLUDES
 //===========================
 
-//--- C++ -------------------------------------------------
+//--- STD -------------------------------------------------
 #include <cmath>
 #include <limits>
 #include <cstdint>
@@ -55,15 +55,13 @@
 #    define TCB_SPAN_NAMESPACE_NAME std
 #    include "span.hpp"
 #endif
-
 //---------------------------------------------------------
 
 //===========================
-//= GLOBAL
+//= STD TYPE ALIASES
 //===========================
 
-//--- C++ TYPES ALIASES -----------------------------------
-// Numbers
+//--- Numbers ---------------------------------------------
 using i8  = int8_t;
 using i16 = int16_t;
 using i32 = int32_t;
@@ -74,21 +72,35 @@ using u32 = uint32_t;
 using u64 = uint64_t;
 using f32 = float;
 using f64 = double;
-// Smart Pointers
+//---------------------------------------------------------
+
+//--- Smart Pointers --------------------------------------
 template<typename T>
 using sPtr = std::shared_ptr<T>;
 #define sNew std::make_shared
+
 template<typename T>
 using uPtr = std::unique_ptr<T>;
 #define uNew std::make_unique
-// Data Structures
+//---------------------------------------------------------
+
+//--- Data Structures -------------------------------------
 template<typename K, typename V>
 using umap = std::unordered_map<K, V>;
+
 template<typename T>
 using uset = std::unordered_set<T>;
 //---------------------------------------------------------
 
-//--- C++ MACROS ALIASES ----------------------------------
+//
+//
+//
+
+//===========================
+//= MACROS
+//===========================
+
+//--- ALIASES ---------------------------------------------
 #define MBU          [[maybe_unused]]
 #define NDSC         [[nodiscard]]
 #define BM_UNUSED(x) (void)x
@@ -96,28 +108,90 @@ using uset = std::unordered_set<T>;
 #define BM_BIND(fn)  [this](auto &&...args) { return this->fn(args...); }
 //---------------------------------------------------------
 
-//--- GLOBAL STR HELPERS ----------------------------------
-/// TypeName to String
+//--- CONCAT ----------------------------------------------
+// Put together two parameters passed to the macro, its the
+//   its the right way to glue things like varName_##__LINE__
+//   where __LINE__ is also a macro that extracts the line number
+// clang-format off
+#define detail_BM_CONCAT(a, b) a##b
+#define BM_CONCAT(a, b) detail_BM_CONCAT(a, b)
+// clang-format on
+//---------------------------------------------------------
+
+//--- DEFER -----------------------------------------------
+// This calls the code right after the scope-ends
+//   allowing us to call things like file.close(), right after file.open(),
+//   to be sure that we don't forget to call it at the end of the function
+//   and ensure that it's called even if an exception is thrown.
+// clang-format off
+#define detail_BM_DEFER0 std::unique_ptr<void, std::function<void (void *)>>
+#define detail_BM_DEFER1 []() { static int a=0; return &a; }
+#define BM_DEFER(fn) auto BM_CONCAT(defer_,__LINE__) = detail_BM_DEFER0( detail_BM_DEFER1(), [&](void *) { fn; } )
+// clang-format on
+//---------------------------------------------------------
+
+//--- FORCE DISCRETE GPU ----------------------------------
+#if defined(_WIN64) && defined(_WIN32) && defined(_MSC_VER)
+#    define BM_FORCE_DISCRETE_GPU                                                         \
+        extern "C"                                                                        \
+        {                                                                                 \
+            _declspec(dllexport) DWORD NvOptimusEnablement                  = 0x00000001; \
+            _declspec(dllexport) DWORD AmdPowerXpressRequestHighPerformance = 0x00000001; \
+        }
+#elif defined(_WIN64) && defined(_WIN32)
+#    define BM_FORCE_DISCRETE_GPU                                                    \
+        extern "C"                                                                   \
+        {                                                                            \
+            __attribute__((dllexport)) int NvOptimusEnablement                  = 1; \
+            __attribute__((dllexport)) int AmdPowerXpressRequestHighPerformance = 1; \
+        }
+#endif
+//---------------------------------------------------------
+
+//
+//
+//
+
+//===========================
+//= STR HELPERS
+//===========================
+
+//--- TypeName --------------------------------------------
 template<typename T>
 inline std::string BM_STR_TYPE()
 {
     return typeid(T).name();
 }
-/// Ptr to String
+//---------------------------------------------------------
+
+//--- Pointer --------------------------------------------
 #define BM_STR_PTR(p) fmt::format("{}", fmt::ptr(p))
-/// Trim
+//---------------------------------------------------------
+
+//--- Trim first nChars -----------------------------------
 auto const BM_STR_TRIM = [](auto const &s, i32 nChars) -> std::string_view
 {
     std::string_view const sv = s;
     if (nChars < 1)
+    {
         return sv;
+    }
     size_t const n = static_cast<size_t>(nChars);
     return sv.substr(sv.length() >= n ? sv.length() - n : 0);
 };
 //---------------------------------------------------------
 
-//--- LOG (without format) --------------------------------
+//
+//
+//
+
+//===========================
+//= LOGGING
+//===========================
+
 // #define BM_FULL_LENGTH_LOG
+
+//--- LOG (without format) --------------------------------
 #ifdef BM_FULL_LENGTH_LOG
 #    define BM_INFO(msg) fmt::print("[I] - ({}:{})\n → {}\n", __FILE__, __LINE__, msg)
 #    define BM_WARN(msg) fmt::print("[W] - ({}:{})\n → {}\n", __FILE__, __LINE__, msg)
@@ -144,9 +218,16 @@ inline void BM_TRACE(std::source_location const &sl = std::source_location::curr
 };
 //---------------------------------------------------------
 
-// clang-format off
+//
+//
+//
+
+//===========================
+//= FLOW
+//===========================
 
 //--- ASSERT ----------------------------------------------
+// clang-format off
 #ifndef NDEBUG
 #    define BM_ASSERT(cond) assert(cond)
 #    define BM_ASSERT_X(cond, msg) do { if (!(cond)) { BM_ERR(msg); assert(cond); } } while (0)
@@ -154,54 +235,21 @@ inline void BM_TRACE(std::source_location const &sl = std::source_location::curr
 #    define BM_ASSERT(cond)
 #    define BM_ASSERT_X(cond, msg)
 #endif
+// clang-format on
 //---------------------------------------------------------
 
 //--- ABORT -----------------------------------------------
+// clang-format off
 #define BM_ABORT(msg) do { BM_ERR(msg); abort(); } while (0)
 #define BM_ABORTF(msg, ...) do { BM_ERRF(msg, __VA_ARGS__); abort(); } while (0)
 #define BM_ABORT_IF(cond, msg) do { if (cond) BM_ABORTF("{} --> {}", #cond, msg); } while (0)
 #define BM_ABORTF_IF(cond, msg, ...) do { if (cond) BM_ABORTF("{} --> {}", #cond, fmt::format(msg, __VA_ARGS__)); } while (0)
-//---------------------------------------------------------
-
-//--- CONCAT ----------------------------------------------
-// Put together two parameters passed to the macro, its the
-//   its the right way to glue things like varName_##__LINE__
-//   where __LINE__ is also a macro that extracts the line number
-#define detail_BM_CONCAT(a, b) a##b
-#define BM_CONCAT(a, b) detail_BM_CONCAT(a, b)
-//---------------------------------------------------------
-
-//--- DEFER -----------------------------------------------
-// This calls the code right after the scope-ends
-//   allowing us to call things like file.close(), right after file.open(),
-//   to be sure that we don't forget to call it at the end of the function
-//   and ensure that it's called even if an exception is thrown.
-#define detail_BM_DEFER0 std::unique_ptr<void, std::function<void (void *)>>
-#define detail_BM_DEFER1 []() { static int a=0; return &a; }
-#define BM_DEFER(fn) auto BM_CONCAT(defer_,__LINE__) = detail_BM_DEFER0( detail_BM_DEFER1(), [&](void *) { fn; } )
-//---------------------------------------------------------
-
 // clang-format on
+//---------------------------------------------------------
 
-//===========================
-//= FORCE DISCRETE GPU
-//===========================
-
-#if defined(_WIN64) && defined(_WIN32) && defined(_MSC_VER)
-#    define BM_FORCE_DISCRETE_GPU                                                         \
-        extern "C"                                                                        \
-        {                                                                                 \
-            _declspec(dllexport) DWORD NvOptimusEnablement                  = 0x00000001; \
-            _declspec(dllexport) DWORD AmdPowerXpressRequestHighPerformance = 0x00000001; \
-        }
-#elif defined(_WIN64) && defined(_WIN32)
-#    define BM_FORCE_DISCRETE_GPU                                                    \
-        extern "C"                                                                   \
-        {                                                                            \
-            __attribute__((dllexport)) int NvOptimusEnablement                  = 1; \
-            __attribute__((dllexport)) int AmdPowerXpressRequestHighPerformance = 1; \
-        }
-#endif
+//
+//
+//
 
 //===========================
 //= BRETEMA CONSTS

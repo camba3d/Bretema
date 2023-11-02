@@ -359,7 +359,7 @@ inline glm::vec3 linear_to_srgb(glm::vec3 const &c)
     return { linear_to_srgb(c.r), linear_to_srgb(c.g), linear_to_srgb(c.b) };
 }
 
-inline glm::vec3 const hex2gl(std::string hexStr)
+inline glm::vec3 const hex_to_gl(std::string hexStr)
 {
     //--- Safe input ------------------
 
@@ -414,9 +414,9 @@ inline glm::vec3 const hex2gl(std::string hexStr)
     return srgb_to_linear({ r, g, b });
 }
 
-inline glm::vec4 const hex2gl(std::string const &hex_, float alpha)
+inline glm::vec4 const hex_to_gl(std::string const &hex_, float alpha)
 {
-    return glm::vec4(hex2gl(hex_), alpha);
+    return glm::vec4(hex_to_gl(hex_), alpha);
 }
 
 }  // namespace color
