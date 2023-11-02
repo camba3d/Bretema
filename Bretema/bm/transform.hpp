@@ -1,8 +1,8 @@
 #pragma once
 
-#include "btm_base.hpp"
+#include "base.hpp"
 
-namespace btm
+namespace bm
 {
 
 struct Directions
@@ -111,4 +111,4 @@ private:
     }
 };
 
-}  // namespace btm
+}  // namespace bm

@@ -10,12 +10,12 @@
 #endif
 
 #define GLFW_INCLUDE_NONE
-#include "btm_base.hpp"
+#include "base.hpp"
 
 #include <GLFW/glfw3.h>
 #include <GLFW/glfw3native.h>
 
-namespace btm
+namespace bm
 {
 
 class App;
@@ -62,4 +62,4 @@ private:
     static inline bool                      sIsWindowContextInitialized = false;
 };
 
-}  // namespace btm
+}  // namespace bm

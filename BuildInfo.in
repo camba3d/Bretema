@@ -1,6 +1,6 @@
 #pragma once
 
-namespace btm
+namespace bm
 {
 
 struct
@@ -16,4 +16,4 @@ struct
 // clang-format on
 } BuildInfo; 
 
-}  // namespace btm
+}  // namespace bm

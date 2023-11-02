@@ -1,8 +1,8 @@
 #pragma once
 
-#include "btm_base.hpp"
+#include "base.hpp"
 
-namespace btm
+namespace bm
 {
 
 enum struct State
@@ -259,4 +259,4 @@ private:
     std::function<void(UserInput *)> mOnInputChanged = nullptr;
 };
 
-}  // namespace btm
+}  // namespace bm

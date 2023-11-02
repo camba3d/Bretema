@@ -1,13 +1,13 @@
 #pragma once
 
-#include "Vk/vk_renderer.hpp"
+#include "../vk/renderer.hpp"
 
-#include "btm_base.hpp"
-#include "btm_renderer.hpp"
-#include "btm_camera.hpp"
-#include "btm_userInput.hpp"
+#include "base.hpp"
+#include "renderer.hpp"
+#include "camera.hpp"
+#include "userInput.hpp"
 
-namespace btm
+namespace bm
 {
 
 enum RenderAPI
@@ -42,12 +42,12 @@ private:
     bool mInit  = false;
     bool mClose = false;
 
-    sPtr<btm::Window>  mMainWindow = nullptr;
-    btm::BaseRenderer *mRenderer   = nullptr;
-    RenderAPI          mRenderAPI  = RenderAPI::Vulkan;
+    sPtr<bm::Window>  mMainWindow = nullptr;
+    bm::BaseRenderer *mRenderer   = nullptr;
+    RenderAPI         mRenderAPI  = RenderAPI::Vulkan;
 
     std::vector<Camera> mCameras = { sDefaultCamera };
-    btm::Timer_Ms       mETimer  = { "MainLoop" };
+    bm::Timer_Ms        mETimer  = { "MainLoop" };
 
     // UserInput mUserInput = { nullptr };
     UserInput mUserInput = { [this](UserInput *ui)
@@ -59,4 +59,4 @@ private:
     inline static Camera const sDefaultCamera { "Main" };
 };
 
-}  // namespace btm
+}  // namespace bm

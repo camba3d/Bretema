@@ -1,13 +1,13 @@
-#include "Bretema/btm_app.hpp"
-#include "Bretema/BuildInfo.hpp"
+#include "Bretema/bm/app.hpp"
+#include "Bretema/bm/BuildInfo.hpp"
 
-BTM_FORCE_DISCRETE_GPU;
+BM_FORCE_DISCRETE_GPU;
 
 int main(int argc, char *argv[])
 {
-    BTM_INFOF("Initializing Bretema Engine #{}.{}", btm::BuildInfo.version.major, btm::BuildInfo.version.minor);
+    BM_INFOF("Initializing Bretema Engine #{}.{}", bm::BuildInfo.version.major, bm::BuildInfo.version.minor);
 
-    btm::App app { "Bretema", btm::RenderAPI::Vulkan };
+    bm::App app { "Bretema", bm::RenderAPI::Vulkan };
 
     while (true)
     {
@@ -22,7 +22,7 @@ int main(int argc, char *argv[])
         app.reset();
     }
 
-    BTM_INFOF("Closing Bretema Engine #{}.{}", btm::BuildInfo.version.major, btm::BuildInfo.version.minor);
+    BM_INFOF("Closing Bretema Engine #{}.{}", bm::BuildInfo.version.major, bm::BuildInfo.version.minor);
 
     return 0;
 }

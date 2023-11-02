@@ -1,12 +1,12 @@
 #pragma once
 
-#include "vk_base.hpp"
-#include "../btm_base.hpp"
+#include "base.hpp"
+#include "../bm/base.hpp"
 
 #include <string_view>
 #include <unordered_map>
 
-namespace btm::vk::str
+namespace bm::vk::str
 {
 inline static std::unordered_map<u32, std::string_view> const DebugSeverity {
     { VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT, "Verbose" },
@@ -366,4 +366,4 @@ inline static std::unordered_map<u32, std::string_view> const Result {
     { VK_RESULT_MAX_ENUM, "VK_RESULT_MAX_ENUM" },
 };
 
-}  // namespace btm::vk::str
+}  // namespace bm::vk::str

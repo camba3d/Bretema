@@ -1,42 +1,41 @@
-#include "btm_window.hpp"
+#include "window.hpp"
 
-#include "btm_app.hpp"
+#include "app.hpp"
 
 #include <vector>
 
-namespace btm
+namespace bm
 {
 
 static void *sMainWindow = nullptr;
 
 static umap<void *, Window *> sHandleToWindow {};
 
-App &detail_btm_app(GLFWwindow *handle)
+App &detail_bm_app(GLFWwindow *handle)
 {
     App *ptApp = ((App *)(glfwGetWindowUserPointer(handle)));
-    BTM_ASSERT(ptApp);
+    BM_ASSERT(ptApp);
     return *ptApp;
 }
 Window &detail_win_self(GLFWwindow *handle)
 {
-    BTM_ASSERT(sHandleToWindow.count(handle) > 0);
+    BM_ASSERT(sHandleToWindow.count(handle) > 0);
     Window *ptWin = sHandleToWindow[handle];
-    BTM_ASSERT(ptWin);
+    BM_ASSERT(ptWin);
     return *ptWin;
 }
 
-#define SELF   detail_win_self(p)
-#define APP_CB detail_btm_app(p)
-#define APP    detail_btm_app(mHandle)
-#define UI     detail_btm_app(p).mUserInput
+#define SELF detail_win_self(p)
+#define APP  detail_bm_app(p)
+#define UI   detail_bm_app(p).mUserInput
 
 Window::Window(i32 w, i32 h, std::string const &title, App *app) : mW(w), mH(h), mTitle(title)
 {
-    BTM_ABORT_IF(!app, "Window requires a valid App pointer");
+    BM_ABORT_IF(!app, "Window requires a valid App pointer");
 
     if (!sIsWindowContextInitialized)
     {
-        BTM_ABORT_IF(!glfwInit(), "Couldn't initialize Window-Manager");
+        BM_ABORT_IF(!glfwInit(), "Couldn't initialize Window-Manager");
         glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);   // Avoid OpenGL context creation
         glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);      // Resize windows takes special care
         glfwWindowHint(GLFW_FOCUS_ON_SHOW, GLFW_TRUE);  // Focus the window when its opened
@@ -50,7 +49,7 @@ Window::Window(i32 w, i32 h, std::string const &title, App *app) : mW(w), mH(h),
 
     // Create window object
     mHandle = glfwCreateWindow(mW, mH, "", nullptr, nullptr);
-    BTM_ABORT_IF(!mHandle, "Couldn't create a new Window");
+    BM_ABORT_IF(!mHandle, "Couldn't create a new Window");
 
     // Store app pointer into window object
     glfwSetWindowUserPointer(mHandle, app);
@@ -70,7 +69,7 @@ Window::Window(i32 w, i32 h, std::string const &title, App *app) : mW(w), mH(h),
     // -- Focus
     glfwSetCursorEnterCallback(mHandle, [](GLFWwindow *p, i32 focus) { SELF.focus((bool)focus); });
     // -- On Close
-    glfwSetWindowCloseCallback(mHandle, [](GLFWwindow *p) { if (p == sMainWindow) APP_CB.markToClose(); });
+    glfwSetWindowCloseCallback(mHandle, [](GLFWwindow *p) { if (p == sMainWindow) APP.markToClose(); });
     
     // User-Input Events
     // -- Mouse
@@ -130,7 +129,7 @@ void Window::refreshTitle()
 {
     if (mHandle)
     {
-        glfwSetWindowTitle(mHandle, (APP.name() + " :: " + mTitle + " :: " + mTitleInfo).c_str());
+        glfwSetWindowTitle(mHandle, (detail_bm_app(mHandle).name() + " :: " + mTitle + " :: " + mTitleInfo).c_str());
     }
 }
 
@@ -146,4 +145,4 @@ void Window::titleInfo(std::string info)
     refreshTitle();
 }
 
-}  // namespace btm
+}  // namespace bm

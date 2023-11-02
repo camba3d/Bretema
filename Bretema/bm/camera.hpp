@@ -1,12 +1,12 @@
 #pragma once
 
-#include "btm_base.hpp"
+#include "base.hpp"
 
-#include "btm_utils.hpp"
-#include "btm_transform.hpp"
-#include "btm_userInput.hpp"
+#include "utils.hpp"
+#include "transform.hpp"
+#include "userInput.hpp"
 
-namespace btm
+namespace bm
 {
 
 class Camera
@@ -210,25 +210,25 @@ class SmoothCamera
     Camera B;
 };
 
-}  // namespace btm
+}  // namespace bm
 
 // template<>
-// struct fmt::formatter<btm::Camera>
+// struct fmt::formatter<bm::Camera>
 // {
 //     constexpr auto parse(format_parse_context &ctx) -> decltype(ctx.begin()) { return ctx.begin(); }
 
 //     template<typename FormatContext>
-//     auto format(btm::Camera const &c, FormatContext &ctx) const -> decltype(ctx.out())
+//     auto format(bm::Camera const &c, FormatContext &ctx) const -> decltype(ctx.out())
 //     {
 //         auto const boolStr = [](bool b) { return b ? "T" : "F"; };
 
-//         auto const modeStr = [](btm::Camera::Mode m)
+//         auto const modeStr = [](bm::Camera::Mode m)
 //         {
 //             switch (m)
 //             {
-//                 case btm::Camera::Mode::Fly: return "Fly  ";
-//                 case btm::Camera::Mode::Orb: return "Orb  ";
-//                 case btm::Camera::Mode::Ortho: return "Ortho";
+//                 case bm::Camera::Mode::Fly: return "Fly  ";
+//                 case bm::Camera::Mode::Orb: return "Orb  ";
+//                 case bm::Camera::Mode::Ortho: return "Ortho";
 //                 default: return "";
 //             }
 //         };

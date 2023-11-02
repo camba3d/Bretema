@@ -1,23 +1,23 @@
-#include "vk_renderer.hpp"
-#include "vk_init.hpp"
+#include "renderer.hpp"
+#include "init.hpp"
 
 #include <chrono>
 
-namespace btm::vk
+namespace bm::vk
 {
 
-constexpr i32 BTM_VK_MAJOR_VERSION = 1;
-constexpr i32 BTM_VK_MINOR_VERSION = 2;
-#define BTM_VK_VER BTM_VK_MAJOR_VERSION, BTM_VK_MINOR_VERSION
+constexpr i32 BM_VK_MAJOR_VERSION = 1;
+constexpr i32 BM_VK_MINOR_VERSION = 2;
+#define BM_VK_VER BM_VK_MAJOR_VERSION, BM_VK_MINOR_VERSION
 
 #define ADD_DESTROY(code__)           mDqMain.add([=, this]() { code__; })
 #define ADD_DESTROY_SWAPCHAIN(code__) mDqSwapchain.add([=, this]() { code__; })
 
 //-----------------------------------------------------------------------------
 
-Renderer::Renderer(sPtr<btm::Window> window) : btm::BaseRenderer(window)
+Renderer::Renderer(sPtr<bm::Window> window) : bm::BaseRenderer(window)
 {
-    BTM_TRACE();
+    BM_TRACE();
 
     // * https://github.com/charles-lunarg/vk-bootstrap/blob/master/docs/getting_started.md
 
@@ -43,7 +43,7 @@ Renderer::Renderer(sPtr<btm::Window> window) : btm::BaseRenderer(window)
 
 void Renderer::draw(Camera const &cam)
 {
-    // BTM_TRACE();
+    // BM_TRACE();
 
     // Wait for GPU (1 second timeout)
     BMVK_CHECK(vkWaitForFences(mDevice, 1, &frame().renderFence, true, sOneSec));
@@ -59,7 +59,7 @@ void Renderer::draw(Camera const &cam)
     }
     else if (resAcquire != VK_SUCCESS && resAcquire != VK_SUBOPTIMAL_KHR)
     {
-        BTM_ABORTF("{} : {}", btm::vk::str::Result.at(resAcquire), "vkAcquireNextImageKHR presentSemaphore");
+        BM_ABORTF("{} : {}", bm::vk::str::Result.at(resAcquire), "vkAcquireNextImageKHR presentSemaphore");
     }
 
     // Reset(s) on valid image
@@ -84,9 +84,9 @@ void Renderer::draw(Camera const &cam)
     // Make a clear-color from frame number.
     // This will flash with a 120*pi frame period.
     VkClearValue clearColor {}, clearDepth {};
-    auto const   color            = btm::color::hex2gl("#ff7d00", 1.f);
-    // BTM_INFOF("COLOOOOOOR: {}", color);
-    // auto const   color            = btm::color::hex2gl("#e07a5f", 1.f);
+    auto const   color            = bm::color::hex2gl("#ff7d00", 1.f);
+    // BM_INFOF("COLOOOOOOR: {}", color);
+    // auto const   color            = bm::color::hex2gl("#e07a5f", 1.f);
     clearColor.color              = { color.r, color.g, color.b, color.a };
     clearDepth.depthStencil.depth = 1.f;
     auto const clears             = std::array { clearColor, clearDepth };
@@ -162,7 +162,7 @@ void Renderer::draw(Camera const &cam)
     }
     else if (resPresent != VK_SUCCESS)
     {
-        BTM_ABORTF("{} : {}", btm::vk::str::Result.at(resAcquire), "vkQueuePresentKHR renderSemaphore");
+        BM_ABORTF("{} : {}", bm::vk::str::Result.at(resAcquire), "vkQueuePresentKHR renderSemaphore");
     }
 
     // Increase the number of frames drawn
@@ -173,7 +173,7 @@ void Renderer::draw(Camera const &cam)
 
 void Renderer::cleanup()
 {
-    BTM_TRACE();
+    BM_TRACE();
 
     if (!isInitialized())
     {
@@ -202,7 +202,7 @@ void Renderer::cleanup()
 
 void Renderer::recreateSwapchain()
 {
-    BTM_TRACE();
+    BM_TRACE();
     vkDeviceWaitIdle(mDevice);
     mDqSwapchain.flush();
     initSwapchain();
@@ -213,19 +213,19 @@ void Renderer::recreateSwapchain()
 
 void Renderer::initVulkan()
 {
-    BTM_TRACE();
+    BM_TRACE();
 
     // vkb : Create a instance with some setup
     auto vkbInstanceBuilder = vkb::InstanceBuilder {};
 
-    for (auto &&ext : btm::Window::extensions())
+    for (auto &&ext : bm::Window::extensions())
     {
         vkbInstanceBuilder.enable_extension(ext);
     }
 
     auto vkbInstanceResult = vkbInstanceBuilder.set_app_name("Bretema Engine")
                                .request_validation_layers(true)
-                               .require_api_version(BTM_VK_VER, 0)
+                               .require_api_version(BM_VK_VER, 0)
                                .use_default_debug_messenger()
                                .build();
     VKB_CHECK(vkbInstanceResult);
@@ -242,7 +242,7 @@ void Renderer::initVulkan()
 
     // vkb : Select a GPU based on some criteria
     auto vkbGpuSelector = vkb::PhysicalDeviceSelector { vkbInstance };
-    auto vkbGpuResult   = vkbGpuSelector.set_minimum_version(BTM_VK_VER).set_surface(mSurface).select();
+    auto vkbGpuResult   = vkbGpuSelector.set_minimum_version(BM_VK_VER).set_surface(mSurface).select();
     VKB_CHECK(vkbGpuResult);
     auto &vkbGpu = vkbGpuResult.value();
 
@@ -274,18 +274,18 @@ void Renderer::initVulkan()
     mPresent  = vk::Queue { vkbDevice, vkb::QueueType::present };
     mCompute  = vk::Queue { vkbDevice, vkb::QueueType::compute };
     mTransfer = vk::Queue { vkbDevice, vkb::QueueType::transfer };
-    BTM_INFOF("G:{} | P:{} | C:{} | T:{}", mGraphics, mPresent, mCompute, mTransfer);
+    BM_INFOF("G:{} | P:{} | C:{} | T:{}", mGraphics, mPresent, mCompute, mTransfer);
 }
 
 //-----------------------------------------------------------------------------
 
 void Renderer::initSwapchain(VkSwapchainKHR prev)
 {
-    BTM_TRACE();
+    BM_TRACE();
 
     windowSizeSync();
 
-    BTM_ASSERT_X(w() > 0 && h() > 0, "Invalid viewport size");
+    BM_ASSERT_X(w() > 0 && h() > 0, "Invalid viewport size");
 
     // === SWAP CHAIN ===
 
@@ -343,7 +343,7 @@ void Renderer::initSwapchain(VkSwapchainKHR prev)
 
 void Renderer::initCommands()
 {
-    BTM_TRACE();
+    BM_TRACE();
 
     auto const initCommandsByFamily = [this](vk::QueueCmd &qc, vk::Queue *q)
     {
@@ -373,7 +373,7 @@ void Renderer::initCommands()
 
 void Renderer::initDefaultRenderPass()
 {
-    BTM_TRACE();
+    BM_TRACE();
 
     // == ATTACHMENT(s) ==
     // att0 : Color
@@ -452,7 +452,7 @@ void Renderer::initDefaultRenderPass()
 
 void Renderer::initFramebuffers()
 {
-    BTM_TRACE();
+    BM_TRACE();
 
     // Create the framebuffers for the swapchain images.
     // This will connect the render-pass to the images for rendering
@@ -487,7 +487,7 @@ void Renderer::initFramebuffers()
 
 void Renderer::initSyncStructures()
 {
-    BTM_TRACE();
+    BM_TRACE();
 
     for (u64 i = 0; i < sFlightFrames; i++)
     {
@@ -510,7 +510,7 @@ void Renderer::initSyncStructures()
 
 void Renderer::initDescriptors()
 {
-    BTM_TRACE();
+    BM_TRACE();
 
     // CREATE GLOBAL DESCRIPTOR SET LAYOUT
     {
@@ -582,19 +582,19 @@ void Renderer::initDescriptors()
 
 void Renderer::initMaterials()
 {
-    BTM_TRACE();
+    BM_TRACE();
 
     // Shader - tri
     auto vs_tri = vk::Create::ShaderModule(mDevice, "tri", VK_SHADER_STAGE_VERTEX_BIT);
-    BTM_DEFER(vkDestroyShaderModule(mDevice, vs_tri, nullptr));
+    BM_DEFER(vkDestroyShaderModule(mDevice, vs_tri, nullptr));
     auto fs_tri = vk::Create::ShaderModule(mDevice, "tri", VK_SHADER_STAGE_FRAGMENT_BIT);
-    BTM_DEFER(vkDestroyShaderModule(mDevice, fs_tri, nullptr));
+    BM_DEFER(vkDestroyShaderModule(mDevice, fs_tri, nullptr));
 
     // Shader - mesh
     auto vs_mesh = vk::Create::ShaderModule(mDevice, "mesh", VK_SHADER_STAGE_VERTEX_BIT);
-    BTM_DEFER(vkDestroyShaderModule(mDevice, vs_mesh, nullptr));
+    BM_DEFER(vkDestroyShaderModule(mDevice, vs_mesh, nullptr));
     auto fs_mesh = vk::Create::ShaderModule(mDevice, "mesh", VK_SHADER_STAGE_FRAGMENT_BIT);
-    BTM_DEFER(vkDestroyShaderModule(mDevice, fs_mesh, nullptr));
+    BM_DEFER(vkDestroyShaderModule(mDevice, fs_mesh, nullptr));
 
     // Pipeline Layout(s)
 
@@ -667,7 +667,7 @@ void Renderer::initMaterials()
 
 void Renderer::initMeshes()  // todo : this have to come from user-land
 {
-    BTM_TRACE();
+    BM_TRACE();
 
 #ifdef _MSC_VER
     static auto const sGeometryPath = runtime::exepath() + "/../Assets/Geometry";
@@ -675,7 +675,7 @@ void Renderer::initMeshes()  // todo : this have to come from user-land
     static auto const sGeometryPath = runtime::exepath() + "/Assets/Geometry";
 #endif
 
-    auto const addMesh = [this](auto const &name, auto const &path) { mMeshMap[name] = createMesh(btm::parseGltf(path)); };
+    auto const addMesh = [this](auto const &name, auto const &path) { mMeshMap[name] = createMesh(bm::parseGltf(path)); };
 
     addMesh("monkey", sGeometryPath + "/suzanne_donut.glb");
     addMesh("cube", sGeometryPath + "/cube2.glb");
@@ -685,7 +685,7 @@ void Renderer::initMeshes()  // todo : this have to come from user-land
 
 void Renderer::initTestScene()
 {
-    BTM_TRACE();
+    BM_TRACE();
 
     auto &testScene = mScenes["test"];
 
@@ -786,7 +786,7 @@ AllocatedBuffer Renderer::createBufferStaging(void const *data, u64 bytes, VkBuf
 
 //-----------------------------------------------------------------------------
 
-MeshGroup Renderer::createMesh(btm::MeshGroup const &meshes)
+MeshGroup Renderer::createMesh(bm::MeshGroup const &meshes)
 {
     MeshGroup mg;
 
@@ -930,4 +930,4 @@ void Renderer::executeImmediately(VkCommandPool pool, VkQueue queue, const std::
 
 //-----------------------------------------------------------------------------
 
-}  // namespace btm::vk
+}  // namespace bm::vk

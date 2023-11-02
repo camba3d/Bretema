@@ -10,7 +10,7 @@ project(Bretema VERSION 1.0)
 set(CMAKE_CXX_STANDARD 20)
 
 # Configure file
-configure_file(BuildInfo.in Bretema/BuildInfo.hpp)
+configure_file(BuildInfo.in Bretema/bm/BuildInfo.hpp)
 
 # Export compile commands
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
@@ -159,34 +159,37 @@ copy_source_to_build(Assets/Geometry)
 # ------------------------- #
 
 set(SRC "Bretema")
+set(SRC_BRETEMA "${SRC}/bm")
+set(SRC_VULKAN "${SRC}/vk")
+
 
 # file(GLOB EXTRA_HEADERS ${SRC}/*.h)
 list(APPEND EXTRA_HEADERS
-    ${SRC}/btm_base.hpp
-    ${SRC}/btm_userInput.hpp
 
-    ${SRC}/btm_app.hpp
-    ${SRC}/btm_renderer.hpp
-    ${SRC}/btm_utils.hpp
-    ${SRC}/btm_window.hpp
-    ${SRC}/btm_transform.hpp
-    ${SRC}/btm_camera.hpp
+    ${SRC_BRETEMA}/base.hpp
+    ${SRC_BRETEMA}/utils.hpp
+    ${SRC_BRETEMA}/userInput.hpp
+    ${SRC_BRETEMA}/app.hpp
+    ${SRC_BRETEMA}/window.hpp
+    ${SRC_BRETEMA}/renderer.hpp
+    ${SRC_BRETEMA}/transform.hpp
+    ${SRC_BRETEMA}/camera.hpp
 
-    ${SRC}/Vk/vk_base.hpp
-    ${SRC}/Vk/vk_renderer.hpp
-    ${SRC}/Vk/vk_str.hpp
-    ${SRC}/Vk/vk_init.hpp
-    ${SRC}/Vk/vk_types.hpp
+    ${SRC_VULKAN}/base.hpp
+    ${SRC_VULKAN}/renderer.hpp
+    ${SRC_VULKAN}/str.hpp
+    ${SRC_VULKAN}/init.hpp
+    ${SRC_VULKAN}/types.hpp
 )
 
     # file(GLOB EXTRA_SOURCES ${SRC}/*.cpp)
 list(APPEND EXTRA_SOURCES
-    ${SRC}/btm_app.cpp
-    ${SRC}/btm_renderer.cpp
-    ${SRC}/btm_window.cpp
+    ${SRC_BRETEMA}/app.cpp
+    ${SRC_BRETEMA}/window.cpp
+    ${SRC_BRETEMA}/renderer.cpp
 
-    ${SRC}/Vk/vk_base.cpp
-    ${SRC}/Vk/vk_renderer.cpp
+    ${SRC_VULKAN}/base.cpp
+    ${SRC_VULKAN}/renderer.cpp
 )
 
 add_library(${PROJECT_NAME}

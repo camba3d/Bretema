@@ -1,15 +1,15 @@
 #pragma once
 
-#include "../btm_base.hpp"
-#include "../btm_utils.hpp"
+#include "../bm/base.hpp"
+#include "../bm/utils.hpp"
 
-#include "vk_base.hpp"
-#include "vk_types.hpp"
+#include "base.hpp"
+#include "types.hpp"
 
 #include <optional>
 #include <vector>
 
-namespace btm::vk
+namespace bm::vk
 {
 
 namespace CreateInfo
@@ -127,7 +127,7 @@ inline auto MultisamplingState(Samples samples = Samples::_1, void *pNext = null
     info.sType                 = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
     info.pNext                 = pNext;
     info.sampleShadingEnable   = VK_FALSE;
-    info.rasterizationSamples  = static_cast<VkSampleCountFlagBits>(BTM_BIT((i32)samples));
+    info.rasterizationSamples  = static_cast<VkSampleCountFlagBits>(BM_BIT((i32)samples));
     info.minSampleShading      = 1.0f;
     info.pSampleMask           = nullptr;
     info.alphaToCoverageEnable = VK_FALSE;
@@ -163,14 +163,14 @@ inline auto Image(VkFormat format, VkImageUsageFlags usageFlags, VkExtent3D exte
     info.extent      = extent;
     info.mipLevels   = 1;  //@todo
     info.arrayLayers = 1;  //@todo: extend to cube maps and 3d textures
-    info.samples     = static_cast<VkSampleCountFlagBits>(BTM_BIT((i32)samples));
+    info.samples     = static_cast<VkSampleCountFlagBits>(BM_BIT((i32)samples));
     info.tiling      = VK_IMAGE_TILING_OPTIMAL;
     info.usage       = usageFlags;
 
     return info;
 }
 
-//@todo: at some point, may have sense to merge this two functions in btm::vk::Image class, that tracks
+//@todo: at some point, may have sense to merge this two functions in bm::vk::Image class, that tracks
 // the image type for the view creation, and reduce verbosity while allowing modify any parameter of the structs...
 inline auto ImageView(VkFormat format, VkImage image, VkImageAspectFlags aspectFlags, void *pNext = nullptr)
 {
@@ -239,7 +239,7 @@ inline VkShaderModule ShaderModule(VkDevice device, std::string const &name, VkS
 
 // TODO / FIXME : On 'install' change shaders path to absolute from a selected resources-path
 // static auto const sShadersPath = std::string("./Assets/Shaders/");
-// BTM_INFOF("AAAAAAAAAAAAAAAAAA {}", runtime::exepath());
+// BM_INFOF("AAAAAAAAAAAAAAAAAA {}", runtime::exepath());
 #ifdef _MSC_VER
     static auto const sShadersPath = runtime::exepath() + "/../Assets/Shaders/";
 #else
@@ -248,23 +248,23 @@ inline VkShaderModule ShaderModule(VkDevice device, std::string const &name, VkS
 
     if (sStageToExt.count(stage) < 1)
     {
-        BTM_ERR("Shaders support is limited to: .vert, .frag and .comp");
+        BM_ERR("Shaders support is limited to: .vert, .frag and .comp");
         return VK_NULL_HANDLE;
     }
 
     if (name.empty())
     {
-        BTM_ERR("Shader name cannot be empty");
+        BM_ERR("Shader name cannot be empty");
         return VK_NULL_HANDLE;
     }
 
     std::string const path = sShadersPath + name + "." + sStageToExt[stage] + ".spv";
-    auto const        code = btm::fs::read(path);
+    auto const        code = bm::fs::read(path);
 
     if (code.empty())
     {
-        BTM_ERRF("Failed to open shader '{}'!", path);
-        BTM_ASSERT(0);
+        BM_ERRF("Failed to open shader '{}'!", path);
+        BM_ASSERT(0);
         return {};
     }
 
@@ -333,7 +333,7 @@ inline VkPipeline Pipeline(vk::PipelineBuilder pb, VkDevice device, VkRenderPass
 
     if (vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &info, nullptr, &pipeline) != VK_SUCCESS)
     {
-        BTM_ERR("Couldn't create pipeline");
+        BM_ERR("Couldn't create pipeline");
         return VK_NULL_HANDLE;
     }
 
@@ -414,11 +414,11 @@ inline auto DescSets(VkDevice dev, std::vector<WriteDescSet_t> inWriteDescSets)
     }
 
     auto const &bi = writeDescSets[0].pBufferInfo[0];
-    BTM_INFOF("FFFFF =>> {} {} {}", BTM_STR_PTR(bi.buffer), bi.offset, bi.range);
+    BM_INFOF("FFFFF =>> {} {} {}", BM_STR_PTR(bi.buffer), bi.offset, bi.range);
 
     vkUpdateDescriptorSets(dev, (u32)writeDescSets.size(), writeDescSets.data(), 0, nullptr);
 }
 
 }  // namespace Update
 
-}  // namespace btm::vk
+}  // namespace bm::vk

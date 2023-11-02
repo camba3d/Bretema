@@ -1,11 +1,11 @@
 #pragma once
 
-#include "btm_base.hpp"
-#include "btm_window.hpp"
+#include "base.hpp"
+#include "window.hpp"
 
-#include "btm_camera.hpp"
+#include "camera.hpp"
 
-namespace btm
+namespace bm
 {
 
 //===========================
@@ -119,7 +119,7 @@ public:
     inline static constexpr i32 sInFlight = 3;
 
     // LIFETIME
-    BaseRenderer(sPtr<btm::Window> window);
+    BaseRenderer(sPtr<bm::Window> window);
     virtual ~BaseRenderer() = default;
 
     // PROPS
@@ -127,12 +127,12 @@ public:
 
     inline float winW()
     {
-        BTM_ASSERT(mWindow);
+        BM_ASSERT(mWindow);
         return mWindow ? mWindow->size().x : 1;
     }
     inline float winH()
     {
-        BTM_ASSERT(mWindow);
+        BM_ASSERT(mWindow);
         return mWindow ? mWindow->size().y : 1;
     }
     inline float w() { return mSize.x; }
@@ -151,10 +151,10 @@ protected:
 
     glm::vec2 winSize() { return mWindow ? mWindow->size() : ONE2; }
 
-    bool              mInit        = false;
-    i32               mFrameNumber = 0;
-    glm::vec2         mSize        = { 1280, 720 };
-    sPtr<btm::Window> mWindow      = nullptr;
+    bool             mInit        = false;
+    i32              mFrameNumber = 0;
+    glm::vec2        mSize        = { 1280, 720 };
+    sPtr<bm::Window> mWindow      = nullptr;
 };
 
 //===========================
@@ -164,7 +164,7 @@ protected:
 MeshGroup parseGltf(std::string const &filepath);
 MeshGroup parseGltf(ds::view<u8> bin, std::string name = "");
 
-}  // namespace btm
+}  // namespace bm
 
 //
 //
@@ -176,15 +176,15 @@ MeshGroup parseGltf(ds::view<u8> bin, std::string name = "");
 
 // Mesh
 template<>
-struct fmt::formatter<btm::Mesh>
+struct fmt::formatter<bm::Mesh>
 {
     constexpr auto parse(format_parse_context &ctx) -> decltype(ctx.begin()) { return ctx.begin(); }
 
     template<typename FormatContext>
-    auto format(const btm::Mesh &mesh, FormatContext &ctx) const -> decltype(ctx.out())
+    auto format(const bm::Mesh &mesh, FormatContext &ctx) const -> decltype(ctx.out())
     {
         std::string meshStr = "INDICES:\n";
-        for (auto const &i : mesh.indices) meshStr += BTM_FMT("{}, ", i);
+        for (auto const &i : mesh.indices) meshStr += BM_FMT("{}, ", i);
 
         if (!mesh.indices.empty())
             meshStr.erase(meshStr.end() - 2, meshStr.end());
@@ -192,7 +192,7 @@ struct fmt::formatter<btm::Mesh>
         meshStr += "\nATTRIBUTES (pos / uv0 / normal / tangent) :\n";
 
         size_t vn = 0;
-        for (auto const &v : mesh.vertices) meshStr += BTM_FMT("{}: {} / {} / {} / {}", vn++, v.pos, v.uv0, v.normal, v.tangent) + "\n";
+        for (auto const &v : mesh.vertices) meshStr += BM_FMT("{}: {} / {} / {} / {}", vn++, v.pos, v.uv0, v.normal, v.tangent) + "\n";
 
         return fmt::format_to(ctx.out(), "\n{}\n......\n{}", mesh.name, meshStr);
     }
@@ -200,15 +200,15 @@ struct fmt::formatter<btm::Mesh>
 
 // MeshGroup
 template<>
-struct fmt::formatter<btm::MeshGroup>
+struct fmt::formatter<bm::MeshGroup>
 {
     constexpr auto parse(format_parse_context &ctx) -> decltype(ctx.begin()) { return ctx.begin(); }
 
     template<typename FormatContext>
-    auto format(const btm::MeshGroup &meshGroup, FormatContext &ctx) const -> decltype(ctx.out())
+    auto format(const bm::MeshGroup &meshGroup, FormatContext &ctx) const -> decltype(ctx.out())
     {
         std::string meshGroupStr = "";
-        for (auto const &mesh : meshGroup) meshGroupStr += BTM_FMT("{}", mesh) + "\n";
+        for (auto const &mesh : meshGroup) meshGroupStr += BM_FMT("{}", mesh) + "\n";
 
         return fmt::format_to(ctx.out(), "\nMESHGROUP\n--------\n{}", meshGroupStr);
     }

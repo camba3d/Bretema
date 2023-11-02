@@ -38,25 +38,29 @@
 // #endif
 
 //--- VK BOOTSTRAP ERROR CHECKER --------------------------
-#define VKB_CHECK(x)                                                                       \
-    do {                                                                                   \
-        if (!x.has_value())                                                                \
-            if (auto err = x.error().message(); err != "") BTM_ABORTF("{} : {}", err, #x); \
+#define VKB_CHECK(x)                                       \
+    do {                                                   \
+        if (!x.has_value())                                \
+            if (auto err = x.error().message(); err != "") \
+                BM_ABORTF("{} : {}", err, #x);             \
     } while (0)
 //---------------------------------------------------------
 
 //--- BMVK ERROR CHECKER ----------------------------------
-#define BMVK_CHECK(x)                                                                                     \
-    do {                                                                                                  \
-        if (VkResult res = x; res != VK_SUCCESS) BTM_ABORTF("{} : {}", btm::vk::str::Result.at(res), #x); \
+#define BMVK_CHECK(x)                                              \
+    do {                                                           \
+        if (VkResult res = x; res != VK_SUCCESS)                   \
+            BM_ABORTF("{} : {}", bm::vk::str::Result.at(res), #x); \
     } while (0)
 //---------------------------------------------------------
 
 //--- BMVK GET INSTANCE FUNCTION --------------------------
-#define BMVK_INSTANCE_FN(instance, extName, ...)                                                                 \
-    do {                                                                                                         \
-        if (auto fn = ((PFN_##extName)vkGetInstanceProcAddr(instance, #extName)); fn) fn(instance, __VA_ARGS__); \
-        else BTM_ERRF("Function {} is not available", #extName);                                                 \
+#define BMVK_INSTANCE_FN(instance, extName, ...)                                      \
+    do {                                                                              \
+        if (auto fn = ((PFN_##extName)vkGetInstanceProcAddr(instance, #extName)); fn) \
+            fn(instance, __VA_ARGS__);                                                \
+        else                                                                          \
+            BM_ERRF("Function {} is not available", #extName);                        \
     } while (0)
 //---------------------------------------------------------
 
@@ -69,7 +73,7 @@
 #define BMVK_COUNT(v)    static_cast<u32>(v.size())
 //---------------------------------------------------------
 
-namespace btm::vk
+namespace bm::vk
 {
 
-}  // namespace btm::vk
+}  // namespace bm::vk

@@ -1,29 +1,29 @@
 #pragma once
 
-#include "vk_base.hpp"
-#include "vk_str.hpp"
-#include "vk_types.hpp"
+#include "base.hpp"
+#include "str.hpp"
+#include "types.hpp"
 
 // ^^^ Include the <vk/dx/gl/mt/wg>-Renderer files before the BaseRenderer
 
-#include "../btm_base.hpp"
-#include "../btm_utils.hpp"
-#include "../btm_renderer.hpp"
+#include "../bm/base.hpp"
+#include "../bm/utils.hpp"
+#include "../bm/renderer.hpp"
 
 #include <vma/vk_mem_alloc.h>
 
-namespace btm::vk
+namespace bm::vk
 {
 
-class Renderer : public btm::BaseRenderer
+class Renderer : public bm::BaseRenderer
 {
     static constexpr u64      sOneSec       = 1000000000;
     static constexpr u64      sFlightFrames = 3;
     static constexpr VkFormat sDepthFormat  = VK_FORMAT_D32_SFLOAT;  // @todo: Check VK_FORMAT_D32_SFLOAT_S8_UINT  ??
 
 public:
-    Renderer(sPtr<btm::Window> window);
-    virtual void update() override { BTM_WARN("NOT IMPLEMENTED"); }
+    Renderer(sPtr<bm::Window> window);
+    virtual void update() override { BM_WARN("NOT IMPLEMENTED"); }
     virtual void draw(Camera const &cam) override;
     virtual void cleanup() override;
 
@@ -53,7 +53,7 @@ private:
       bool                  addToDelQueue = true);
     AllocatedBuffer createBufferStaging(void const *data, u64 bytes, VkBufferUsageFlags usage);
 
-    MeshGroup createMesh(btm::MeshGroup const &meshes);
+    MeshGroup createMesh(bm::MeshGroup const &meshes);
     Material *createMaterial(VkPipeline pipeline, VkPipelineLayout layout, std::string const &name);
 
     void drawScene(std::string const &name, Camera const &cam);
@@ -80,7 +80,7 @@ private:
     {
         size_t const min    = mProperties.limits.minUniformBufferOffsetAlignment;
         size_t const padded = (min > 0) ? (sizeof(T) + min - 1) / min * min : sizeof(T);
-        BTM_INFOF("Gathering PaddedSizeUBO of {} -> {} : {} : {}", BTM_STR_TYPE<T>(), min, sizeof(T), padded);
+        BM_INFOF("Gathering PaddedSizeUBO of {} -> {} : {} : {}", BM_STR_TYPE<T>(), min, sizeof(T), padded);
         return padded;
     }
 
@@ -101,9 +101,9 @@ private:
     vk::Queue mTransfer = {};
 
     // MEMORY
-    btm::ds::DeletionQueue mDqSwapchain = {};
-    btm::ds::DeletionQueue mDqMain      = {};
-    VmaAllocator           mAllocator   = VK_NULL_HANDLE;  // Memory Allocator - AMD lib
+    bm::ds::DeletionQueue mDqSwapchain = {};
+    bm::ds::DeletionQueue mDqMain      = {};
+    VmaAllocator          mAllocator   = VK_NULL_HANDLE;  // Memory Allocator - AMD lib
 
     // SWAPCHAIN
     VkSwapchainKHR           mSwapchain            = VK_NULL_HANDLE;  // Vulkan swapchain
@@ -142,4 +142,4 @@ private:
     size_t          mSceneDataPaddedSize = 0;
 };
 
-}  // namespace btm::vk
+}  // namespace bm::vk

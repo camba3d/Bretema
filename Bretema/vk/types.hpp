@@ -1,14 +1,14 @@
 #pragma once
 
-#include "../btm_base.hpp"
-#include "vk_base.hpp"
+#include "../bm/base.hpp"
+#include "base.hpp"
 
 #include <vma/vk_mem_alloc.h>
 
 #include <vector>
 #include <array>
 
-namespace btm::vk
+namespace bm::vk
 {
 
 //-----------------------------------------------------------------------------
@@ -123,7 +123,7 @@ struct Queue
             queue  = q.value();
             family = f.value();
         }
-        BTM_ASSERT(valid);
+        BM_ASSERT(valid);
     }
 
     VkQueue        queue  = {};
@@ -258,8 +258,8 @@ struct FrameData
 
 struct SceneData
 {
-    glm::vec4 fogColor;           // w is for exponent
-    glm::vec4 fogDistances;       // x for min, y for max, zw unused.
+    glm::vec4 fogColor;      // w is for exponent
+    glm::vec4 fogDistances;  // x for min, y for max, zw unused.
     glm::vec4 ambientColor;
     glm::vec4 sunlightDirection;  // w for sun power
     glm::vec4 sunlightColor;
@@ -267,19 +267,19 @@ struct SceneData
 
 //-----------------------------------------------------------------------------
 
-}  // namespace btm::vk
+}  // namespace bm::vk
 
 //=====================================
 //=== FMT
 //=====================================
 
 template<>
-struct fmt::formatter<btm::vk::Queue>
+struct fmt::formatter<bm::vk::Queue>
 {
     constexpr auto parse(format_parse_context &ctx) -> decltype(ctx.begin()) { return ctx.begin(); }
 
     template<typename FormatContext>
-    auto format(btm::vk::Queue const &q, FormatContext &ctx) const -> decltype(ctx.out())
+    auto format(bm::vk::Queue const &q, FormatContext &ctx) const -> decltype(ctx.out())
     {
         auto const s = q.valid ? fmt::to_string(q.family) : "x";
         return fmt::format_to(ctx.out(), "{}", s);

@@ -1,19 +1,20 @@
-#include "btm_app.hpp"
 
-namespace btm
+#include "app.hpp"
+
+namespace bm
 {
 
 // clang-format off
-#define RENDERER(call) do { BTM_ASSERT(mRenderer); (mRenderer)->call; } while (0);
+#define RENDERER(call) do { BM_ASSERT(mRenderer); (mRenderer)->call; } while (0);
 // clang-format on
 
 App::App(std::string name, RenderAPI renderAPI) : mName(std::move(name)), mRenderAPI(renderAPI)
 {
-    BTM_ABORTF_IF(
+    BM_ABORTF_IF(
       mMainWindow || mRenderer,
       "Initialization fiasco... Window({}) or Renderer({}) already exists!",
-      BTM_STR_PTR(mMainWindow),
-      BTM_STR_PTR(mRenderer));
+      BM_STR_PTR(mMainWindow),
+      BM_STR_PTR(mRenderer));
 
     // Init window
     mMainWindow = sNew<Window>(1920, 1080, "Default Window", this);
@@ -22,7 +23,7 @@ App::App(std::string name, RenderAPI renderAPI) : mName(std::move(name)), mRende
     switch (mRenderAPI)
     {
         case Vulkan: mRenderer = new vk::Renderer(mMainWindow); break;
-        default: BTM_ABORT("Selected renderer is not implemented yet!"); break;
+        default: BM_ABORT("Selected renderer is not implemented yet!"); break;
     }
 }
 
@@ -56,15 +57,15 @@ void App::run()
             isAnyWindowOpen |= !close;
         }
 
-        // btm::Window::waitEvents();
-        btm::Window::pollEvents();
+        // bm::Window::waitEvents();
+        bm::Window::pollEvents();
     }
 }
 
 void App::cleanup()
 {
     RENDERER(cleanup());
-    btm::Window::terminate();
+    bm::Window::terminate();
 
     delete mRenderer;
     mRenderer = nullptr;
@@ -89,4 +90,4 @@ bool App::isMarkedToClose() const
     return mClose;
 }
 
-}  // namespace btm
+}  // namespace bm

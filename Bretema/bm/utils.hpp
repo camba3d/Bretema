@@ -1,11 +1,11 @@
 #pragma once
 
-#include "btm_base.hpp"
+#include "base.hpp"
 
 #include <filesystem>
 #include <fstream>
 
-namespace btm
+namespace bm
 {
 
 //=====================================
@@ -35,10 +35,10 @@ public:
     inline std::string elapsedStr() const
     {
         std::string const unit = std::is_same_v<TimeUnit, std::chrono::nanoseconds> ? "ns" : "ms";
-        return BTM_FMT("{} {}", elapsed(), unit);
+        return BM_FMT("{} {}", elapsed(), unit);
     }
 
-    inline void showElapsed() const { BTM_INFOF("[Timer] - {} : {}", mMsg, elapsedStr()); }
+    inline void showElapsed() const { BM_INFOF("[Timer] - {} : {}", mMsg, elapsedStr()); }
 
     inline void showElapsedAndReset()
     {
@@ -182,11 +182,11 @@ inline auto read(std::string const &path) -> std::string
 {
     // Use ::ate to avoid '.seekg(0, std::ios::end)'
     auto file = std::ifstream { path, std::ios::ate | std::ios::binary };
-    BTM_DEFER(file.close());
+    BM_DEFER(file.close());
 
     if (!file.is_open())
     {
-        BTM_ERRF("Issues opening: {}", path);
+        BM_ERRF("Issues opening: {}", path);
         return "";
     }
 
@@ -421,7 +421,7 @@ inline glm::vec4 const hex2gl(std::string const &hex_, float alpha)
 
 }  // namespace color
 
-}  // namespace btm
+}  // namespace bm
 
 //
 //
@@ -431,17 +431,17 @@ inline glm::vec4 const hex2gl(std::string const &hex_, float alpha)
 // PRINT HELPERS
 //=====================================
 
-// BTM::DS::VIEW
+// BM::DS::VIEW
 template<typename T>
-struct fmt::formatter<btm::ds::view<T>>
+struct fmt::formatter<bm::ds::view<T>>
 {
     constexpr auto parse(format_parse_context &ctx) -> decltype(ctx.begin()) { return ctx.begin(); }
 
     template<typename FormatContext>
-    auto format(btm::ds::view<T> view, FormatContext &ctx) const -> decltype(ctx.out())
+    auto format(bm::ds::view<T> view, FormatContext &ctx) const -> decltype(ctx.out())
     {
         std::string s = "";
-        for (auto const &v : view) s += BTM_FMT("{}, ", v);
+        for (auto const &v : view) s += BM_FMT("{}, ", v);
         if (!view.empty())
             s.erase(s.end() - 2, s.end());
 

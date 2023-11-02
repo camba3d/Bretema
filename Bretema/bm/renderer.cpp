@@ -1,5 +1,5 @@
-#include "btm_renderer.hpp"
-#include "btm_utils.hpp"
+#include "renderer.hpp"
+#include "utils.hpp"
 
 #define TINYGLTF_IMPLEMENTATION
 #define STB_IMAGE_IMPLEMENTATION
@@ -7,18 +7,18 @@
 #define TINYGLTF_NOEXCEPTION  // optional. disable exception handling.
 #include "tiny_gltf.h"
 
-namespace btm
+namespace bm
 {
 
 //=========================================================
 // Base Renderer
 //=========================================================
 
-BaseRenderer::BaseRenderer(sPtr<btm::Window> window)
+BaseRenderer::BaseRenderer(sPtr<bm::Window> window)
 {
     mWindow = window;
-    BTM_ASSERT_X(mWindow->handle(), "Invalid window handle");
-    BTM_ASSERT_X(w() > 0 && h() > 0, "Invalid viewport size");
+    BM_ASSERT_X(mWindow->handle(), "Invalid window handle");
+    BM_ASSERT_X(w() > 0 && h() > 0, "Invalid viewport size");
 }
 
 //=========================================================
@@ -103,13 +103,13 @@ std::vector<Mesh> parseGltf(bool isBin, std::string const &filepath, ds::view<u8
                           : ctx.LoadASCIIFromFile(&model, &err, &warn, filepath);
 
     if (!err.empty())
-        BTM_ERRF("Loading GLTF {}: {}", filepath, err);
+        BM_ERRF("Loading GLTF {}: {}", filepath, err);
 
     if (!warn.empty())
-        BTM_WARNF("Loading GLTF {}: {}", filepath, warn);
+        BM_WARNF("Loading GLTF {}: {}", filepath, warn);
 
     if (!ok and (err.empty() or warn.empty()))
-        BTM_ERRF("Loading GLTF {}: Undefined error", filepath);
+        BM_ERRF("Loading GLTF {}: Undefined error", filepath);
 
     if (!ok or !err.empty() or !warn.empty())
         return {};
@@ -128,9 +128,9 @@ std::vector<Mesh> parseGltf(std::string const &filepath)
 std::vector<Mesh> parseGltf(ds::view<u8> bin, std::string name)
 {
     auto const isBin = bin::checkMagic(bin.subspan(0, 4), { 'g', 'l', 'T', 'F' });
-    BTM_ASSERT(isBin);
+    BM_ASSERT(isBin);
 
     return parseGltf(true, name, bin);
 }
 
-}  // namespace btm
+}  // namespace bm

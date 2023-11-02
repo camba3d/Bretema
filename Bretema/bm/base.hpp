@@ -89,24 +89,24 @@ using uset = std::unordered_set<T>;
 //---------------------------------------------------------
 
 //--- C++ MACROS ALIASES ----------------------------------
-#define MBU           [[maybe_unused]]
-#define NDSC          [[nodiscard]]
-#define BTM_UNUSED(x) (void)x
-#define BTM_BIT(x)    (1 << x)
-#define BTM_BIND(fn)  [this](auto &&...args) { return this->fn(args...); }
+#define MBU          [[maybe_unused]]
+#define NDSC         [[nodiscard]]
+#define BM_UNUSED(x) (void)x
+#define BM_BIT(x)    (1 << x)
+#define BM_BIND(fn)  [this](auto &&...args) { return this->fn(args...); }
 //---------------------------------------------------------
 
 //--- GLOBAL STR HELPERS ----------------------------------
 /// TypeName to String
 template<typename T>
-inline std::string BTM_STR_TYPE()
+inline std::string BM_STR_TYPE()
 {
     return typeid(T).name();
 }
 /// Ptr to String
-#define BTM_STR_PTR(p) fmt::format("{}", fmt::ptr(p))
+#define BM_STR_PTR(p) fmt::format("{}", fmt::ptr(p))
 /// Trim
-auto const BTM_STR_TRIM = [](auto const &s, i32 nChars) -> std::string_view
+auto const BM_STR_TRIM = [](auto const &s, i32 nChars) -> std::string_view
 {
     std::string_view const sv = s;
     if (nChars < 1)
@@ -117,27 +117,27 @@ auto const BTM_STR_TRIM = [](auto const &s, i32 nChars) -> std::string_view
 //---------------------------------------------------------
 
 //--- LOG (without format) --------------------------------
-// #define BTM_FULL_LENGTH_LOG
-#ifdef BTM_FULL_LENGTH_LOG
-#    define BTM_INFO(msg) fmt::print("[I] - ({}:{})\n → {}\n", __FILE__, __LINE__, msg)
-#    define BTM_WARN(msg) fmt::print("[W] - ({}:{})\n → {}\n", __FILE__, __LINE__, msg)
-#    define BTM_ERR(msg)  fmt::print("[E] - ({}:{})\n → {}\n", __FILE__, __LINE__, msg)
+// #define BM_FULL_LENGTH_LOG
+#ifdef BM_FULL_LENGTH_LOG
+#    define BM_INFO(msg) fmt::print("[I] - ({}:{})\n → {}\n", __FILE__, __LINE__, msg)
+#    define BM_WARN(msg) fmt::print("[W] - ({}:{})\n → {}\n", __FILE__, __LINE__, msg)
+#    define BM_ERR(msg)  fmt::print("[E] - ({}:{})\n → {}\n", __FILE__, __LINE__, msg)
 #else
-#    define BTM_INFO(msg) fmt::print("[I] (...{}:{}) - {}\n", BTM_STR_TRIM(__FILE__, 20), __LINE__, msg)
-#    define BTM_WARN(msg) fmt::print("[W] (...{}:{}) - {}\n", BTM_STR_TRIM(__FILE__, 20), __LINE__, msg)
-#    define BTM_ERR(msg)  fmt::print("[E] (...{}:{}) - {}\n", BTM_STR_TRIM(__FILE__, 20), __LINE__, msg)
+#    define BM_INFO(msg) fmt::print("[I] (...{}:{}) - {}\n", BM_STR_TRIM(__FILE__, 20), __LINE__, msg)
+#    define BM_WARN(msg) fmt::print("[W] (...{}:{}) - {}\n", BM_STR_TRIM(__FILE__, 20), __LINE__, msg)
+#    define BM_ERR(msg)  fmt::print("[E] (...{}:{}) - {}\n", BM_STR_TRIM(__FILE__, 20), __LINE__, msg)
 #endif
 //---------------------------------------------------------
 
 //--- LOG (with format) -----------------------------------
-#define BTM_FMT(msg, ...)   fmt::format(msg, __VA_ARGS__)
-#define BTM_INFOF(msg, ...) BTM_INFO(BTM_FMT(msg, __VA_ARGS__))
-#define BTM_WARNF(msg, ...) BTM_WARN(BTM_FMT(msg, __VA_ARGS__))
-#define BTM_ERRF(msg, ...)  BTM_ERR(BTM_FMT(msg, __VA_ARGS__))
+#define BM_FMT(msg, ...)   fmt::format(msg, __VA_ARGS__)
+#define BM_INFOF(msg, ...) BM_INFO(BM_FMT(msg, __VA_ARGS__))
+#define BM_WARNF(msg, ...) BM_WARN(BM_FMT(msg, __VA_ARGS__))
+#define BM_ERRF(msg, ...)  BM_ERR(BM_FMT(msg, __VA_ARGS__))
 //---------------------------------------------------------
 
 //--- TRACE ----------------------------------------------
-inline void BTM_TRACE(std::source_location const &sl = std::source_location::current())
+inline void BM_TRACE(std::source_location const &sl = std::source_location::current())
 {
     auto const name = sl.function_name();
     fmt::print("[*] - {}\n", name);
@@ -148,27 +148,27 @@ inline void BTM_TRACE(std::source_location const &sl = std::source_location::cur
 
 //--- ASSERT ----------------------------------------------
 #ifndef NDEBUG
-#    define BTM_ASSERT(cond) assert(cond)
-#    define BTM_ASSERT_X(cond, msg) do { if (!(cond)) { BTM_ERR(msg); assert(cond); } } while (0)
+#    define BM_ASSERT(cond) assert(cond)
+#    define BM_ASSERT_X(cond, msg) do { if (!(cond)) { BM_ERR(msg); assert(cond); } } while (0)
 #else
-#    define BTM_ASSERT(cond)
-#    define BTM_ASSERT_X(cond, msg)
+#    define BM_ASSERT(cond)
+#    define BM_ASSERT_X(cond, msg)
 #endif
 //---------------------------------------------------------
 
 //--- ABORT -----------------------------------------------
-#define BTM_ABORT(msg) do { BTM_ERR(msg); abort(); } while (0)
-#define BTM_ABORTF(msg, ...) do { BTM_ERRF(msg, __VA_ARGS__); abort(); } while (0)
-#define BTM_ABORT_IF(cond, msg) do { if (cond) BTM_ABORTF("{} --> {}", #cond, msg); } while (0)
-#define BTM_ABORTF_IF(cond, msg, ...) do { if (cond) BTM_ABORTF("{} --> {}", #cond, fmt::format(msg, __VA_ARGS__)); } while (0)
+#define BM_ABORT(msg) do { BM_ERR(msg); abort(); } while (0)
+#define BM_ABORTF(msg, ...) do { BM_ERRF(msg, __VA_ARGS__); abort(); } while (0)
+#define BM_ABORT_IF(cond, msg) do { if (cond) BM_ABORTF("{} --> {}", #cond, msg); } while (0)
+#define BM_ABORTF_IF(cond, msg, ...) do { if (cond) BM_ABORTF("{} --> {}", #cond, fmt::format(msg, __VA_ARGS__)); } while (0)
 //---------------------------------------------------------
 
 //--- CONCAT ----------------------------------------------
 // Put together two parameters passed to the macro, its the
 //   its the right way to glue things like varName_##__LINE__
 //   where __LINE__ is also a macro that extracts the line number
-#define detail_BTM_CONCAT(a, b) a##b
-#define BTM_CONCAT(a, b) detail_BTM_CONCAT(a, b)
+#define detail_BM_CONCAT(a, b) a##b
+#define BM_CONCAT(a, b) detail_BM_CONCAT(a, b)
 //---------------------------------------------------------
 
 //--- DEFER -----------------------------------------------
@@ -176,9 +176,9 @@ inline void BTM_TRACE(std::source_location const &sl = std::source_location::cur
 //   allowing us to call things like file.close(), right after file.open(),
 //   to be sure that we don't forget to call it at the end of the function
 //   and ensure that it's called even if an exception is thrown.
-#define detail_BTM_DEFER0 std::unique_ptr<void, std::function<void (void *)>>
-#define detail_BTM_DEFER1 []() { static int a=0; return &a; }
-#define BTM_DEFER(fn) auto BTM_CONCAT(defer_,__LINE__) = detail_BTM_DEFER0( detail_BTM_DEFER1(), [&](void *) { fn; } )
+#define detail_BM_DEFER0 std::unique_ptr<void, std::function<void (void *)>>
+#define detail_BM_DEFER1 []() { static int a=0; return &a; }
+#define BM_DEFER(fn) auto BM_CONCAT(defer_,__LINE__) = detail_BM_DEFER0( detail_BM_DEFER1(), [&](void *) { fn; } )
 //---------------------------------------------------------
 
 // clang-format on
@@ -188,14 +188,14 @@ inline void BTM_TRACE(std::source_location const &sl = std::source_location::cur
 //===========================
 
 #if defined(_WIN64) && defined(_WIN32) && defined(_MSC_VER)
-#    define BTM_FORCE_DISCRETE_GPU                                                        \
+#    define BM_FORCE_DISCRETE_GPU                                                         \
         extern "C"                                                                        \
         {                                                                                 \
             _declspec(dllexport) DWORD NvOptimusEnablement                  = 0x00000001; \
             _declspec(dllexport) DWORD AmdPowerXpressRequestHighPerformance = 0x00000001; \
         }
 #elif defined(_WIN64) && defined(_WIN32)
-#    define BTM_FORCE_DISCRETE_GPU                                                   \
+#    define BM_FORCE_DISCRETE_GPU                                                    \
         extern "C"                                                                   \
         {                                                                            \
             __attribute__((dllexport)) int NvOptimusEnablement                  = 1; \
@@ -207,7 +207,7 @@ inline void BTM_TRACE(std::source_location const &sl = std::source_location::cur
 //= BRETEMA CONSTS
 //===========================
 
-namespace btm
+namespace bm
 {
 
 // Axis
@@ -278,7 +278,7 @@ inline float const EPSILON      = std::numeric_limits<float>::epsilon();
 // Limits
 inline i32 constexpr MAX_PRINT_DECIMALS = 3;
 
-}  // namespace btm
+}  // namespace bm
 
 //
 //
@@ -300,7 +300,7 @@ struct fmt::formatter<glm::vec<C, float, glm::defaultp>>
         std::string s = "(";
         for (glm::length_t i = 0; i < C; ++i)
         {
-            s += fmt::format("{:.{}f},", v[i], btm::MAX_PRINT_DECIMALS);
+            s += fmt::format("{:.{}f},", v[i], bm::MAX_PRINT_DECIMALS);
         }
         s.erase(s.end() - 1, s.end());
         s += ")";
