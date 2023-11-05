@@ -154,38 +154,43 @@ bmCopyToBuild(Assets/Geometry)
 # ------------------------- #
 
 set(SRC_DIR "Bretema")
-set(SRC_BRETEMA "${SRC_DIR}/bm")
-set(SRC_VULKAN "${SRC_DIR}/vk")
 
+file(GLOB BM_HEADERS_CORE ${SRC_DIR}/bm/*.hpp)
+file(GLOB BM_HEADERS_PLATFORM_VK ${SRC_DIR}/vk/*.hpp)
 
-# file(GLOB BM_HEADERS ${SRC}/*.h)
 list(APPEND BM_HEADERS
+    ${BM_HEADERS_CORE}
+    ${BM_HEADERS_PLATFORM_VK}
 
-    ${SRC_DIR}/bm/base.hpp
-    ${SRC_DIR}/bm/utils.hpp
-    ${SRC_DIR}/bm/userInput.hpp
-    ${SRC_DIR}/bm/app.hpp
-    ${SRC_DIR}/bm/window.hpp
-    ${SRC_DIR}/bm/renderer.hpp
-    ${SRC_DIR}/bm/transform.hpp
-    ${SRC_DIR}/bm/camera.hpp
+    # ${SRC_DIR}/bm/base.hpp
+    # ${SRC_DIR}/bm/utils.hpp
+    # ${SRC_DIR}/bm/userInput.hpp
+    # ${SRC_DIR}/bm/app.hpp
+    # ${SRC_DIR}/bm/window.hpp
+    # ${SRC_DIR}/bm/renderer.hpp
+    # ${SRC_DIR}/bm/transform.hpp
+    # ${SRC_DIR}/bm/camera.hpp
 
-    ${SRC_DIR}/vk/base.hpp
-    ${SRC_DIR}/vk/renderer.hpp
-    ${SRC_DIR}/vk/str.hpp
-    ${SRC_DIR}/vk/init.hpp
-    ${SRC_DIR}/vk/types.hpp
+    # ${SRC_DIR}/vk/base.hpp
+    # ${SRC_DIR}/vk/renderer.hpp
+    # ${SRC_DIR}/vk/str.hpp
+    # ${SRC_DIR}/vk/init.hpp
+    # ${SRC_DIR}/vk/types.hpp
 )
 
-# file(GLOB BM_SOURCES ${SRC}/*.cpp)
+file(GLOB BM_SOURCES_CORE ${SRC_DIR}/bm/*.cpp)
+file(GLOB BM_SOURCES_PLATFORM_VK ${SRC_DIR}/vk/*.cpp)
+
 list(APPEND BM_SOURCES
+    ${BM_SOURCES_CORE}
+    ${BM_SOURCES_PLATFORM_VK}
 
-    ${SRC_DIR}/bm/app.cpp
-    ${SRC_DIR}/bm/window.cpp
-    ${SRC_DIR}/bm/renderer.cpp
+    # ${SRC_DIR}/bm/app.cpp
+    # ${SRC_DIR}/bm/window.cpp
+    # ${SRC_DIR}/bm/renderer.cpp
 
-    ${SRC_DIR}/vk/base.cpp
-    ${SRC_DIR}/vk/renderer.cpp
+    # ${SRC_DIR}/vk/base.cpp
+    # ${SRC_DIR}/vk/renderer.cpp
 )
 
 add_library(${PROJECT_NAME}
