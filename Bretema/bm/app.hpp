@@ -24,6 +24,8 @@ class App
 public:
     App(std::string name, RenderAPI renderAPI);
 
+    void runLoop();
+
     void run();
     void reset();
     void cleanup();
@@ -34,8 +36,6 @@ public:
 
 private:
     friend class Window;
-
-    void onInputChange();
 
     std::string mName = "";
 

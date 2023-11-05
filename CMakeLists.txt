@@ -1,18 +1,12 @@
-
 cmake_minimum_required(VERSION 3.20)
+
 
 # ------------------------- #
 # - PROJECT SETTINGS
 # ------------------------- #
 
-# Name
 project(Bretema VERSION 1.0)
 set(CMAKE_CXX_STANDARD 20)
-
-# Configure file
-configure_file(BuildInfo.in Bretema/bm/BuildInfo.hpp)
-
-# Export compile commands
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 
@@ -27,14 +21,15 @@ option(OPT_TESTS "Compile tests instead of main app" OFF)
 # - FUNCTIONS
 # ------------------------- #
 
-function(copy_directory src dest)
+function(bmCopyDir src dest)
     message(STATUS "Copying directory ${src} to ${dest}")
     execute_process(COMMAND ${CMAKE_COMMAND} -E copy_directory ${src} ${dest})
 endfunction()
 
-function(copy_source_to_build path_name)
-    copy_directory(${CMAKE_SOURCE_DIR}/${path_name} ${CMAKE_BINARY_DIR}/${path_name})
+function(bmCopyToBuild pathName)
+    bmCopyDir(${CMAKE_SOURCE_DIR}/${pathName} ${CMAKE_BINARY_DIR}/${pathName})
 endfunction()
+
 
 # ------------------------- #
 # - THIRD PARTY
@@ -43,11 +38,11 @@ endfunction()
 # Modern Printf
 set(FMT_DOC OFF)
 add_subdirectory(Modules/fmt)
-list(APPEND EXTRA_LIBS fmt)
+list(APPEND BM_LIBS fmt)
 
 # Glsl-Style Maths
 add_subdirectory(Modules/glm)
-list(APPEND EXTRA_LIBS glm)
+list(APPEND BM_LIBS glm)
 
 # Cross-Platform Window Management
 set(GLFW_BUILD_DOCS     OFF CACHE BOOL "" FORCE)
@@ -55,23 +50,23 @@ set(GLFW_BUILD_TESTS    OFF CACHE BOOL "" FORCE)
 set(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
 set(GLFW_VULKAN_STATIC  ON  CACHE BOOL "" FORCE)
 add_subdirectory(Modules/glfw)
-list(APPEND EXTRA_LIBS glfw)
+list(APPEND BM_LIBS glfw)
 
 # Vulkan
 find_package(Vulkan REQUIRED )
-find_program(glslc_executable NAMES glslc HINTS Vulkan::glslc)
-list(APPEND EXTRA_LIB_INCL ${GLFW_DIR}/deps)
-list(APPEND EXTRA_LIBS Vulkan::Vulkan)
+find_program(glslcExe NAMES glslc HINTS Vulkan::glslc)
+list(APPEND BM_INCLUDES ${GLFW_DIR}/deps)
+list(APPEND BM_LIBS Vulkan::Vulkan)
 
 set(VK_BOOTSTRAP_DISABLE_WARNINGS ON CACHE BOOL "" FORCE)
 add_subdirectory(Modules/vk-bootstrap)
-list(APPEND EXTRA_LIBS vk-bootstrap)
+list(APPEND BM_LIBS vk-bootstrap)
 
 
 # ImGui: Platform agnostic GUI
 set(IMGUI_DIR Modules/ImGui)
-list(APPEND EXTRA_LIB_INCL ${IMGUI_DIR})
-list(APPEND EXTRA_LIB_SOURCES
+list(APPEND BM_INCLUDES ${IMGUI_DIR})
+list(APPEND BM_SOURCES_EXTRA
     ${IMGUI_DIR}/imgui_impl_glfw.cpp
     ${IMGUI_DIR}/imgui_impl_vulkan.cpp
     ${IMGUI_DIR}/imgui.cpp
@@ -80,7 +75,7 @@ list(APPEND EXTRA_LIB_SOURCES
     ${IMGUI_DIR}/imgui_tables.cpp
     ${IMGUI_DIR}/imgui_widgets.cpp
 )
-list(APPEND EXTRA_LIB_HEADERS
+list(APPEND BM_HEADERS_EXTRA
     ${IMGUI_DIR}/imgui_impl_glfw.h
     ${IMGUI_DIR}/imgui_impl_vulkan.h
     ${IMGUI_DIR}/imgui.h
@@ -97,7 +92,7 @@ list(APPEND EXTRA_LIB_HEADERS
 
 if (OPT_TESTS)
     add_subdirectory(Modules/Catch2)
-    list(APPEND EXTRA_LIBS Catch2::Catch2WithMain)
+    list(APPEND BM_LIBS Catch2::Catch2WithMain)
     include(CTest)
     include(Catch)
 endif()
@@ -125,80 +120,82 @@ endif()
 # - SHADERS COMPILE AND COPY (@review: improve vars naming)
 # ------------------------- #
 
-set(shaders_src_dir "Assets/Shaders")
-set(shaders_bin_dir "Assets/Shaders")
+set(BM_SHADERS_DIR "Assets/Shaders")
 
-file(GLOB shaders_list ${shaders_src_dir}/*)
+file(GLOB BM_SHADERS_LIST ${BM_SHADERS_DIR}/*)
 
 add_custom_command(COMMAND
-    ${CMAKE_COMMAND} -E remove_directory ${shaders_bin_dir}
-    ${CMAKE_COMMAND} -E make_directory   ${shaders_bin_dir}
-    OUTPUT ${shaders_bin_dir}
+    ${CMAKE_COMMAND} -E remove_directory ${BM_SHADERS_DIR}
+    ${CMAKE_COMMAND} -E make_directory   ${BM_SHADERS_DIR}
+    OUTPUT ${BM_SHADERS_DIR}
 )
 
 MESSAGE(STATUS "[Compiling SHADERS] :")
-foreach(shader_src IN LISTS shaders_list)
-    get_filename_component(filename_and_ext ${shader_src} NAME)
-    set(shader_dst ${shaders_bin_dir}/${filename_and_ext}.spv)
-    MESSAGE(STATUS "   ${shader_src} => ./build/${shader_dst}")
-    add_custom_command(COMMAND ${glslc_executable} -o ${shader_dst} ${shader_src} OUTPUT ${shader_dst})
-    list(APPEND EXTRA_SHADERS ${shaders_bin_dir}/${filename_and_ext}.spv)
+
+foreach(shaderSrc IN LISTS ${BM_SHADERS_LIST})
+    get_filename_component(shaderName ${shaderSrc} NAME)
+    set(shaderDst ${BM_SHADERS_DIR}/${shaderName}.spv)
+    MESSAGE(STATUS "   ${shaderSrc} => ./build/${shaderDst}")
+    add_custom_command(COMMAND ${glslcExe} -o ${shaderDst} ${shaderSrc} OUTPUT ${shaderDst})
+    list(APPEND BM_SHADERS ${BM_SHADERS_DIR}/${shaderName}.spv)
 endforeach()
 
-add_custom_target(shaders ALL DEPENDS ${EXTRA_SHADERS}) # Seems like unneeded
+# add_custom_target(shaders ALL DEPENDS ${BM_SHADERS}) # Seems like unneeded
 
 
 # ------------------------- #
 # - COPY ASSETS
 # ------------------------- #
 
-copy_source_to_build(Assets/Geometry)
+bmCopyToBuild(Assets/Geometry)
+
 
 # ------------------------- #
 # - PROJECT
 # ------------------------- #
 
-set(SRC "Bretema")
-set(SRC_BRETEMA "${SRC}/bm")
-set(SRC_VULKAN "${SRC}/vk")
+set(SRC_DIR "Bretema")
+set(SRC_BRETEMA "${SRC_DIR}/bm")
+set(SRC_VULKAN "${SRC_DIR}/vk")
 
 
-# file(GLOB EXTRA_HEADERS ${SRC}/*.h)
-list(APPEND EXTRA_HEADERS
+# file(GLOB BM_HEADERS ${SRC}/*.h)
+list(APPEND BM_HEADERS
 
-    ${SRC_BRETEMA}/base.hpp
-    ${SRC_BRETEMA}/utils.hpp
-    ${SRC_BRETEMA}/userInput.hpp
-    ${SRC_BRETEMA}/app.hpp
-    ${SRC_BRETEMA}/window.hpp
-    ${SRC_BRETEMA}/renderer.hpp
-    ${SRC_BRETEMA}/transform.hpp
-    ${SRC_BRETEMA}/camera.hpp
+    ${SRC_DIR}/bm/base.hpp
+    ${SRC_DIR}/bm/utils.hpp
+    ${SRC_DIR}/bm/userInput.hpp
+    ${SRC_DIR}/bm/app.hpp
+    ${SRC_DIR}/bm/window.hpp
+    ${SRC_DIR}/bm/renderer.hpp
+    ${SRC_DIR}/bm/transform.hpp
+    ${SRC_DIR}/bm/camera.hpp
 
-    ${SRC_VULKAN}/base.hpp
-    ${SRC_VULKAN}/renderer.hpp
-    ${SRC_VULKAN}/str.hpp
-    ${SRC_VULKAN}/init.hpp
-    ${SRC_VULKAN}/types.hpp
+    ${SRC_DIR}/vk/base.hpp
+    ${SRC_DIR}/vk/renderer.hpp
+    ${SRC_DIR}/vk/str.hpp
+    ${SRC_DIR}/vk/init.hpp
+    ${SRC_DIR}/vk/types.hpp
 )
 
-    # file(GLOB EXTRA_SOURCES ${SRC}/*.cpp)
-list(APPEND EXTRA_SOURCES
-    ${SRC_BRETEMA}/app.cpp
-    ${SRC_BRETEMA}/window.cpp
-    ${SRC_BRETEMA}/renderer.cpp
+# file(GLOB BM_SOURCES ${SRC}/*.cpp)
+list(APPEND BM_SOURCES
 
-    ${SRC_VULKAN}/base.cpp
-    ${SRC_VULKAN}/renderer.cpp
+    ${SRC_DIR}/bm/app.cpp
+    ${SRC_DIR}/bm/window.cpp
+    ${SRC_DIR}/bm/renderer.cpp
+
+    ${SRC_DIR}/vk/base.cpp
+    ${SRC_DIR}/vk/renderer.cpp
 )
 
 add_library(${PROJECT_NAME}
     STATIC
-        ${EXTRA_SHADERS}
-        ${EXTRA_HEADERS}
-        ${EXTRA_SOURCES}
-        ${EXTRA_LIB_HEADERS} # @review
-        ${EXTRA_LIB_SOURCES} # @review
+        ${BM_SHADERS}
+        ${BM_HEADERS}
+        ${BM_SOURCES}
+        ${BM_HEADERS_EXTRA} # @review
+        ${BM_SOURCES_EXTRA} # @review
 )
 
 # Standard
@@ -214,7 +211,11 @@ set_property(TARGET ${PROJECT_NAME}
 # Defines
 target_compile_definitions(${PROJECT_NAME}
     PRIVATE
-        -DImTextureID=ImU64
+        
+        BM_VERSION_MAJOR=1
+        BM_VERSION_MINOR=0
+
+        ImTextureID=ImU64
 )
  
 # Compile Flags [ Windows ]
@@ -237,44 +238,40 @@ endif()
 
 target_include_directories(${PROJECT_NAME}
     PUBLIC
-        ${CMAKE_CURRENT_SOURCE_DIR}
-        Modules
+        ${CMAKE_SOURCE_DIR}
     PRIVATE
-        ${EXTRA_LIB_INCL}
+        ${BM_INCLUDES}
+        Modules
 )
 
 target_link_libraries(${PROJECT_NAME}
     PRIVATE
-        ${EXTRA_LIBS}
+        ${BM_LIBS}
 )
-
-
-# ------------------------- #
-# - HELPERS
-# ------------------------- #
-
-function(NEW_EXE exe_name exe_sources)
-    add_executable(${exe_name} ${exe_sources} ${EXTRA_LIB_HEADERS})
-    target_include_directories(${exe_name} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/build ${EXTRA_LIB_INCL})
-    target_link_libraries(${exe_name} PRIVATE ${EXTRA_LIBS} ${PROJECT_NAME})
-endfunction()
-
-function(NEW_TEST test_name test_sources)
-    set(aux_test_name test_${test_name})
-    NEW_EXE(${aux_test_name} ${test_sources})
-    catch_discover_tests(${aux_test_name})
-endfunction()
 
 
 # ------------------------- #
 # - EXE and TESTING
 # ------------------------- #
 
-# if (OPT_TESTS)
-# NEW_TEST( Sum1 Tests/Sum.cpp  )
-# NEW_TEST( Sum2 Tests/Sum2.cpp )
-# endif()
+function(bmAddExe exeName exeSources)
+    # add_executable(${exeName} ${exeSources} ${BM_HEADERS_EXTRA})
+    # target_include_directories(${exeName} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/build ${BM_INCLUDES})
+    # target_link_libraries(${exeName} PRIVATE ${BM_LIBS} ${PROJECT_NAME})
+    add_executable(${exeName} ${exeSources})
+    target_include_directories(${exeName} PRIVATE ${BM_INCLUDES})
+    target_link_libraries(${exeName} PRIVATE ${BM_LIBS} ${PROJECT_NAME})
+endfunction()
 
-# NEW_EXE( VkDemo Tests/VkDemo.cpp )
-NEW_EXE( main Tests/main.cpp )
-# NEW_EXE( ImGuiDemo Tests/ImGuiDemo.cpp )
+function(bmAddTest testName testSources)
+    set(testName test_${testName})
+    bmAddExe(${testName} ${testSources})
+    catch_discover_tests(${testName})
+endfunction()
+
+
+if (OPT_TESTS)
+bmAddTest( sum2 Tests/Sum2.cpp )
+endif()
+
+bmAddExe(main Tests/main.cpp)

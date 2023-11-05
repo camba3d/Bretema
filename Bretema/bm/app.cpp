@@ -10,6 +10,8 @@ namespace bm
 
 App::App(std::string name, RenderAPI renderAPI) : mName(std::move(name)), mRenderAPI(renderAPI)
 {
+    BM_INFOF("Initializing Bretema Engine #{}.{}", BM_VERSION_MAJOR, BM_VERSION_MINOR);
+
     BM_ABORTF_IF(
       mMainWindow || mRenderer,
       "Initialization fiasco... Window({}) or Renderer({}) already exists!",
@@ -24,6 +26,23 @@ App::App(std::string name, RenderAPI renderAPI) : mName(std::move(name)), mRende
     {
         case Vulkan: mRenderer = new vk::Renderer(mMainWindow); break;
         default: BM_ABORT("Selected renderer is not implemented yet!"); break;
+    }
+}
+
+void App::runLoop()
+{
+    while (true)
+    {
+        run();
+        cleanup();
+
+        if (isMarkedToClose())
+        {
+            BM_INFOF("Closing Bretema Engine #{}.{}", BM_VERSION_MAJOR, BM_VERSION_MINOR);
+            break;
+        }
+
+        reset();
     }
 }
 
