@@ -58,10 +58,10 @@ find_program(glslcExe NAMES glslc HINTS Vulkan::glslc)
 list(APPEND BM_INCLUDES ${GLFW_DIR}/deps)
 list(APPEND BM_LIBS Vulkan::Vulkan)
 
+# Vulkan Bootstrap
 set(VK_BOOTSTRAP_DISABLE_WARNINGS ON CACHE BOOL "" FORCE)
 add_subdirectory(Modules/vk-bootstrap)
 list(APPEND BM_LIBS vk-bootstrap)
-
 
 # ImGui: Platform agnostic GUI
 set(IMGUI_DIR Modules/ImGui)
@@ -130,17 +130,16 @@ add_custom_command(COMMAND
     OUTPUT ${BM_SHADERS_DIR}
 )
 
-MESSAGE(STATUS "[Compiling SHADERS] :")
-
-foreach(shaderSrc IN LISTS ${BM_SHADERS_LIST})
+MESSAGE(STATUS "[ Compiling SHADERS ]")
+foreach(shaderSrc IN LISTS BM_SHADERS_LIST)
     get_filename_component(shaderName ${shaderSrc} NAME)
     set(shaderDst ${BM_SHADERS_DIR}/${shaderName}.spv)
-    MESSAGE(STATUS "   ${shaderSrc} => ./build/${shaderDst}")
     add_custom_command(COMMAND ${glslcExe} -o ${shaderDst} ${shaderSrc} OUTPUT ${shaderDst})
-    list(APPEND BM_SHADERS ${BM_SHADERS_DIR}/${shaderName}.spv)
+    list(APPEND EXTRA_SHADERS ${BM_SHADERS_DIR}/${shaderName}.spv)
+    MESSAGE(STATUS "  * ${shaderName}")
 endforeach()
 
-# add_custom_target(shaders ALL DEPENDS ${BM_SHADERS}) # Seems like unneeded
+add_custom_target(shaders ALL DEPENDS ${EXTRA_SHADERS}) # Seems like unneeded
 
 
 # ------------------------- #
