@@ -102,18 +102,22 @@ endif()
 # - SYSTEM GUI RESOURCES
 # ------------------------- #
 
-# if(WIN32)
-#     # WINDOWS :: Tested
-#     set(CLIENT_RESOURCES WIN32 Clients/Windows/Resources.rc)
-# elseif(NOT UNIX)
-#     # MACOS :: NOT Tested
-#     set(MACOSX_BUNDLE_BUNDLE_NAME ${PROJECT_NAME})
-#     set(MACOSX_BUNDLE_ICON_FILE Icon.icns) # <- Just name, not abs-path.
-#     set(CLIENT_RESOURCES MACOSX_BUNDLE Clients/MacOS/Icon.icns)
-#     set_source_files_properties(Clients/MacOS/Icon.icns PROPERTIES MACOSX_PACKAGE_LOCATION Resources)
-# else()
-#     # LINUX :: NOT Tested
-# endif()
+set(CLIENTS_DIR ${CMAKE_SOURCE_DIR}/Clients)
+
+if(WIN32)
+# WINDOWS :: Tested
+    set(CLIENT_DIR ${CLIENTS_DIR}/Windows)
+    set(CLIENT_OBJ ${CLIENT_DIR}/client.o)
+    # execute_process(COMMAND windres ${CLIENT_DIR}/client.rc -o ${CLIENT_DIR}/client.o)
+elseif(NOT UNIX)
+    # MACOS :: NOT Tested
+    set(MACOSX_BUNDLE_BUNDLE_NAME ${PROJECT_NAME})
+    set(MACOSX_BUNDLE_ICON_FILE client.icns) # <- Just name, not abs-path.
+    set(CLIENT_DATA MACOSX_BUNDLE Clients/MacOS/client.icns)
+    set_source_files_properties(Clients/MacOS/client.icns PROPERTIES MACOSX_PACKAGE_LOCATION Resources)
+else()
+    # LINUX :: NOT Tested
+endif()
 
 
 # ------------------------- #
@@ -275,7 +279,8 @@ endfunction()
 
 
 if (OPT_TESTS)
-bmAddTest( sum2 Tests/Sum2.cpp )
+bmAddTest( sum2 Tests/Sum2.cpp)
 endif()
 
-bmAddExe(main Tests/main.cpp)
+message(WARNING "aaaaaaaaaaaaa => ${CLIENT_OBJ}")
+bmAddExe(main Tests/main.cpp)# ${CLIENT_OBJ})
