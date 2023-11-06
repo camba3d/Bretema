@@ -51,6 +51,13 @@ Window::Window(i32 w, i32 h, std::string const &title, App *app) : mW(w), mH(h),
     mHandle = glfwCreateWindow(mW, mH, "", nullptr, nullptr);
     BM_ABORT_IF(!mHandle, "Couldn't create a new Window");
 
+    // Add window icon
+    auto const path = bm::runtime::exepath() + "/Assets/Icons/app.png";
+    GLFWimage  img[1];
+    img[0].pixels = stbi_load(path.c_str(), &img[0].width, &img[0].height, 0, 4);
+    glfwSetWindowIcon(mHandle, 1, img);
+    stbi_image_free(img[0].pixels);
+
     // Store app pointer into window object
     glfwSetWindowUserPointer(mHandle, app);
 

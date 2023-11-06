@@ -104,11 +104,13 @@ endif()
 
 set(CLIENTS_DIR ${CMAKE_SOURCE_DIR}/Clients)
 
+set(RES_FILES "")
 if(WIN32)
 # WINDOWS :: Tested
-    set(CLIENT_DIR ${CLIENTS_DIR}/Windows)
-    set(CLIENT_OBJ ${CLIENT_DIR}/client.o)
-    # execute_process(COMMAND windres ${CLIENT_DIR}/client.rc -o ${CLIENT_DIR}/client.o)
+    ENABLE_LANGUAGE(RC)
+    set(RES_FILES ${CLIENTS_DIR}/Windows/client.rc)
+    # set(CMAKE_RC_COMPILER_INIT windres)
+    # set(CMAKE_RC_COMPILE_OBJECT "<CMAKE_RC_COMPILER> <FLAGS> -O coff <DEFINES> -i <SOURCE> -o <OBJECT>")
 elseif(NOT UNIX)
     # MACOS :: NOT Tested
     set(MACOSX_BUNDLE_BUNDLE_NAME ${PROJECT_NAME})
@@ -151,6 +153,7 @@ add_custom_target(shaders ALL DEPENDS ${EXTRA_SHADERS}) # Seems like unneeded
 # ------------------------- #
 
 bmCopyToBuild(Assets/Geometry)
+bmCopyToBuild(Assets/Icons)
 
 
 # ------------------------- #
@@ -240,16 +243,17 @@ else()
     if (CMAKE_BUILD_TYPE EQUAL "RELEASE")
         target_compile_options(${PROJECT_NAME} PRIVATE -O3)
     else()
-        target_compile_options(${PROJECT_NAME} PRIVATE -O0 -g3 -ggdb -Wall -Werror -Wextra -pedantic -Wno-missing-field-initializers)
+        # target_compile_options(${PROJECT_NAME} PRIVATE -O0 -g3 -ggdb -Wall -Werror -Wextra -pedantic -Wno-missing-field-initializers)
+        target_compile_options(${PROJECT_NAME} PRIVATE -O0 -g3 -ggdb -Wall -Wextra -pedantic -Wno-missing-field-initializers)
     endif()
 endif()
 
 target_include_directories(${PROJECT_NAME}
     PUBLIC
         ${CMAKE_SOURCE_DIR}
+        Modules
     PRIVATE
         ${BM_INCLUDES}
-        Modules
 )
 
 target_link_libraries(${PROJECT_NAME}
@@ -263,10 +267,7 @@ target_link_libraries(${PROJECT_NAME}
 # ------------------------- #
 
 function(bmAddExe exeName exeSources)
-    # add_executable(${exeName} ${exeSources} ${BM_HEADERS_EXTRA})
-    # target_include_directories(${exeName} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/build ${BM_INCLUDES})
-    # target_link_libraries(${exeName} PRIVATE ${BM_LIBS} ${PROJECT_NAME})
-    add_executable(${exeName} ${exeSources})
+    add_executable(${exeName} ${exeSources} ${RES_FILES})
     target_include_directories(${exeName} PRIVATE ${BM_INCLUDES})
     target_link_libraries(${exeName} PRIVATE ${BM_LIBS} ${PROJECT_NAME})
 endfunction()
@@ -279,8 +280,7 @@ endfunction()
 
 
 if (OPT_TESTS)
-bmAddTest( sum2 Tests/Sum2.cpp)
+bmAddTest(sum2 Tests/Sum2.cpp)
 endif()
 
-message(WARNING "aaaaaaaaaaaaa => ${CLIENT_OBJ}")
-bmAddExe(main Tests/main.cpp)# ${CLIENT_OBJ})
+bmAddExe(main Tests/main.cpp)
