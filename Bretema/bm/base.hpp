@@ -355,3 +355,43 @@ struct fmt::formatter<glm::vec<C, float, glm::defaultp>>
         return fmt::format_to(ctx.out(), "{}", s);
     }
 };
+
+//
+//
+//
+
+//=====================================
+// DISABLE WARNINGS CROSSPLATFORM
+//=====================================
+
+// clang-format off
+
+//--- MSVC -----------------------------------------------
+#if defined(_MSC_VER)
+#    define BM_NO_WARNING_PUSH           __pragma(warning(push))
+#    define BM_NO_WARNING_POP            __pragma(warning(pop))
+#    define BM_NO_WARNING(warningNumber) __pragma(warning(disable : warningNumber))
+// To disable
+#    define BM_NO_WARNING_TYPE_LIMITS
+//--------------------------------------------------------
+
+//--- GCC / CLANG ----------------------------------------
+#elif defined(__GNUC__) || defined(__clang__)
+#    define DO_PRAGMA(X)                 _Pragma(#X)
+#    define BM_NO_WARNING_PUSH         DO_PRAGMA(GCC diagnostic push)
+#    define BM_NO_WARNING_POP          DO_PRAGMA(GCC diagnostic pop)
+#    define BM_NO_WARNING(warningName) DO_PRAGMA(GCC diagnostic ignored #warningName)
+// To disable
+#    define BM_NO_WARNING_TYPE_LIMITS  BM_NO_WARNING(-Wtype-limits)
+//--------------------------------------------------------
+
+//--- OTHER ----------------------------------------------
+#else
+#    define BM_NO_WARNING_PUSH
+#    define BM_NO_WARNING_POP
+// To disable
+#    define BM_NO_WARNING_TYPE_LIMITS
+#endif
+//--------------------------------------------------------
+
+// clang-format on
