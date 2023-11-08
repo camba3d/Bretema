@@ -75,12 +75,14 @@ using f64 = double;
 //---------------------------------------------------------
 
 //--- Smart Pointers --------------------------------------
-template<typename T>
-using sPtr = std::shared_ptr<T>;
+// template<typename T>
+// using sPtr = std::shared_ptr<T>;
+#define sPtr std::shared_ptr
 #define sNew std::make_shared
 
-template<typename T>
-using uPtr = std::unique_ptr<T>;
+// template<typename T>
+// using uPtr = std::unique_ptr<T>;
+#define uPtr std::unique_ptr
 #define uNew std::make_unique
 //---------------------------------------------------------
 
@@ -156,7 +158,7 @@ using uset = std::unordered_set<T>;
 //= STR HELPERS
 //===========================
 
-//--- TypeName --------------------------------------------
+//--- TypeName (Type) -------------------------------------
 template<typename T>
 inline std::string BM_STR_TYPE()
 {
@@ -164,28 +166,27 @@ inline std::string BM_STR_TYPE()
 }
 //---------------------------------------------------------
 
+//--- TypeName (Obj) --------------------------------------
+#define BM_STR_TYPE(obj) BM_STR_TYPE<decltype(obj)>()
+//---------------------------------------------------------
+
 //--- Pointer --------------------------------------------
 #define BM_STR_PTR(p) fmt::format("{}", fmt::ptr(p))
 //---------------------------------------------------------
 
 //--- Trim first nChars -----------------------------------
-auto const BM_STR_TRIM = [](auto const &s, i32 nChars) -> std::string_view
+inline std::string BM_STR_TRIM(std::string s, i32 n)
 {
-    std::string_view const sv = s;
-    if (nChars < 1)
-    {
-        return sv;
-    }
-    size_t const n = static_cast<size_t>(nChars);
-    return sv.substr(sv.length() >= n ? sv.length() - n : 0);
+    i32 const sl = s.length();
+    return n < 1 ? s : s.substr(sl >= n ? sl - n : 0);
 };
 //---------------------------------------------------------
 
 //--- Ensure Unix-Like Path -------------------------------
 inline std::string BM_UNIX_PATH(std::string str)
 {
-    std::string from = "\\";
-    std::string to   = "/";
+    static std::string const from = "\\";
+    static std::string const to   = "/";
 
     size_t pos = 0;
     while ((pos = str.find(from)) < str.size())
@@ -209,9 +210,9 @@ inline std::string BM_UNIX_PATH(std::string str)
 
 //--- LOG (without format) --------------------------------
 #ifdef BM_FULL_LENGTH_LOG
-#    define BM_INFO(msg) fmt::print("[I] - ({}:{})\n → {}\n", BM_UNIX_PATH(__FILE__), __LINE__, msg)
-#    define BM_WARN(msg) fmt::print("[W] - ({}:{})\n → {}\n", BM_UNIX_PATH(__FILE__), __LINE__, msg)
-#    define BM_ERR(msg)  fmt::print("[E] - ({}:{})\n → {}\n", BM_UNIX_PATH(__FILE__), __LINE__, msg)
+#    define BM_INFO(msg) fmt::print("[I] {}:{}\n[=]---→ {}\n", BM_UNIX_PATH(__FILE__), __LINE__, msg)
+#    define BM_WARN(msg) fmt::print("[W] {}:{}\n[=]---→ {}\n", BM_UNIX_PATH(__FILE__), __LINE__, msg)
+#    define BM_ERR(msg)  fmt::print("[E] {}:{}\n[=]---→ {}\n", BM_UNIX_PATH(__FILE__), __LINE__, msg)
 #else
 #    define BM_INFO(msg) fmt::print("[I] (...{}:{}) - {}\n", BM_STR_TRIM(__FILE__, 20), __LINE__, msg)
 #    define BM_WARN(msg) fmt::print("[W] (...{}:{}) - {}\n", BM_STR_TRIM(__FILE__, 20), __LINE__, msg)
@@ -229,8 +230,19 @@ inline std::string BM_UNIX_PATH(std::string str)
 //--- TRACE ----------------------------------------------
 inline void BM_TRACE(std::source_location const &sl = std::source_location::current())
 {
-    auto const name = sl.function_name();
-    fmt::print("[*] - {}\n", name);
+    auto const funcname = sl.function_name();
+    auto const filename = sl.file_name();
+    auto const line     = sl.line();
+    fmt::print("[*] {}:{} ( {} )\n", filename, line, funcname);
+};
+
+//--- LOG -------------------------------------------------
+inline void BM_LOG(std::string const &log, std::source_location const &sl = std::source_location::current())
+{
+    auto const funcname = sl.function_name();
+    auto const filename = sl.file_name();
+    auto const line     = sl.line();
+    fmt::print("[L] {}:{}\n[=]---→ {}\n", filename, line, log);
 };
 //---------------------------------------------------------
 
