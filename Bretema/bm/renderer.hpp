@@ -125,36 +125,34 @@ public:
     // PROPS
     inline bool isInitialized() { return mInit; }
 
-    inline float winW()
-    {
-        BM_ASSERT(mWindow);
-        return mWindow ? mWindow->size().x : 1;
-    }
-    inline float winH()
-    {
-        BM_ASSERT(mWindow);
-        return mWindow ? mWindow->size().y : 1;
-    }
     inline float w() { return mSize.x; }
     inline float h() { return mSize.y; }
 
     // ACTIONS
-    virtual void update()                = 0;
-    virtual void draw(Camera const &cam) = 0;
-    virtual void cleanup()               = 0;
+    virtual void update() { syncWinSize(); };
+    virtual void draw(Camera const &) = 0;
+    virtual void cleanup()            = 0;
 
-    bool windowSizeMatch() { return mSize == winSize(); }
-    void windowSizeSync() { mSize = winSize(); }
+    // protected:
+public:
+    glm::vec2 winSize() { return mWindow ? mWindow->size() : ZERO2; }
 
-protected:
-    inline void markAsInit() { mInit = true; }
-
-    glm::vec2 winSize() { return mWindow ? mWindow->size() : ONE2; }
+    bool mWindowSizeChanged = false;
 
     bool             mInit        = false;
     i32              mFrameNumber = 0;
-    glm::vec2        mSize        = { 1280, 720 };
+    glm::vec2        mSize        = ZERO2;
     sPtr<bm::Window> mWindow      = nullptr;
+
+private:
+    void syncWinSize()
+    {
+        mWindowSizeChanged = mSize != winSize();
+        if (mWindowSizeChanged)
+        {
+            mSize = winSize();
+        }
+    }
 };
 
 //===========================

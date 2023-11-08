@@ -17,6 +17,8 @@ namespace bm
 BaseRenderer::BaseRenderer(sPtr<bm::Window> window)
 {
     mWindow = window;
+    syncWinSize();
+
     BM_ASSERT_X(mWindow->handle(), "Invalid window handle");
     BM_ASSERT_X(w() > 0 && h() > 0, "Invalid viewport size");
 }

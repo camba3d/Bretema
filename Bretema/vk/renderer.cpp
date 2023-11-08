@@ -36,13 +36,15 @@ Renderer::Renderer(sPtr<bm::Window> window) : bm::BaseRenderer(window)
 
     // load_images();
 
-    markAsInit();
+    mInit = true;
 }
 
 //-----------------------------------------------------------------------------
 
 void Renderer::draw(Camera const &cam)
 {
+    // bm::BaseRenderer::draw(cam);
+
     // BM_TRACE();
 
     // Wait for GPU (1 second timeout)
@@ -155,7 +157,7 @@ void Renderer::draw(Camera const &cam)
     presentInfo.pImageIndices      = &swapchainImgIdx;
     auto resPresent                = vkQueuePresentKHR(mGraphics.queue, &presentInfo);
 
-    if (resPresent == VK_ERROR_OUT_OF_DATE_KHR || resPresent == VK_SUBOPTIMAL_KHR || !windowSizeMatch())
+    if (resPresent == VK_ERROR_OUT_OF_DATE_KHR || resPresent == VK_SUBOPTIMAL_KHR || mWindowSizeChanged)
     {
         recreateSwapchain();
         return;
@@ -282,8 +284,6 @@ void Renderer::initVulkan()
 void Renderer::initSwapchain(VkSwapchainKHR prev)
 {
     BM_TRACE();
-
-    windowSizeSync();
 
     BM_ASSERT_X(w() > 0 && h() > 0, "Invalid viewport size");
 

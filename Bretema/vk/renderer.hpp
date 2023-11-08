@@ -23,7 +23,7 @@ class Renderer : public bm::BaseRenderer
 
 public:
     Renderer(sPtr<bm::Window> window);
-    virtual void update() override { BM_WARN("NOT IMPLEMENTED"); }
+    virtual void update() override { bm::BaseRenderer::update(); }
     virtual void draw(Camera const &cam) override;
     virtual void cleanup() override;
 

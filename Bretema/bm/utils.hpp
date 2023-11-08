@@ -74,7 +74,7 @@ inline std::string replace(std::string str, std::string const &from, std::string
     return str;
 }
 
-inline std::vector<std::string> split(const std::string &str, const std::string &delimeter)
+inline std::vector<std::string> split(std::string const &str, std::string const &delimeter)
 {
     std::string              token;
     std::vector<std::string> splitted;
@@ -96,6 +96,11 @@ inline std::vector<std::string> split(const std::string &str, const std::string 
     }
 
     return splitted;
+}
+
+inline std::string unixPath(std::string const &s)
+{
+    return replace(s, "\\", "/");
 }
 
 }  // namespace str

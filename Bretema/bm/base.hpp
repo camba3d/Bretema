@@ -181,6 +181,22 @@ auto const BM_STR_TRIM = [](auto const &s, i32 nChars) -> std::string_view
 };
 //---------------------------------------------------------
 
+//--- Ensure Unix-Like Path -------------------------------
+inline std::string BM_UNIX_PATH(std::string str)
+{
+    std::string from = "\\";
+    std::string to   = "/";
+
+    size_t pos = 0;
+    while ((pos = str.find(from)) < str.size())
+    {
+        str.replace(pos, from.length(), to);
+    }
+
+    return str;
+}
+//---------------------------------------------------------
+
 //
 //
 //
@@ -189,13 +205,13 @@ auto const BM_STR_TRIM = [](auto const &s, i32 nChars) -> std::string_view
 //= LOGGING
 //===========================
 
-// #define BM_FULL_LENGTH_LOG
+#define BM_FULL_LENGTH_LOG
 
 //--- LOG (without format) --------------------------------
 #ifdef BM_FULL_LENGTH_LOG
-#    define BM_INFO(msg) fmt::print("[I] - ({}:{})\n → {}\n", __FILE__, __LINE__, msg)
-#    define BM_WARN(msg) fmt::print("[W] - ({}:{})\n → {}\n", __FILE__, __LINE__, msg)
-#    define BM_ERR(msg)  fmt::print("[E] - ({}:{})\n → {}\n", __FILE__, __LINE__, msg)
+#    define BM_INFO(msg) fmt::print("[I] - ({}:{})\n → {}\n", BM_UNIX_PATH(__FILE__), __LINE__, msg)
+#    define BM_WARN(msg) fmt::print("[W] - ({}:{})\n → {}\n", BM_UNIX_PATH(__FILE__), __LINE__, msg)
+#    define BM_ERR(msg)  fmt::print("[E] - ({}:{})\n → {}\n", BM_UNIX_PATH(__FILE__), __LINE__, msg)
 #else
 #    define BM_INFO(msg) fmt::print("[I] (...{}:{}) - {}\n", BM_STR_TRIM(__FILE__, 20), __LINE__, msg)
 #    define BM_WARN(msg) fmt::print("[W] (...{}:{}) - {}\n", BM_STR_TRIM(__FILE__, 20), __LINE__, msg)
@@ -361,7 +377,7 @@ struct fmt::formatter<glm::vec<C, float, glm::defaultp>>
 //
 
 //=====================================
-// DISABLE WARNINGS CROSSPLATFORM
+// CROSSPLATFORM DISABLE WARNINGS
 //=====================================
 
 // clang-format off
@@ -377,7 +393,7 @@ struct fmt::formatter<glm::vec<C, float, glm::defaultp>>
 
 //--- GCC / CLANG ----------------------------------------
 #elif defined(__GNUC__) || defined(__clang__)
-#    define DO_PRAGMA(X)                 _Pragma(#X)
+#    define DO_PRAGMA(X)               _Pragma(#X)
 #    define BM_NO_WARNING_PUSH         DO_PRAGMA(GCC diagnostic push)
 #    define BM_NO_WARNING_POP          DO_PRAGMA(GCC diagnostic pop)
 #    define BM_NO_WARNING(warningName) DO_PRAGMA(GCC diagnostic ignored #warningName)

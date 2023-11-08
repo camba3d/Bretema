@@ -5,7 +5,7 @@ namespace bm
 {
 
 // clang-format off
-#define RENDERER(call) do { BM_ASSERT(mRenderer); (mRenderer)->call; } while (0);
+// #define RENDERER(call) do { BM_ASSERT(mRenderer); (mRenderer)->call; } while (0);
 // clang-format on
 
 App::App(std::string name, RenderAPI renderAPI) : mName(std::move(name)), mRenderAPI(renderAPI)
@@ -53,6 +53,8 @@ void App::run()
     while (isAnyWindowOpen)
     {
         isAnyWindowOpen = false;
+        mRenderer->update();
+
         for (auto &window : { mMainWindow })
         {
             std::string et = mETimer.elapsedStr();
@@ -68,7 +70,7 @@ void App::run()
             }
 
             auto const &mainCamera = mCameras.at(0);
-            RENDERER(draw(mainCamera));
+            mRenderer->draw(mainCamera);
 
             if (close)
                 window->destroy();  // WARNING : This should trigger something on 'SelectedRenderer' ??
@@ -83,7 +85,7 @@ void App::run()
 
 void App::cleanup()
 {
-    RENDERER(cleanup());
+    mRenderer->cleanup();
     bm::Window::terminate();
 
     delete mRenderer;
