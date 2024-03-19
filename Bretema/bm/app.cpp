@@ -1,12 +1,7 @@
-
 #include "app.hpp"
 
 namespace bm
 {
-
-// clang-format off
-// #define RENDERER(call) do { BM_ASSERT(mRenderer); (mRenderer)->call; } while (0);
-// clang-format on
 
 App::App(std::string name, RenderAPI renderAPI) : mName(std::move(name)), mRenderAPI(renderAPI)
 {
@@ -48,37 +43,48 @@ void App::runLoop()
 
 void App::run()
 {
-    bool isAnyWindowOpen = true;  // In a future we'll support many windows at once
+    bool isAnyWindowOpen = true;  // NOTE: In a future we'll support many windows at once
 
     while (isAnyWindowOpen)
     {
         isAnyWindowOpen = false;
-        mRenderer->update();
 
         for (auto &window : { mMainWindow })
         {
+            //--- FPS
             std::string et = mETimer.elapsedStr();
             window->titleInfo(et);
             mETimer.reset();
+            //---
 
-            bool const close = window->isMarkedToClose();
+            //--- Update
+            mRenderer->update();
 
-            // RENDERER(update());
             for (auto &camera : mCameras)
             {
                 camera.update(1.77777f, INF3);
             }
+            //---
 
+            //--- Draw
             auto const &mainCamera = mCameras.at(0);
             mRenderer->draw(mainCamera);
+            //---
+
+            //--- Close
+            bool const close = window->isMarkedToClose();
 
             if (close)
-                window->destroy();  // WARNING : This should trigger something on 'SelectedRenderer' ??
+            {
+                // WARNING : This should trigger something on 'SelectedRenderer' ??
+                window->destroy();
+            }
 
             isAnyWindowOpen |= !close;
+            //---
         }
 
-        // bm::Window::waitEvents();
+        // bm::Window::waitEvents();  // WARNING: Prefer this one!
         bm::Window::pollEvents();
     }
 }

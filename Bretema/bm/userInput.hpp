@@ -175,7 +175,9 @@ using KeyState   = umap<Key, State>;
 class UserInput
 {
 public:
-    UserInput(std::function<void(UserInput *)> onInputChanged) : mOnInputChanged(onInputChanged) {}
+    using CallBack = std::function<void(UserInput *)>;
+
+    UserInput(CallBack onInputChanged) : mOnInputChanged(onInputChanged) {}
 
     // Cursor
 
@@ -256,7 +258,7 @@ private:
     KeyState   mKeys   = {};
     MouseState mMouse  = {};
 
-    std::function<void(UserInput *)> mOnInputChanged = nullptr;
+    CallBack mOnInputChanged = nullptr;
 };
 
 }  // namespace bm

@@ -162,11 +162,13 @@ bmCopyToBuild(Assets/Icons)
 
 set(SRC_DIR "Bretema")
 
-file(GLOB BM_HEADERS_CORE ${SRC_DIR}/bm/*.hpp)
+file(GLOB BM_HEADERS_CORE ${SRC_DIR}/Core/*.hpp)
+file(GLOB BM_HEADERS_ENGINE ${SRC_DIR}/bm/*.hpp)
 file(GLOB BM_HEADERS_PLATFORM_VK ${SRC_DIR}/vk/*.hpp)
 
 list(APPEND BM_HEADERS
     ${BM_HEADERS_CORE}
+    ${BM_HEADERS_ENGINE}
     ${BM_HEADERS_PLATFORM_VK}
 
     # ${SRC_DIR}/bm/base.hpp
@@ -185,11 +187,13 @@ list(APPEND BM_HEADERS
     # ${SRC_DIR}/vk/types.hpp
 )
 
-file(GLOB BM_SOURCES_CORE ${SRC_DIR}/bm/*.cpp)
+file(GLOB BM_SOURCES_CORE ${SRC_DIR}/Core/*.cpp)
+file(GLOB BM_SOURCES_ENGINE ${SRC_DIR}/bm/*.cpp)
 file(GLOB BM_SOURCES_PLATFORM_VK ${SRC_DIR}/vk/*.cpp)
 
 list(APPEND BM_SOURCES
     ${BM_SOURCES_CORE}
+    ${BM_SOURCES_ENGINE}
     ${BM_SOURCES_PLATFORM_VK}
 
     # ${SRC_DIR}/bm/app.cpp
@@ -283,4 +287,5 @@ if (OPT_TESTS)
 bmAddTest(sum2 Tests/Sum2.cpp)
 endif()
 
+bmAddExe(ImGuiDemo Tests/ImGuiDemo.cpp)
 bmAddExe(main Tests/main.cpp)

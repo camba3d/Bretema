@@ -235,15 +235,16 @@ inline void BM_TRACE(std::source_location const &sl = std::source_location::curr
     auto const line     = sl.line();
     fmt::print("[*] {}:{} ( {} )\n", filename, line, funcname);
 };
+//---------------------------------------------------------
 
 //--- LOG -------------------------------------------------
-inline void BM_LOG(std::string const &log, std::source_location const &sl = std::source_location::current())
-{
-    auto const funcname = sl.function_name();
-    auto const filename = sl.file_name();
-    auto const line     = sl.line();
-    fmt::print("[L] {}:{}\n[=]---→ {}\n", filename, line, log);
-};
+// inline void BM_LOG(std::string const &log, std::source_location const &sl = std::source_location::current())
+// {
+//     auto const funcname = sl.function_name();
+//     auto const filename = BM_UNIX_PATH(sl.file_name());
+//     auto const line     = sl.line();
+//     fmt::print("[L] {}:{}\n[=]---→ {}\n", filename, line, log);
+// };
 //---------------------------------------------------------
 
 //

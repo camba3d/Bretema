@@ -3,6 +3,7 @@
 #include "app.hpp"
 
 #include <vector>
+#include <stb_image.h>
 
 namespace bm
 {

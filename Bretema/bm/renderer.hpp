@@ -77,7 +77,7 @@ struct Area3D
 //===========================
 
 using MeshIndices = std::vector<u16>;
-struct Mesh
+struct Mesh  // @todo : Check if should change this to use vertex-pull instead vertex-fetch
 {
     std::string name = "";
 
@@ -105,7 +105,19 @@ using MeshVertices  = Vertices;
 using MeshInstances = Instances;
 using MeshGroup     = std::vector<Mesh>;
 
-struct Material
+struct Material  // Data for a GPU Shader/Pipeline, right?
+{
+};
+
+struct Image  // Data for a GPU Texture/Image
+{
+};
+
+struct Buffer  // Data for a GPU Buffer
+{
+};
+
+struct Framebuffer  // Data for a GPU Framebuffer... does it make sense?
 {
 };
 
@@ -123,8 +135,7 @@ public:
     virtual ~BaseRenderer() = default;
 
     // PROPS
-    inline bool isInitialized() { return mInit; }
-
+    inline bool  isInitialized() { return mInit; }
     inline float w() { return mSize.x; }
     inline float h() { return mSize.y; }
 
@@ -133,8 +144,7 @@ public:
     virtual void draw(Camera const &) = 0;
     virtual void cleanup()            = 0;
 
-    // protected:
-public:
+protected:
     glm::vec2 winSize() { return mWindow ? mWindow->size() : ZERO2; }
 
     bool mWindowSizeChanged = false;

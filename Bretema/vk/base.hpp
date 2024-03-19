@@ -26,8 +26,6 @@
 #include <VkBootstrap.h>
 #include <vulkan/vulkan.h>
 
-//===[MACROS]======
-
 // #define FADE_VK_INSTANCE_LAYERS     "VK_LAYER_KHRONOS_validation"
 // #define FADE_VK_INSTANCE_EXTENSIONS VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME
 
