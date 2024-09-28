@@ -8,6 +8,7 @@ git submodule update --init --recursive
 python3 ./build.py -b  # This expects that you have g++ installed
 ./build/main.exe
 ```
+
 ### 📸 Demo
 
 ![demo](Doc/demo.png)
