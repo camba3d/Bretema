@@ -87,42 +87,6 @@ list(APPEND BM_HEADERS_EXTRA
 
 
 # ------------------------- #
-# - TESTING
-# ------------------------- #
-
-if (OPT_TESTS)
-    add_subdirectory(Modules/Catch2)
-    list(APPEND BM_LIBS Catch2::Catch2WithMain)
-    include(CTest)
-    include(Catch)
-endif()
-
-
-# ------------------------- #
-# - SYSTEM GUI RESOURCES
-# ------------------------- #
-
-set(CLIENTS_DIR ${CMAKE_SOURCE_DIR}/Clients)
-
-set(RES_FILES "")
-if(WIN32)
-# WINDOWS :: Tested
-    ENABLE_LANGUAGE(RC)
-    set(RES_FILES ${CLIENTS_DIR}/Windows/client.rc)
-    # set(CMAKE_RC_COMPILER_INIT windres)
-    # set(CMAKE_RC_COMPILE_OBJECT "<CMAKE_RC_COMPILER> <FLAGS> -O coff <DEFINES> -i <SOURCE> -o <OBJECT>")
-elseif(NOT UNIX)
-    # MACOS :: NOT Tested
-    set(MACOSX_BUNDLE_BUNDLE_NAME ${PROJECT_NAME})
-    set(MACOSX_BUNDLE_ICON_FILE client.icns) # <- Just name, not abs-path.
-    set(CLIENT_DATA MACOSX_BUNDLE Clients/MacOS/client.icns)
-    set_source_files_properties(Clients/MacOS/client.icns PROPERTIES MACOSX_PACKAGE_LOCATION Resources)
-else()
-    # LINUX :: NOT Tested
-endif()
-
-
-# ------------------------- #
 # - SHADERS COMPILE AND COPY (@review: improve vars naming)
 # ------------------------- #
 
@@ -226,31 +190,14 @@ set_property(TARGET ${PROJECT_NAME}
 # Defines
 target_compile_definitions(${PROJECT_NAME}
     PRIVATE
-        
+
         BM_VERSION_MAJOR=1
         BM_VERSION_MINOR=0
 
         ImTextureID=ImU64
 )
- 
-# Compile Flags [ Windows ]
-if(MSVC)
-    add_compile_definitions(NOMINMAX)
-    if (CMAKE_BUILD_TYPE EQUAL "RELEASE")
-        target_compile_options(${PROJECT_NAME} PRIVATE /Ox /Ob2 /MD)
-    else()
-        target_compile_options(${PROJECT_NAME} PRIVATE /Zi /W4 /WX /MDd /wd4996)
-    endif()
 
-# Compile Flags [ Unix / Linux / MacOS ]
-else()
-    if (CMAKE_BUILD_TYPE EQUAL "RELEASE")
-        target_compile_options(${PROJECT_NAME} PRIVATE -O3)
-    else()
-        # target_compile_options(${PROJECT_NAME} PRIVATE -O0 -g3 -ggdb -Wall -Werror -Wextra -pedantic -Wno-missing-field-initializers)
-        target_compile_options(${PROJECT_NAME} PRIVATE -O0 -g3 -ggdb -Wall -Wextra -pedantic -Wno-missing-field-initializers)
-    endif()
-endif()
+
 
 target_include_directories(${PROJECT_NAME}
     PUBLIC

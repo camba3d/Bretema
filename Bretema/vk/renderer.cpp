@@ -86,7 +86,7 @@ void Renderer::draw(Camera const &cam)
     // Make a clear-color from frame number.
     // This will flash with a 120*pi frame period.
     VkClearValue clearColor {}, clearDepth {};
-    auto const   color            = bm::color::hex_to_gl("#ff7d00", 1.f);
+    auto const   color            = bm::color::hex_to_gl("#0d1117", 1.f);
     // BM_INFOF("COLOOOOOOR: {}", color);
     // auto const   color            = bm::color::hex_to_gl("#e07a5f", 1.f);
     clearColor.color              = { color.r, color.g, color.b, color.a };

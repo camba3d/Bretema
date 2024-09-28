@@ -14,7 +14,8 @@ class Camera
     static float constexpr sBound            = 1.5f;
     static float constexpr sFar              = 1'000.f;
     static float constexpr sNear             = 0.1f;
-    static float constexpr sInitZ            = 6.f;
+    static glm::vec3 constexpr sInitEye      = { 2.f, 4.f, 8.f };
+    static float constexpr sInitZ            = sInitEye.z;
     static float constexpr sMouseSensitivity = 0.1f;
 
 public:
@@ -25,7 +26,7 @@ public:
         Ortho
     };
 
-    Camera(std::string name, glm::vec3 eye = FRONT * sInitZ, glm::vec3 lookAt = ZERO3, Mode mode = Mode::Fly)
+    Camera(std::string name, glm::vec3 eye = sInitEye, glm::vec3 lookAt = ZERO3, Mode mode = Mode::Fly)
       : mName(name)
       , mEye(eye)
       , mLookAt(lookAt)
@@ -115,8 +116,8 @@ public:
         // Zoom / Fov
         auto const fovMod  = ui.wheel().y * speed();
         auto const zoomMod = front() * fovMod;
-        if (ui.pressed(Key::LeftAlt))
-            fov(fovMod);
+        if (ui.pressed(Key::F))
+            fov(fovMod * 100.f);
         else if (isOrtho())
             move(ZERO3, ZERO3, fovMod);
         else
