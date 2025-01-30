@@ -4,8 +4,9 @@
 
 ```bash
 git clone https://github.com/byBretema/bretema
+cd bretema
 git submodule update --init --recursive
-python3 ./build.py -b  # This expects that you have g++ installed
+python ./build.py -b  # This expects that you have g++ installed
 ./build/main.exe
 ```
 
